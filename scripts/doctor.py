@@ -91,6 +91,124 @@ def check_frontmatter() -> tuple[bool, str]:
     return (not bad, f"{len(bad)} bad" if bad else "all present")
 
 
+# Agent Skills spec rules as data (wave3 Task 8, agentskills.io spec):
+# - name: 1-64 chars, ^[a-z0-9]+(-[a-z0-9]+)*$ (no lead/trail/consecutive
+#   hyphens); MUST equal the parent dir name (WARN — harnesses tolerate
+#   drift; a hard fail here would break 4-harness reality).
+# - description: 1-1024 chars (hard FAIL: the trigger path is dead without
+#   it, and >1024 is out of spec).
+# - compatibility: <= 500 chars when present (WARN — current harnesses
+#   truncate silently).
+# - metadata: str->str map, allowed-tools: space-separated (hard FAIL on
+#   wrong types).
+_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
+
+def frontmatter_spec_problems(slug: str, fm_text: str,
+                               fm_yaml) -> tuple[list[str], list[str]]:
+    """Spec problems for one skill's frontmatter.
+
+    fm_yaml is the parsed dict (None when PyYAML is unavailable or the
+    frontmatter does not parse). Returns (hard, warn) problem lists; each
+    problem string is prefixed with the slug. Type rules need the parsed
+    dict, so they only run on the yaml path (CI installs pytest only —
+    the regex fallback still covers every string-level rule)."""
+    hard: list[str] = []
+    warn: list[str] = []
+
+    def note(msg: str) -> None:
+        (hard if not msg.startswith("WARN") else warn).append(f"{slug}: {msg}")
+
+    m = re.search(r"^name:\s*(.+)$", fm_text, re.MULTILINE)
+    name = m.group(1).strip().strip("'\"") if m else None
+    if name is None:
+        note("name missing")
+    else:
+        if not name or len(name) > 64:
+            note(f"name length {len(name)} outside 1-64")
+        elif not _NAME_RE.fullmatch(name):
+            note("name charset (want ^[a-z0-9]+(-[a-z0-9]+)*$)")
+        elif name != slug:
+            note(f"WARN name != dir ({name!r})")
+
+    m = re.search(r"^description:\s*(.+)$", fm_text, re.MULTILINE)
+    desc = m.group(1).strip() if m else None
+    if not desc:
+        note("description missing")
+    else:
+        if fm_yaml is not None:
+            y = fm_yaml.get("description") if isinstance(fm_yaml, dict) else None
+            if isinstance(y, str) and len(y) > 1024:
+                note(f"description length {len(y)} > 1024")
+        elif len(desc) > 1024 + 2:  # regex path: allow for the quotes
+            note(f"description length {len(desc) - 2} > 1024")
+
+    m = re.search(r"^compatibility:\s*(.+)$", fm_text, re.MULTILINE)
+    if m and fm_yaml is None:
+        raw = m.group(1).strip().strip("'\"")
+        if len(raw) > 500:
+            note(f"WARN compatibility length {len(raw)} > 500")
+
+    if isinstance(fm_yaml, dict):
+        compat = fm_yaml.get("compatibility")
+        if compat is not None:
+            if not isinstance(compat, str):
+                note("compatibility must be a string")
+            elif len(compat) > 500:
+                note(f"WARN compatibility length {len(compat)} > 500")
+        meta = fm_yaml.get("metadata")
+        if meta is not None and (not isinstance(meta, dict)
+                                 or not all(isinstance(k, str)
+                                            and isinstance(v, str)
+                                            for k, v in meta.items())):
+            note("metadata must be a str->str map")
+        tools = fm_yaml.get("allowed-tools")
+        if tools is not None and not (isinstance(tools, str)
+                                      and tools.strip()
+                                      and "  " not in tools):
+            note("allowed-tools must be a space-separated string")
+    return hard, warn
+
+
+def check_frontmatter_spec() -> tuple[bool, str]:
+    """agentskills.io spec conformance (wave3 Task 8). Hard violations
+    FAIL the doctor; WARN tier (name != dir, compat > 500, version-less
+    metadata) names slugs but keeps the kit green."""
+    bad: list[str] = []
+    warned: list[str] = []
+    total = 0
+    for sk in sorted((KIT / "skills").iterdir()):
+        if not sk.is_dir():
+            continue
+        md = sk / "SKILL.md"
+        if not md.is_file():
+            bad.append(f"{sk.name}: no SKILL.md")
+            continue
+        total += 1
+        parts = md.read_text(encoding="utf-8", errors="replace").split("---")
+        if len(parts) < 3:
+            bad.append(f"{sk.name}: no frontmatter")
+            continue
+        fm_text = parts[1]
+        fm_yaml = None
+        if yaml is not None:
+            try:
+                fm_yaml = yaml.safe_load(fm_text)
+            except yaml.YAMLError:
+                fm_yaml = None  # parse errors are check_frontmatter's turf
+        hard, warn = frontmatter_spec_problems(sk.name, fm_text, fm_yaml)
+        bad.extend(hard)
+        warned.extend(warn)
+    if bad:
+        return (False, "; ".join(bad[:5])
+                + (f" (+{len(bad) - 5} more)" if len(bad) > 5 else ""))
+    if warned:
+        return (True, f"{total} skills, spec OK; WARN: "
+                + "; ".join(warned[:5])
+                + (f" (+{len(warned) - 5} more)" if len(warned) > 5 else ""))
+    return (True, f"{total} skills, spec OK")
+
+
 def check_gate() -> tuple[bool, str]:
     r = subprocess.run(
         [sys.executable,
@@ -279,6 +397,7 @@ def main() -> int:
         ("engine sync", check_engine_sync()),
         ("integrity", check_integrity()),
         ("supply chain", check_skill_supply_chain()),
+        ("frontmatter-spec", check_frontmatter_spec()),
         ("backup freshness", check_backup_freshness()),
         ("encoding discipline", check_encoding_discipline()),
     ]
