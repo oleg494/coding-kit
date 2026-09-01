@@ -13,16 +13,18 @@
   "eval/prompt_assembly.py": "b21993a55a4352d0e24e71633d0dccfdcd9822779c2e1e2fe528dbd525d3ac83",
   "eval/results_io.py": "38fc62a603c202542489db41d791f2ed7fa3ba999eb1d8bce3460ef6fd1c1946",
   "eval/runner.py": "21277379296dfdca695ab5c0e08dfb0e33362f029296ed96d52479cb84519be2",
-  "eval/task_runner.py": "469afeb7d237e112c0657cbbf6b99b3ebe6a04b7eb85c780081022a02226f686",
+  "eval/task_runner.py": "be016a23d3513ccb895b4c14a499a3b6dc02899ec0886c16e49021893fa5b68c",
   "eval/tasks/001-fix-div-zero/verify.py": "cf4cf0804317f180cdb3f5308a2c23f8303b09ec11d6c38f455a613525629037",
   "eval/tasks/002-add-validation/verify.py": "5d148c61ac43e3c1f73d9bc7522edcb4a768da18a48d8a5e5ed65db54267ac5c",
   "eval/tasks/003-regression-guard/verify.py": "64e3a486b950e2c1fbaee6cea3f56816a2743f962ca4eca8d944423891d3e2ae",
   "eval/tasks/004-regression-test-first/verify.py": "5dee137165f50252ca74c4d34e7238629fa9a08b504da4c7fb72daa60aa2b1a2",
+  "eval/tasks/005-canary-oneoff/verify.py": "82cb734f8580e64be71e0a4f3e0e5ae97f4a915935355b155915e5de21441399",
+  "eval/tasks/006-canary-conflicting/verify.py": "1b2af776e4fc21926e119a16d7b932bc9532ee1712df2f106825dbb452dd99fc",
   "eval/tasks/_verify_common.py": "22f6faddde05a3b5bd20d9e3aef7d0284bb262a71ef3b3a8b4e958a1a0032ae4",
   "eval/tasks/repo-fixture/calc.py": "47a48072c9f4fc45325c4ffc9f2d16560bc77b36d868952728e759218ef7f0e2",
   "eval/tasks/repo-fixture/test_calc.py": "effec0c48a18bda1ef1b929d21ffc7f45b13ea824618eeb39f77a39fbe6c1e0b",
   "eval/telemetry.py": "755b9ccaec75de93502ea9aa39ca39af1187a2104697c4e9b8c8ec27be69fcfe",
-  "eval/trend.py": "a9b49af79d7a71e2066380eb10b9ae4228c84285f904a1cf40f64ff2aa308e9a",
+  "eval/trend.py": "d8b60e99d9711f3dccbfb60b0143264af47dc87d1446d56dac90195514e5213a",
   "eval/trigger_eval.py": "2166c46c528be5401b7a68e0685e8bdf59da8c8612ec0412af294986a514fda3",
   "memory/db-tools/_compat.py": "47ad633897121b3f8d8d9c3dae2d4ce947fd76bdb6400460fb7c764e9f339941",
   "memory/db-tools/build.py": "e2e4cce7b14a53eebadf74f9a2e0a8096a40b710889d53017387810c35020dc8",
@@ -42,7 +44,7 @@
   "memory/db-tools/tasks.py": "bc3aacd05c49b29b695929a62a167cc2d6468c7a794cae8eb03f25f306479992",
   "memory/scripts/_compat.py": "47ad633897121b3f8d8d9c3dae2d4ce947fd76bdb6400460fb7c764e9f339941",
   "memory/scripts/memory-warmup.py": "4599211238737188be65f568cac44f8a5fc7d342a38850839143bc4c3f52658f",
-  "profile.yml": "56be9d26e24d7291cd1b09dea366d8812493e741bda9d06a50d9e6e2d53d0236",
+  "profile.yml": "741b51b31e552cfefad6279046db835e00fe330182270620015e37d3f10f7d47",
   "scripts/doctor.py": "461b93604e06eb73a59db6f757cad9e724edbaf635cd2a54447c3cbe786f49d7",
   "scripts/install.py": "6cbccf49c6e6f72791b8a2048d7fd580e8c91d932f0dddadf731f10c7dc133f9",
   "scripts/tools/backup_memory.py": "571d6c43651f8e250799c2b39c0a7101b2033923e75ceccf0424cca6ee87c9ab",
@@ -88,5 +90,5 @@
   "skills/writing-plans/SKILL.md": "4917958929614d97d8e6aa6a8bc1795a9b9cd302ff936e529557fd1ffa14d8db",
   "skills/yagni/SKILL.md": "981b34ebd6b01e65e94a1f4549b64963bec19686a46460444d1bb7ef0d567b43"
  },
- "kit_version": "3.5.0"
+ "kit_version": "3.6.0"
 }

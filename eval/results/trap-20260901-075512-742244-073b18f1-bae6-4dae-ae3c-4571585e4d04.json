@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "trap-20260901-075512-742244-073b18f1-bae6-4dae-ae3c-4571585e4d04",
+  "kind": "trap",
+  "model": "mast-model",
+  "executor_name": "unspecified",
+  "utc": "2026-09-01T07:55:12.742244+00:00",
+  "harness_sha": "aefec762693ca6e9ce8363e674681fa27ae83839",
+  "mode": "live",
+  "scenarios": [
+    {
+      "name": "a",
+      "verdict": "FAIL",
+      "mast_mode": "FM-3.1"
+    },
+    {
+      "name": "b",
+      "verdict": "FAIL",
+      "mast_mode": "FM-9.9"
+    }
+  ]
+}

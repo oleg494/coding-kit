@@ -4,6 +4,29 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v3.6.0 (wave2 honest-oracle)**: verifier-integrity axis from the
+  2026-09-01 roadmap. (1) ImpossibleBench canaries: eval/tasks/005-canary-
+  oneoff + 006-canary-conflicting — mutated oracles (flipped expected
+  value; contradictory duplicate assertion) whose correct score is 0;
+  any pass is recorded as hacked (`canary: true` TASK.md frontmatter,
+  canary/hacked fields on attempts); canaries EXCLUDED from pass-rate
+  baselines and trend scores; trend gains "## Canary integrity" section.
+  Live check: honest executor FAILs both canaries, runner exit-clean.
+  (2) Clean-pass accounting: shortcut_patterns() flags the 4
+  ImpossibleBench strategies (test-file modification, comparison
+  operator overload, call-count state, exact-assert special-casing) over
+  a difflib sandbox-vs-pristine diff; every attempt records `shortcuts`;
+  trend renders resolved/hacked/clean columns (Qwen Verification
+  Horizon). (3) MAST taxonomy: docs/mast-taxonomy.md (14 modes,
+  arXiv:2503.13657v3 Appendix A ids), MAST_MODES dict, optional
+  mast_mode on result rows, trend "## MAST failure modes" histogram with
+  unknown-id WARNING; 5 scenarios backfilled (false-done FM-3.1,
+  silent-failure FM-3.2, weakened-test FM-3.3, contract-drift FM-1.1,
+  silent-cross-write FM-2.6). Regression tests: test_canaries.py (13),
+  test_clean_pass.py (11), test_mast_labels.py (9); task count 4->6.
+  Verified: pytest = 376 passed, 1 skipped, 34 subtests; doctor 12
+  checks GREEN; trap dry-run 22/22 GREEN. Release contract: version
+  3.6.0, 36 skills.
 - **v3.5.0 (wave1 trust-surface)**: security triad + memory DR from the
   2026-09-01 SOTA roadmap. (1) OWASP ASI01-10 + AST10 map
   (docs/SECURITY-MAP.md, 20 rows, every row names a kit control) +
