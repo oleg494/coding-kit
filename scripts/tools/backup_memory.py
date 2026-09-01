@@ -85,35 +85,55 @@ def backup(dest: Path | None = None, root: Path | None = None) -> dict:
 
 
 def restore_drill(backup_dir: Path, root: Path | None = None) -> dict:
-    """Restore a backup into a temp MEMORY_ROOT and verify search works.
+    """Restore a backup into a temp MEMORY_ROOT and VERIFY it inside that
+    root's lifetime (the temp dir is deleted before returning — callers
+    get facts, never a live path).
 
-    Returns {"restored_root", "files", "dbs", "probe"}; probe is the
-    search_all.py output (exit code + first hits) proving the restore is
-    usable, not just present."""
+    Verification: every restored .db passes `PRAGMA integrity_check`, and
+    (when the memory root carries db-tools) search_all.py runs against
+    the restored copy. Returns {"files", "dbs", "integrity_ok",
+    "probe"}."""
+    import os
+    import subprocess
+
     root = root or memory_root()
     if not backup_dir.is_dir():
         raise FileNotFoundError(f"backup dir missing: {backup_dir}")
+
+    result: dict = {"files": 0, "dbs": 0, "integrity_ok": False, "probe": None}
     with tempfile.TemporaryDirectory(prefix="memory-drill-") as tmp:
         restored = Path(tmp) / "memory"
         shutil.copytree(backup_dir, restored)
+        result["files"] = sum(1 for p in restored.rglob("*") if p.is_file())
+        db_files = sorted(restored.rglob("*.db"))
+        result["dbs"] = len(db_files)
 
-        # Probe: run search_all.py against the restored root.
+        # integrity_check on every restored database
+        ok = True
+        for db in db_files:
+            con = sqlite3.connect(str(db))
+            try:
+                row = con.execute("PRAGMA integrity_check").fetchone()
+                if not row or row[0] != "ok":
+                    ok = False
+                    break
+            finally:
+                con.close()
+        result["integrity_ok"] = ok
+
+        # search probe against the restored root (if db-tools exist)
         tool = root / "db-tools" / "search_all.py"
-        probe = {"tool": str(tool), "exists": tool.is_file()}
+        probe: dict = {"tool": str(tool), "exists": tool.is_file()}
         if tool.is_file():
-            import subprocess
             r = subprocess.run(
                 [sys.executable, str(tool), "test"],
                 capture_output=True, text=True, encoding="utf-8",
-                errors="replace", timeout=60,
-                env={**__import__("os").environ,
-                     "MEMORY_ROOT": str(restored)})
+                errors="replace", timeout=120, check=False,
+                env={**os.environ, "MEMORY_ROOT": str(restored)})
             probe["returncode"] = r.returncode
             probe["first_lines"] = (r.stdout or r.stderr).strip().splitlines()[:3]
-        files = sum(1 for p in restored.rglob("*") if p.is_file())
-        dbs = sum(1 for p in restored.rglob("*.db"))
-        return {"restored_root": str(restored), "files": files,
-                "dbs": dbs, "probe": probe}
+        result["probe"] = probe
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -18,6 +18,7 @@ Usage:
 """
 import os
 import re
+from datetime import datetime
 import sqlite3
 import subprocess
 import sys
@@ -252,7 +253,7 @@ def check_backup_freshness() -> tuple[bool, str]:
     if not backups.is_dir():
         return (True, "no backups yet (WARN: run scripts/tools/backup_memory.py)")
     stamps = sorted(e.name for e in backups.iterdir()
-                    if e.is_dir() and len(e.name) == 15 and e.name[:15].isdigit())
+                    if e.is_dir() and re.fullmatch(r"\d{8}T\d{6}", e.name))
     if not stamps:
         return (True, "backups dir has no YYYYMMDDTHHMMSS entries (WARN)")
     try:

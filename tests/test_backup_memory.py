@@ -2,16 +2,20 @@
 
 Covers: SQLite online-backup API usage (never a raw copy of a live db),
 corrupt-then-restore drill with a search probe, doctor WARN rows."""
+import importlib.util
 import sqlite3
 import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts" / "tools"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "tools"))
+import backup_memory
 
-import backup_memory  # noqa: E402
-import doctor  # noqa: E402
+KIT = Path(__file__).resolve().parents[1]
+_spec = importlib.util.spec_from_file_location(
+    "doctor", KIT / "scripts" / "doctor.py")
+doctor = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(doctor)
 
 
 def _seed_memory_root(tmp: Path) -> Path:
@@ -42,26 +46,26 @@ class BackupDrillTest(unittest.TestCase):
             root = _seed_memory_root(tmp)
             os.environ["MEMORY_ROOT"] = str(root)
             try:
-                # Backup
+                # Backup (SQLite online-backup API — never a raw copy)
                 result = backup_memory.backup(dest=tmp / "dest", root=root)
                 self.assertTrue((Path(result["path"]) / "notes.txt").is_file())
                 self.assertGreaterEqual(result["dbs"], 1)
-
-                # Corrupt the original db (the DR scenario)
-                (root / "db" / "research.db").write_bytes(b"garbage")
-
-                # Restore drill: search probe must still find the row
-                # content in the restored copy.
-                drill = backup_memory.restore_drill(
-                    Path(result["path"]), root=root)
-                restored = Path(drill["restored_root"])
-                # The restored db must be readable and carry the row.
-                con = sqlite3.connect(restored / "db" / "research.db")
+                # The BACKUP copy itself must already be readable + intact.
+                con = sqlite3.connect(
+                    str(Path(result["path"]) / "db" / "research.db"))
                 rows = con.execute(
                     "SELECT topic, text FROM findings").fetchall()
                 con.close()
                 self.assertEqual(rows,
                                  [("test-topic", "test-conclusion-body")])
+
+                # Corrupt the ORIGINAL db (the DR scenario), then drill:
+                # restore into a temp root and verify integrity there.
+                (root / "db" / "research.db").write_bytes(b"garbage")
+                drill = backup_memory.restore_drill(
+                    Path(result["path"]), root=root)
+                self.assertTrue(drill["integrity_ok"],
+                                "restored db must pass integrity_check")
                 self.assertGreaterEqual(drill["dbs"], 1)
             finally:
                 os.environ.pop("MEMORY_ROOT", None)
@@ -90,7 +94,7 @@ class DoctorBackupFreshnessTest(unittest.TestCase):
     def test_warns_when_no_backups(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
-            doctor.KIT = ROOT  # keep real kit path for tool lookup
+            doctor.KIT = KIT  # keep real kit path for tool lookup
             import os
             old = os.environ.get("MEMORY_ROOT")
             os.environ["MEMORY_ROOT"] = str(Path(tmp) / "memory")
@@ -105,8 +109,8 @@ class DoctorBackupFreshnessTest(unittest.TestCase):
                     os.environ["MEMORY_ROOT"] = old
 
     def test_green_when_backup_fresh(self):
-        import time as _time
         import tempfile
+        import time as _time
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "memory"
             (root / "backups" / _time.strftime("%Y%m%dT%H%M%S")).mkdir(
@@ -129,7 +133,7 @@ class DoctorBackupFreshnessTest(unittest.TestCase):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "memory"
-            old_stamp = (datetime.datetime.now()
+            old_stamp = (datetime.datetime.now()  # noqa: DTZ005
                          - datetime.timedelta(days=30)).strftime(
                 "%Y%m%dT%H%M%S")
             (root / "backups" / old_stamp).mkdir(parents=True)
