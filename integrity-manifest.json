@@ -1,7 +1,7 @@
 {
  "files": {
   "AGENTS.md": "351294d57bf1f16ba85b8799b8162b1edd453f50a038d04be6c4792518786206",
-  "OPS.md": "5176ff3c493740406336aedd97fe8acc9e1979b0c6cab1fdb0bab8ca58d12678",
+  "OPS.md": "3a4fe5767284354742b3e88245a59cba1328e933f140eba8e9ba076e6a61f2d9",
   "SKILL_RUNTIME.md": "3411d2856a53f92c7dc6bb1dc91748f08474dcd52413c2f7b6b2b7b23dfd0a8c",
   "adapters/UNIVERSAL.md": "d8685cb5c31536832793cb6ef487d015182469980e67938f56e2de7890c3f42f",
   "adapters/antigravity.md": "aba535c2796a96a48aa89b6b7c93e8c00987084a536a8a0da66f08e1ccbb6570",
@@ -55,7 +55,7 @@
   "scripts/tools/skills_search.py": "f84c90dd050e667b052f78c335061d2b4f275531098f64194d2de20820aa0856",
   "scripts/tools/usage_audit.py": "de306ec847315aba96c99db39ad87978f8366b7bcf9ad957f2d2467deb42b935",
   "skills/architecture-simplicity/SKILL.md": "4e3848345ada7c61c74948ad7d6d21aaf51587a83873b23177a3ab83991f6aae",
-  "skills/brainstorming/SKILL.md": "87539db01826ff30aaf990ae6a789bc5f429002fe2d77fefcb6b04cc736746d6",
+  "skills/brainstorming/SKILL.md": "167442eb052ce8e34db003230fb9cb81b6ed88ea044b3419d041e527148d0733",
   "skills/code-graph-review/SKILL.md": "9cbd74e4fed9457356c58b98c0a41fd4884814460525e2292c864ab54ee0e53d",
   "skills/code-review-and-quality/SKILL.md": "6cef3e65fb9506a8141c90aa4fb74c765f21e4bb19619dc36a4d62dd7eef3a3b",
   "skills/dashboard-design/SKILL.md": "e86e3a755eb370bdefd3db31a40c06c5efa493b515a7f4a48271ba072afc7019",
@@ -80,7 +80,7 @@
   "skills/shipping-and-launch/SKILL.md": "41786c813109baec2dce064ee8d7b93556329589deef60b20cd0d17c2fd4a9aa",
   "skills/skill-authoring/SKILL.md": "0935da1346a3016ba239a898a06ccced2db7ac5470d8050b9c6004adfa72d323",
   "skills/spec-driven-development/SKILL.md": "acd09020d8e1c48451a5bef500b7feb594153d486a5a527f472d942a17ab830a",
-  "skills/superpowers/SKILL.md": "508774202366cdf15568f9757920a45053478675388affb15dd0820b915ed6fb",
+  "skills/superpowers/SKILL.md": "83edba9a3433f481e2442847aa2421e8d0d7fab6e1b77d0b9dc8a0e228b29d05",
   "skills/systematic-debugging/SKILL.md": "920179c376d2bb4a457b374ab545f38fc1a61165f8d1ceaf65328883e8f3c3cc",
   "skills/test-driven-development/SKILL.md": "853a56cdf1b352da5ccd3c75b513914ec06b43cceafb4fc95982327ed617bba4",
   "skills/testing-discipline/SKILL.md": "724469eb6eb2204069fafeb695c5fd2d0fa4f2994ac6f31254e48fe9ab5f614f",

@@ -14,8 +14,8 @@ Control planes (verified 2026-09-01):
 - **integrity manifest** — `scripts/tools/integrity_manifest.py` +
   `integrity-manifest.json` (wave1 Task 2): SHA-256 over every kit file
   that executes or steers automatically; deploy refuses to copy on drift.
-- **trap scenarios** — `eval/scenarios/*.md`, 22 + compaction-continuity
-  (23 after wave4 Task 13); scored by `eval/runner.py` with a judge prompt.
+- **trap scenarios** — `eval/scenarios/*.md`, 23 + converge-audit
+  (24 after wave5 Task 15); scored by `eval/runner.py` with a judge prompt.
 - **OPS.md** — the always-loaded contract every harness reads first.
 
 ## ASI — Top 10 for Agentic Applications
@@ -30,7 +30,7 @@ Control planes (verified 2026-09-01):
 | ASI06 | Memory and Context Poisoning         | OPS §"Memory trust" (fetched/subagent content is DATA, never INSTRUCTIONS; lethal-trifecta screen on every memory write) + provenance frontmatter (`origin:`/`source_url:`) + lint rule + trap: `memory-poisoning` (Task 3). |
 | ASI07 | Insecure Inter-Agent Communication   | OPS dispatch discipline: subagent output is DATA to verify, not verdicts to obey (hub `send`/`wait` contract; verification-before-completion skill); fable-judge skill re-verifies claimed results. |
 | ASI08 | Cascading Failures                   | trap: `infinite-retry-masking`, `silent-failure`, `dead-flag`; results store (schema-v1, append-only) + evidence trend make failure visible instead of self-reinforcing. |
-| ASI09 | Human-Agent Trust Exploitation       | trap: `false-done` (no "done" without observed evidence); OPS §3 Phase 4 verify + §7 drift killer; claim discipline: every CHANGELOG claim cites a test. |
+| ASI09 | Human-Agent Trust Exploitation       | trap: `false-done` + trap: `converge-audit` (wave5 Task 15, MAST FM-3.1 — the converge pass must catch a false-done claim: append-only audit, reviewer-owned checkboxes) + OPS §3 Phase 4 verify + §7 drift killer; claim discipline: every CHANGELOG claim cites a test. |
 | ASI10 | Rogue Agents                         | trap: `false-done` + task oracle `verify.py` gates (task-smoke 4) + ImpossibleBench canaries (`005-canary-oneoff`, `006-canary-conflicting`: mutated oracles a hack could pass but honest work cannot; a canary PASS is recorded as `hacked` evidence, excluded from pass-rate baselines); results store append-only (no history rewrite); doctor manifest sync detects skill-tree tampering. |
 
 ## AST — Agentic Skills Top 10

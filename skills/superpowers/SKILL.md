@@ -2,7 +2,7 @@
 name: superpowers
 description: 'Always-on. The main development method: Plan → TDD → Implement → Verify → Report. Use for ANY non-trivial task. Do not write code without a plan and a test. Complex tasks (>3 files) → split into atomic tasks. Bug fix → Prove-It Pattern (reproduce with a test before the fix).'
 metadata:
-  version: "3.8.0"
+  version: "3.9.0"
 ---
 
 # Superpowers — main development method
@@ -71,7 +71,22 @@ Bug report → test reproducing the bug → test FAILS → fix → test GREEN
 - [ ] Build not broken? → checked.
 - [ ] Linter clean? → ran.
 - [ ] Bug fix → TWINS: searched for the same pattern in the codebase.
-- [ ] No "seems to work" — only "observed that it works".
+
+### SDD contract gates (v3.9.0)
+
+Three contract rules — not advice. Violating one invalidates the phase.
+
+1. **Clarify before plan.** Spec ambiguous? Ask ≤5 targeted questions
+   and fold every answer back into the spec — BEFORE any plan exists.
+   A plan built on an unclarified spec is waste.
+2. **Checklist sovereignty.** Reviewer-owned `- [ ]` markers in a plan
+   or task list: the implementer NEVER toggles one. Counts unchecked,
+   reports the number, asks the owner.
+3. **Converge pass.** Before REPORT: a strictly append-only
+   anti-false-done audit. Its ONLY write is ADDING missed work to the
+   task list; findings are severity-graded (critical/warning/
+   suggestion). Re-checking a box, editing done work, or declaring
+   "converged, nothing to add" without the audit is a false done.
 
 ## Phase 5: REPORT
 

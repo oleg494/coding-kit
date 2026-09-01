@@ -2,7 +2,7 @@
 name: brainstorming
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
 metadata:
-  version: "3.8.0"
+  version: "3.9.0"
 ---
 
 # Brainstorming Ideas Into Designs
@@ -99,9 +99,15 @@ your path and complete them in order.
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity, get user approval after each section
 5. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+
 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 7. **User reviews written spec** — ask user to review the spec file before proceeding
 8. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+
+**Clarify-before-plan gate (v3.9.0):** before any plan exists, ask
+≤5 targeted questions and fold every answer back into the spec. An
+ambiguity that survives into the plan multiplies into every task it
+spawns.
 
 
 ## Process Flow

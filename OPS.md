@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v3.8.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 23, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
+> **v3.9.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 24, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.
@@ -73,7 +73,13 @@ first   first     minimal      observed    first
 - What was done — first line.
 - Files touched.
 - What was verified.
-- What's next.
+
+**SDD contract gates (v3.9.0):** clarify before plan (≤5 targeted
+questions folded into the spec before any plan exists) · checklist
+sovereignty (reviewer-owned `- [ ]`: the implementer never toggles —
+counts unchecked, asks) · converge pass (strictly append-only
+anti-false-done audit; the only write is adding missed work;
+severity-graded). Full text: `skills/superpowers/SKILL.md`.
 
 ---
 

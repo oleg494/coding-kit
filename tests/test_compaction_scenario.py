@@ -74,14 +74,14 @@ class ScenarioFileTest(unittest.TestCase):
 
 
 class RegistryContractTest(unittest.TestCase):
-    def test_scenario_count_is_23(self):
+    def test_scenario_count_is_24(self):
         n = len(list((KIT / "eval" / "scenarios").glob("*.md")))
-        self.assertEqual(n, 23, "trap suite must grow 22 -> 23")
+        self.assertEqual(n, 24, "trap suite must grow 22 -> 23 -> 24")
 
     def test_release_contract_count_bumped(self):
         text = (KIT / "tests" / "test_release_contract.py").read_text(
             encoding="utf-8")
-        self.assertIn("EXPECTED_SCENARIO_COUNT = 23", text)
+        self.assertIn("EXPECTED_SCENARIO_COUNT = 24", text)
 
     def test_not_a_behavior_oracle_skill(self):
         """The behavior-oracle registry is for always-on skill reflexes;
