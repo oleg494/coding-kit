@@ -2,16 +2,39 @@
 name: code-review-and-quality
 description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
 metadata:
-  version: "3.8.0"
+  version: "3.9.0"
 ---
-
-# Code Review and Quality
 
 ## Overview
 
 Multi-dimensional code review with quality gates. Five axes: correctness, readability, architecture, security, and performance.
 
 **The approval standard:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist. Don't block a change because it isn't exactly how you would have written it.
+
+## What NOT to Flag
+
+Review noise buries real findings. Never report:
+
+- Theoretical risks — no exploit path in THIS change's reality.
+- Defense-in-depth when the primary control suffices.
+- Issues in unchanged code (lines outside the diff).
+- "Consider library X" — no new-dependency suggestions in review.
+
+## Severity: 3 Values
+
+- **critical** — blocks merge: real bug, broken contract, fraud.
+- **warning** — must fix before proceeding; alone not merge-blocking.
+- **suggestion** — optional improvement; never blocks.
+
+## Report Format (machine-checkable counts)
+
+End every review with the counts; the verdict is recomputed from them
+(`verdict_from_counts` — see fable-judge):
+
+```
+counts: critical: N | warning: N | suggestion: N
+verdict: <VERIFIED | VERIFIED WITH CAVEATS | REFUTED>
+```
 
 ## The Five-Axis Review
 
@@ -61,7 +84,7 @@ Multi-dimensional code review with quality gates. Five axes: correctness, readab
 1. **Understand the Context** — What is this change trying to accomplish?
 2. **Review the Tests First** — Tests reveal intent and coverage.
 3. **Review the Implementation** — Walk through with five axes.
-4. **Categorize Findings** — Critical (blocks merge), Required, Nit (optional), Optional, FYI.
+4. **Categorize Findings** — critical / warning / suggestion (3 values only).
 5. **Verify the Verification** — What tests were run? Did the build pass?
 
 ## Dead Code Hygiene

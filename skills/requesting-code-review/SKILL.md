@@ -2,12 +2,27 @@
 name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
 metadata:
-  version: "3.8.0"
+  version: "3.9.0"
 ---
 
 # Requesting Code Review
 
 Dispatch a code reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history.
+
+## What NOT to Flag
+
+The same review protocol binds the reviewer you dispatch — put this in
+the template context:
+
+- No theoretical risks — no exploit path in THIS change's reality.
+- No defense-in-depth when the primary control suffices.
+- No issues in unchanged code (lines outside the diff).
+- No "consider library X" — no new-dependency suggestions.
+
+Findings come back as 3-value severity with machine-checkable counts
+(`counts: critical: N | warning: N | suggestion: N`); the verdict is
+recomputed from the counts (`verdict_from_counts`, canonical in
+`scripts/tools/review_protocol.py`) — not from the reviewer's mood.
 
 **Core principle:** Review early, review often.
 

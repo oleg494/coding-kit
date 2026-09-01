@@ -3,7 +3,7 @@ name: fable-judge
 description: 'Adversarial verification of finished work: re-runs the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
 license: MIT
 metadata:
-  version: "3.8.0"
+  version: "3.9.0"
 ---
 
 
@@ -33,6 +33,32 @@ Target: the most recent completed piece of work in this conversation, or whateve
    - **VERIFIED WITH CAVEATS** - the work is sound; list exactly what could not be re-run and any minor debris.
    - **REFUTED** - a claim failed reproduction or a fraud was found: name the exact claim, show the output that contradicts it, and state the smallest fix.
    Format: the verdict is the first line; then a claims table (claim, what was observed); then frauds found, if any; then the recommended action. Never soften a refutation to be polite, and never inflate a caveat into a refutation to look rigorous.
+
+## Structured verdict: recomputable from counts
+
+**Approval bias:** you are gating, not essay-writing. Findings use 3
+values — critical / warning / suggestion (see code-review-and-quality;
+"What NOT to Flag" applies to the judge too: no theoretical risks, no
+defense-in-depth when the primary control suffices, no issues in
+unchanged code, no "consider library X"). Report the counts and
+recompute the verdict — the verdict is arithmetic, never a mood
+(canonical implementation: `verdict_from_counts(critical, warning)`
+in `scripts/tools/review_protocol.py`):
+
+```
+verdict_from_counts(0, 0) == "VERIFIED"
+verdict_from_counts(0, 2) == "VERIFIED"
+verdict_from_counts(0, 3) == "VERIFIED WITH CAVEATS"
+verdict_from_counts(1, 4) == "REFUTED"
+```
+
+critical > 0 → REFUTED; else warning ≤ 2 → VERIFIED; else VERIFIED
+WITH CAVEATS.
+
+**Break-glass:** the keyword «срочно-пропустить» (or "break-glass")
+from the user skips this gate. A skip without a logged note (who asked,
+what was skipped, why) never happened — write the note into the report
+first.
 
 Standing rules: judging changes nothing (read and run only; fixes happen only if the user asks afterward). If the work touched nothing runnable, say plainly what a judge can and cannot check here. This is a gate, not a second implementation: minutes, not hours; if verification needs an environment you lack, hand that back rather than guessing.
 
