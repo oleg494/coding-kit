@@ -142,9 +142,9 @@ class TrapScenarioCountTest(unittest.TestCase):
         self.assertIn("DATA", text)
         self.assertIn("INSTRUCTIONS", text)
 
-    def test_scenario_count_is_22(self):
+    def test_scenario_count_is_23(self):
         n = len(list((KIT / "eval" / "scenarios").glob("*.md")))
-        self.assertEqual(n, 22, "trap suite must grow 21 -> 22")
+        self.assertEqual(n, 23, "trap suite must grow 21 -> 22 -> 23")
 
 
 if __name__ == "__main__":
