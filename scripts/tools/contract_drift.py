@@ -31,6 +31,8 @@ Stdlib only; Windows-safe (backslash paths normalized).
 """
 from __future__ import annotations
 
+import sys
+
 HIGH = "high"
 MEDIUM = "medium"
 LOW = "low"
@@ -129,8 +131,9 @@ def summarize(changed_paths: list[str]) -> str:
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     import json
-    import sys
     argv = sys.argv[1:]
     if argv and argv[0] in ("-h", "--help"):
         print(__doc__)

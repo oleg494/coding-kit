@@ -50,7 +50,7 @@
   "scripts/install.py": "6cbccf49c6e6f72791b8a2048d7fd580e8c91d932f0dddadf731f10c7dc133f9",
   "scripts/tools/backup_memory.py": "571d6c43651f8e250799c2b39c0a7101b2033923e75ceccf0424cca6ee87c9ab",
   "scripts/tools/check_file_sizes.py": "9a886160e9880830405d9223d3e5d30dc254fe8377afbcd3de8566361ad33f5b",
-  "scripts/tools/contract_drift.py": "72dcf55aa041ee3caf9f22ff69ed863adabfda578d932254755882901227bdc1",
+  "scripts/tools/contract_drift.py": "4e67a2c4a60997fd8fc164a51edd6e8f4921d3feea11d03222298efe15d250f1",
   "scripts/tools/deploy.py": "973594170ad594fec7d7d6e22a42f0f8b95310e1b08f17359917b67b96a0a8bf",
   "scripts/tools/integrity_manifest.py": "57d258041de4e2c39581048537fac0f90670db1917ab91581e7d64797b9125e3",
   "scripts/tools/review_protocol.py": "94269aacbc50a2d564954abe6ac205645ef09a6befaf697e65642afe377e187c",
