@@ -62,6 +62,32 @@ HARNESSES = [
 CLAUDE_MD = Path.home() / ".claude" / "CLAUDE.md"
 SYNC_TARGETS = ["~/.claude/skills", "~/.agents/skills", "~/.zcode/skills"]
 
+def integrity_gate():
+    """CBSE pre-copy gate (wave1 Task 2): refuse to roll out a kit tree
+    whose control plane has drifted from integrity-manifest.json. Exit 3
+    = integrity failure (distinct from deploy's own exit 1 = verify
+    failure). Detects drift; a harness-level hook compromise is out of
+    scope (Cymulate caveat)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "integrity_manifest",
+        KIT / "scripts" / "tools" / "integrity_manifest.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    data = m.load_manifest(KIT)
+    if data is None:
+        print(f"INTEGRITY FAIL: no readable {m.MANIFEST_NAME} in {KIT} — "
+              "run integrity_manifest.py --update first")
+        raise SystemExit(3)
+    problems = m.check(KIT, data["files"])
+    if problems:
+        for p in problems[:10]:
+            print("INTEGRITY FAIL:", p)
+        if len(problems) > 10:
+            print(f"INTEGRITY FAIL: +{len(problems) - 10} more")
+        raise SystemExit(3)
+    print(f"integrity OK: {len(data['files'])} control-plane files verified")
+
 
 def home(p):
     return Path(p).expanduser()
@@ -233,6 +259,7 @@ def verify():
 
 
 def main():
+    integrity_gate()
     print(f"coding-kit v{VERSION} -> all harnesses ({TODAY})")
     print("\n=== SKILLS ===")
     for d, log, _old_mani in sync_skills():
@@ -240,7 +267,6 @@ def main():
     print("\n=== ROUTERS ===")
     for path, action in regen_routers():
         print(f"{action}: {path}")
-    print(f"{bump_claude_md()}: {CLAUDE_MD}")
     return 0 if verify() else 1
 
 

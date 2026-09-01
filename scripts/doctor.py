@@ -10,8 +10,8 @@ Checks:
   6.  adapters           every adapter file named in profile.yml exists
   7.  override           .override.md mode validity
   8.  engine sync        the two shipped _compat.py copies are identical
-  9.  encoding discipline no bare text=True subprocess calls (cp1251 class)
- 10.  supply chain      WARN: skills with inconsistent license: frontmatter
+ 10.  integrity         CBSE manifest over the kit control plane (hash-pinned)
+ 11.  supply chain      WARN: skills with inconsistent license: frontmatter
 
 Usage:
     python scripts/doctor.py          # table + exit 1 on any failure
@@ -181,6 +181,26 @@ def check_skill_supply_chain() -> tuple[bool, str]:
                   + ("…" if len(unlicensed) > 5 else ""))
 
 
+def check_integrity() -> tuple[bool, str]:
+    """CBSE integrity manifest over the kit control plane (wave1 Task 2):
+    every file that executes or steers is hash-pinned in
+    integrity-manifest.json; any drift/added/removed file FAILs the kit."""
+    import importlib.util as _ilu
+    spec = _ilu.spec_from_file_location(
+        "integrity_manifest",
+        KIT / "scripts" / "tools" / "integrity_manifest.py")
+    m = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    data = m.load_manifest(KIT)
+    if data is None:
+        return (False, f"no readable {m.MANIFEST_NAME} — run --update")
+    problems = m.check(KIT, data["files"])
+    if problems:
+        return (False, "; ".join(problems[:5])
+                + (f" (+{len(problems) - 5} more)" if len(problems) > 5 else ""))
+    return (True, f"{len(data['files'])} control-plane files verified")
+
+
 def find_bare_text_true(source: str) -> list[int]:
     """Line numbers of subprocess.* calls whose text=True keyword has no
     encoding= sibling. The v2.4 BUG-1/4 class: text=True decodes child
@@ -234,6 +254,7 @@ def main() -> int:
         ("adapters", check_adapters()),
         ("override", check_override()),
         ("engine sync", check_engine_sync()),
+        ("integrity", check_integrity()),
         ("supply chain", check_skill_supply_chain()),
         ("encoding discipline", check_encoding_discipline()),
     ]
