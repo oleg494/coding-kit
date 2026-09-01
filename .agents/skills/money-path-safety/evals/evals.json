@@ -40,6 +40,11 @@
    "id": "money-path-safety-7",
    "prompt": "write a query to list all users",
    "should_trigger": false
+  },
+  {
+   "id": "money-path-safety-8",
+   "prompt": "store the promo buckets in one balance field to simplify",
+   "should_trigger": true
   }
  ]
 }

@@ -2,7 +2,7 @@
 name: git-workflow-and-versioning
 description: Structures git workflow practices. Use when making any code change. Use when committing, branching, resolving conflicts, or when you need to organize work across multiple parallel streams. Use when cutting a release, choosing a semantic version bump, tagging, or writing a changelog.
 metadata:
-  version: "3.7.0"
+  version: "3.8.0"
 ---
 
 # Git Workflow and Versioning
@@ -113,5 +113,11 @@ MAJOR.MINOR.PATCH
   │     └── New functionality, backward-compatible
   └── Breaking change — consumers must change their code
 ```
+
+## Destructive Commands (OPS §2.9 companion)
+
+Destructive commands require explicit user confirmation first: `git reset --hard`, `git clean -fd`, `git push --force`, `rm -rf`, `drop table`, deleting `*.db`. Reversible commands — no ceremony.
+
+Why here: history-rewriting and filesystem-wiping commands destroy the very state git exists to protect. The confirmation is the save-point pattern's last line of defense — ask once, with the exact command spelled out, then act.
 
 Tag releases: `git tag -a v1.4.0 -m "Release 1.4.0"`

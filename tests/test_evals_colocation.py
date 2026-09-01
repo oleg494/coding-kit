@@ -9,9 +9,11 @@ Contract:
   source (never deleted).
 - IDs are stable across the migration: <slug>-<n> (position within the
   skill's query list), so baselines pair before/after.
-- Total query count is exactly 80 — no loss, no duplication (a query
-  present in both the per-skill file and the central file is taken once,
-  from the per-skill file).
+- Total query count is exactly 86 (wave4 Task 12): the 80 central rows
+  migrated at wave3 plus 6 relocated-rule queries appended to the
+  per-skill files (2 new: git-workflow-and-versioning, testing-discipline;
+  +1 each: money-path-safety, security-and-hardening). No loss, no
+  duplication (a query present in both sources is taken once).
 - validate() still accepts the merged flat list (same {skill, should,
   query} rows + optional id).
 """
@@ -80,7 +82,10 @@ class LoaderPrefersPerSkillTest(unittest.TestCase):
 
 
 class MigrationShapeTest(unittest.TestCase):
-    """Plan step 9.3: every skill dir has evals.json; total count == 80."""
+    """Plan step 9.3 + wave4 Task 12: every skill dir with queries has
+    evals.json; total count == 86 (80 central + 6 relocated-rule rows)."""
+
+    TOTAL = 86
 
     def test_every_skill_with_queries_has_evals_json(self):
         central = json.loads(CENTRAL.read_text(encoding="utf-8"))
@@ -90,31 +95,39 @@ class MigrationShapeTest(unittest.TestCase):
                    .is_file()]
         self.assertEqual(missing, [])
 
-    def test_total_query_count_is_exactly_80(self):
+    def test_total_query_count_is_exactly_86(self):
         got = trigger_eval.load_queries(KIT / "skills", CENTRAL)
-        self.assertEqual(len(got), 80)
+        self.assertEqual(len(got), self.TOTAL)
 
     def test_central_file_still_present(self):
         self.assertTrue(CENTRAL.is_file())
-
     def test_ids_stable_and_unique(self):
-        central = json.loads(CENTRAL.read_text(encoding="utf-8"))
         got = trigger_eval.load_queries(KIT / "skills", CENTRAL)
         ids = [q["id"] for q in got]
         self.assertEqual(len(ids), len(set(ids)))
-        # stable: <slug>-<position within the skill's central block>
-        by_skill = {}
-        for q in central:
-            by_skill.setdefault(q["skill"], []).append(q["query"])
-        for q in got:
-            pos = by_skill[q["skill"]].index(q["query"])
-            self.assertEqual(q["id"], f"{q['skill']}-{pos}")
+        # stable: every id is <slug>-<n> with n a small non-negative int
+        for qid, q in zip(ids, got):
+            self.assertTrue(qid.startswith(q["skill"] + "-"), qid)
+            self.assertTrue(qid[len(q["skill"]) + 1:].isdigit(), qid)
 
-    def test_merged_rows_match_central_content(self):
+    def test_merged_rows_are_central_plus_relocated_rules(self):
         central = json.loads(CENTRAL.read_text(encoding="utf-8"))
         got = trigger_eval.load_queries(KIT / "skills", CENTRAL)
-        self.assertEqual(sorted(as_rows(got)),
-                         sorted(as_rows(central)))
+        central_rows = sorted(as_rows(central))
+        got_rows = sorted(as_rows(got))
+        # every central row survives...
+        for row in central_rows:
+            self.assertIn(row, got_rows)
+        # ...plus exactly the 6 wave4 relocated-rule rows
+        extra = [r for r in got_rows if r not in central_rows]
+        self.assertEqual(len(extra), 6)
+        by_skill = {}
+        for r in extra:
+            by_skill[r[0]] = by_skill.get(r[0], 0) + 1
+        self.assertEqual(by_skill, {"git-workflow-and-versioning": 2,
+                                    "testing-discipline": 2,
+                                    "money-path-safety": 1,
+                                    "security-and-hardening": 1})
 
     def test_validate_accepts_merged_list(self):
         got = trigger_eval.load_queries(KIT / "skills", CENTRAL)

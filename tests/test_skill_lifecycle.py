@@ -138,7 +138,12 @@ class RetirementReportTest(unittest.TestCase):
 
 
 class StampedCorpusTest(unittest.TestCase):
-    def test_all_36_skills_stamped_3_7_0(self):
+    # wave4 Task 12: touched skills are restamped 3.8.0; the rest stay 3.7.0
+    # (parent integrator restamps the full corpus at the release boundary).
+    EXPECTED_3_8 = {"testing-discipline", "security-and-hardening",
+                    "git-workflow-and-versioning", "money-path-safety"}
+
+    def test_all_36_skills_stamped(self):
         import re
         stamped = 0
         for md in sorted(KIT.glob("skills/*/SKILL.md")):
@@ -146,7 +151,8 @@ class StampedCorpusTest(unittest.TestCase):
             m = re.search(r"^metadata:\s*\n(?:\s+.*)*?^\s+version:\s*"
                           r"\"?([0-9.]+)\"?", fm, re.MULTILINE)
             self.assertIsNotNone(m, f"{md.parent.name}: no metadata.version")
-            self.assertEqual(m.group(1), "3.7.0",
+            expected = "3.8.0" if md.parent.name in self.EXPECTED_3_8 else "3.7.0"
+            self.assertEqual(m.group(1), expected,
                              f"{md.parent.name}: wrong version")
             stamped += 1
         self.assertEqual(stamped, 36)

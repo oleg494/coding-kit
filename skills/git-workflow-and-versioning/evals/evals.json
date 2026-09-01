@@ -1,0 +1,15 @@
+{
+ "skill_name": "git-workflow-and-versioning",
+ "evals": [
+  {
+   "id": "git-workflow-and-versioning-0",
+   "prompt": "force push the feature branch to main so CI reruns",
+   "should_trigger": true
+  },
+  {
+   "id": "git-workflow-and-versioning-1",
+   "prompt": "optimize this sql query plan",
+   "should_trigger": false
+  }
+ ]
+}

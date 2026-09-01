@@ -10,6 +10,24 @@ Terminology: agents have a "skills dir" (progressive disclosure) and a "rules di
 2. Skills: copy/link `skills/` into the agent's skills dir. Hermes-format SKILL.md, 42 skills.
 3. Memory (external): `~/.memory/` — Wiki + db-tools engine + research.db. Kit and memory are separate: the kit is pure methodology, knowledge lives in the memory root.
 
+## Rule fragments -> harness mechanisms (v3.8.0)
+
+The kit keeps OPS.md a thin always-loaded core; topic rules live as "fragments"
+in their JIT home skills and load only when the skill's description fires — the
+portable equivalent of path-scoped rules. Map to your harness natively when it
+has the mechanism:
+
+| Harness | Native mechanism | Kit mapping |
+|---------|------------------|-------------|
+| Claude Code | `.claude/rules/*.md` with `paths:` frontmatter | skill-triggered (kit form); or point a rule file at the skill's SKILL.md section |
+| Codex CLI | per-directory AGENTS.md concatenation, closest wins | skill-triggered (kit form); drop a project AGENTS.md stub referencing the skill |
+| Gemini CLI | Global-tier skills dir, progressive disclosure | skill-triggered (kit form) — no extra work |
+| Hermes | `skills.external_dirs` config | skill-triggered (kit form) — no extra work |
+
+Receiving skills today: money rules -> `money-path-safety`; testing/TDD gate ->
+`testing-discipline`; destructive-command list -> `git-workflow-and-versioning`;
+memory-trust/ASI06 -> `security-and-hardening`. OPS.md keeps one-line pointers.
+
 ## Specific agents
 
 ### Claude Code / OMP

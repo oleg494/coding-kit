@@ -72,6 +72,8 @@ REQUEST
 
 Rule zero: a skill exists for the task and you decided to wing it = failure. Find it: `python scripts/tools/skills_search.py "<symptom words>"`; check `skills/`, load SKILL.md, mark `📚 skill-name`.
 
+Topic rules are JIT fragments, not boot text (v3.8.0): money/value logic → `money-path-safety`; test discipline and the TDD gate → `testing-discipline`; destructive-command confirmation → `git-workflow-and-versioning`; memory-trust/ASI06 → `security-and-hardening`. When the topic fires, load the skill — the rule is inside.
+
 ---
 
 ## 5. REPORTING — answer convention

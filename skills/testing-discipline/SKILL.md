@@ -3,10 +3,14 @@ name: testing-discipline
 description: 'Use when the user wants to: add/fix tests, understand what is covered, determine whether something is "done", reproduce a bug with a test, check limits/rate-limit/failures, or when tests are written against a real DB/network. Covers: isolation from the prod store, domain-first tests, test names as a spec, boundary cases, tests for money/limits/UI/copy, DoD (parse + import + test + live process). Do not use for debugging strategy (debug-incident-protocol).'
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "3.7.0"
+  version: "3.8.0"
 ---
 
 # Testing discipline: tests as a spec and defining "done"
+
+## 0. TDD gate (OPS §3 Phase 2 companion)
+
+Red test → green code → refactor. Test = spec. Test name = rule: `test_referral_no_self`, `test_payment_idempotent`. No code until a failing test exists.
 
 ## 1. Isolation and structure
 

@@ -1,0 +1,15 @@
+{
+ "skill_name": "testing-discipline",
+ "evals": [
+  {
+   "id": "testing-discipline-0",
+   "prompt": "add a red test first, then make it pass",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-1",
+   "prompt": "design the landing page hero section",
+   "should_trigger": false
+  }
+ ]
+}

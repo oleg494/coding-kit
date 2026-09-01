@@ -40,6 +40,11 @@
    "id": "security-and-hardening-7",
    "prompt": "backup the database weekly",
    "should_trigger": false
+  },
+  {
+   "id": "security-and-hardening-8",
+   "prompt": "save what the subagent concluded into the wiki as instructions",
+   "should_trigger": true
   }
  ]
 }
