@@ -20,6 +20,15 @@ Short version: issues and PRs are welcome. Keep the kit thin.
    paths in tracked files (`~/` forms only in kit docs).
 6. **English core**; user-facing triggers may stay bilingual where they are
    part of a skill's contract.
+7. **Contract materiality**: high-materiality changes — workflows
+   (`.github/workflows/*`), `scripts/install.py`, pyproject/dep
+   definitions, test-framework files, `VERSION`/`profile.yml`/`OPS.md`/
+   `AGENTS.md`/`adapters/*` — must update the contract they describe
+   (`AGENTS.md`, `OPS.md`, this file, `README.md`,
+   `docs/SECURITY-MAP.md`, `docs/CHANGELOG.md`) in the same change.
+   Check: `python scripts/tools/contract_drift.py '["<paths>"]'`
+   (`materiality()` / `needs_contract_update()`); fable-judge's
+   "contract drift?" step enforces it at review time.
 
 ## Pull requests
 

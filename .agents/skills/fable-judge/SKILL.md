@@ -60,6 +60,15 @@ from the user skips this gate. A skip without a logged note (who asked,
 what was skipped, why) never happened — write the note into the report
 first.
 
+**Contract drift?** (wave5 Task 17) — high-materiality changes
+(`materiality()` in `scripts/tools/contract_drift.py`: workflows,
+install script, pyproject/deps, test-framework, VERSION/profile/OPS/
+AGENTS/adapters) need a contract document (AGENTS.md, OPS.md,
+docs/CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md,
+docs/CHANGELOG.md) in the same diff. Diff without contract doc →
+`needs_contract_update` → REFUTED with the smallest fix: update the
+contract or justify the omission in the report.
+
 Standing rules: judging changes nothing (read and run only; fixes happen only if the user asks afterward). If the work touched nothing runnable, say plainly what a judge can and cannot check here. This is a gate, not a second implementation: minutes, not hours; if verification needs an environment you lack, hand that back rather than guessing.
 
 ## suite mode: judge a skill or a model
