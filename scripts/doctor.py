@@ -10,9 +10,12 @@ Checks:
   6.  adapters           every adapter file named in profile.yml exists
   7.  override           .override.md mode validity
   8.  engine sync        the two shipped _compat.py copies are identical
- 10.  integrity         CBSE manifest over the kit control plane (hash-pinned)
- 11.  supply chain      WARN: skills with inconsistent license: frontmatter
-
+  9.  encoding           no bare text=True subprocess calls in engine code
+ 10.  integrity          CBSE manifest over the kit control plane (hash-pinned)
+ 11.  supply chain       WARN: skills with inconsistent license: frontmatter
+ 12.  backup freshness   WARN: newest ~/.memory backup older than 14 days
+ 13.  frontmatter-spec   agentskills.io field rules (name/description/compat)
+ 14.  skills sync        deployed .agents/skills copies byte-equal to kit
 Usage:
     python scripts/doctor.py          # table + exit 1 on any failure
 """

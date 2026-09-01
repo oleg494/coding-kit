@@ -4,6 +4,29 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v3.7.0 (wave3 standards-conformance)**: agentskills.io alignment
+  from the 2026-09-01 roadmap. (1) Full Agent Skills spec conformance in
+  doctor (`check_frontmatter_spec`): name 1-64 chars ^[a-z0-9]+(-[a-z0-9]+)*$
+  hard-FAIL on charset/length, description <=1024 hard-FAIL, name!=dir and
+  compatibility>500 WARN; metadata/allowed-tools type checks. All 36
+  skills passed pre-check without fixes. (2) evals/evals.json
+  co-location: 80 trigger queries migrated into 10 per-skill
+  skills/<slug>/evals/evals.json files (ids stable <slug>-<n>),
+  load_queries() prefers per-skill files with central-file fallback
+  (eval/trigger_queries.json kept), --queries auto mode. (3) Canonical
+  .agents/skills/ target: deploy.py --canonical (junction via mklink /J,
+  copy fallback, --dry-run), doctor `check_skills_sync` byte-compares
+  repo+home deployed copies (WARN when none deployed), profile.yml
+  adapters[].canonical flags; live deploy executed. (4) Skill lifecycle:
+  metadata.version "3.7.0" stamped on all 36 SKILL.md; doctor WARN on
+  missing version; usage_audit.py --retirement-report --since D
+  (proposal-only). Real run 2026-09-01: 803 sessions audited, 0/36
+  zero-use skills — no retirement proposals. doctor docstring check-list
+  refreshed (14 checks). Regression tests: test_skill_spec_conformance.py
+  (13), test_evals_colocation.py (9), test_skills_sync.py (10),
+  test_skill_lifecycle.py (9). Verified: pytest = 416 passed, 1 skipped,
+  34 subtests; doctor 14 checks GREEN. Release contract: version 3.7.0,
+  36 skills.
 - **v3.6.0 (wave2 honest-oracle)**: verifier-integrity axis from the
   2026-09-01 roadmap. (1) ImpossibleBench canaries: eval/tasks/005-canary-
   oneoff + 006-canary-conflicting — mutated oracles (flipped expected

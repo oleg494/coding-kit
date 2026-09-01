@@ -45,8 +45,8 @@
   "memory/db-tools/tasks.py": "bc3aacd05c49b29b695929a62a167cc2d6468c7a794cae8eb03f25f306479992",
   "memory/scripts/_compat.py": "47ad633897121b3f8d8d9c3dae2d4ce947fd76bdb6400460fb7c764e9f339941",
   "memory/scripts/memory-warmup.py": "4599211238737188be65f568cac44f8a5fc7d342a38850839143bc4c3f52658f",
-  "profile.yml": "b1da0eafdd08bc3a246b4e2e141c2623f0c197d1c9f91d6be19642b7529d3bb1",
-  "scripts/doctor.py": "31ed64ace6717300d4b26c4b6bacdd047de42d4a6c515858947d6b728696058e",
+  "profile.yml": "910a53961c50a5a627d079517f7ea8b0c1e1ba31d3e9025690f4ff7f160b48e1",
+  "scripts/doctor.py": "2d6169b32ef18d4999337c585af5b52ef78fce4c3b988aebf7a86e2c6b4fbd76",
   "scripts/install.py": "6cbccf49c6e6f72791b8a2048d7fd580e8c91d932f0dddadf731f10c7dc133f9",
   "scripts/tools/backup_memory.py": "571d6c43651f8e250799c2b39c0a7101b2033923e75ceccf0424cca6ee87c9ab",
   "scripts/tools/check_file_sizes.py": "9a886160e9880830405d9223d3e5d30dc254fe8377afbcd3de8566361ad33f5b",
@@ -91,5 +91,5 @@
   "skills/writing-plans/SKILL.md": "08f0ea8ef0381a85e5b185bcd50be4f59e3d29582a42b61f9e89b9294ede1480",
   "skills/yagni/SKILL.md": "af7bae7133bedd08c4580f6e7ed67c79c07725d4b4bbe1deb0c904010de2f7f7"
  },
- "kit_version": "3.6.0"
+ "kit_version": "3.7.0"
 }
