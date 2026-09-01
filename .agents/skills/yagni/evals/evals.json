@@ -1,0 +1,45 @@
+{
+ "skill_name": "yagni",
+ "evals": [
+  {
+   "id": "yagni-0",
+   "prompt": "should we add a caching layer now for future scale?",
+   "should_trigger": true
+  },
+  {
+   "id": "yagni-1",
+   "prompt": "add an abstraction class just in case we need more types later",
+   "should_trigger": true
+  },
+  {
+   "id": "yagni-2",
+   "prompt": "do we need this new dependency for the feature?",
+   "should_trigger": true
+  },
+  {
+   "id": "yagni-3",
+   "prompt": "this helper is used once, should I extract it anyway?",
+   "should_trigger": true
+  },
+  {
+   "id": "yagni-4",
+   "prompt": "write a function that adds two numbers",
+   "should_trigger": false
+  },
+  {
+   "id": "yagni-5",
+   "prompt": "fix the broken test",
+   "should_trigger": false
+  },
+  {
+   "id": "yagni-6",
+   "prompt": "what do we know about caching",
+   "should_trigger": false
+  },
+  {
+   "id": "yagni-7",
+   "prompt": "rename the variable to match the style guide",
+   "should_trigger": false
+  }
+ ]
+}

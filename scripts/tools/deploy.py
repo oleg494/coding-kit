@@ -156,7 +156,7 @@ def sync_skills():
                     removed.append("rm-dir " + name)
         (dest / MANIFEST_NAME).write_text(
             json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
-            encoding="utf-8")
+            encoding="utf-8", newline="\n")
         report.append((d, log + removed, mani))
     return report
 
@@ -258,7 +258,73 @@ def verify():
     return ok
 
 
+
+
+
+def canonical_mode(argv=None):
+    """--canonical (wave3 Task 10): sync KIT/skills -> the repo's
+    .agents/skills/ — the copy harnesses read (agentskills.io canonical
+    location; Gemini CLI confirmed native). --dry-run lists actions
+    without writing. Per-adapter opt-in lives in profile.yml
+    adapters[].canonical (default false — enable only for harnesses
+    proven to read the alias)."""
+    argv = list(sys.argv[1:]) if argv is None else argv
+    dry = "--dry-run" in argv
+    canon = KIT / ".agents" / "skills"
+    if dry:
+        print("DRY RUN — no changes written")
+        if not canon.exists():
+            for n in master_skill_names():
+                print(f"add .agents/skills/{n}")
+        else:
+            changed = False
+            for n in master_skill_names():
+                src, target = SKILLS / n, canon / n
+                if not target.exists():
+                    print(f"add .agents/skills/{n}")
+                    changed = True
+                    continue
+                if target.resolve() == src.resolve():
+                    continue
+                for f in src.rglob("*"):
+                    if f.is_file():
+                        tf = target / f.relative_to(src)
+                        if not tf.exists() \
+                                or f.read_bytes() != tf.read_bytes():
+                            print(f"upd {n}/{f.relative_to(src)}")
+                            changed = True
+            if not changed:
+                print("no changes")
+        return 0
+    print(f"canonical: {canon}")
+    if not canon.exists():
+        canon.mkdir(parents=True)
+    actions: list[str] = []
+    names = master_skill_names()
+    for name in names:
+        sync_one_skill(SKILLS / name, canon / name, actions)
+    # The repo .agents/skills copy is fully kit-owned (unlike the
+    # home-dir deployments that keep local-only skills): anything not in
+    # the master goes.
+    for entry in sorted(canon.iterdir()):
+        if entry.is_dir() and entry.name not in names:
+            shutil.rmtree(entry)
+            actions.append("rm-dir " + entry.name)
+    (canon / MANIFEST_NAME).write_text(
+        json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
+        encoding="utf-8", newline="\n")
+    for a in actions:
+        print(a)
+    if not actions:
+        print("no changes")
+    print("canonical sync complete")
+    return 0
+
+
 def main():
+    argv = sys.argv[1:]
+    if "--canonical" in argv:
+        return canonical_mode(argv)
     integrity_gate()
     print(f"coding-kit v{VERSION} -> all harnesses ({TODAY})")
     print("\n=== SKILLS ===")

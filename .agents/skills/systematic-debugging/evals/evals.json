@@ -1,0 +1,45 @@
+{
+ "skill_name": "systematic-debugging",
+ "evals": [
+  {
+   "id": "systematic-debugging-0",
+   "prompt": "\u0441\u0442\u0440\u0430\u043d\u043d\u0430\u044f \u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0441\u0442\u0430\u0440\u0442\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-1",
+   "prompt": "add error handling to this code",
+   "should_trigger": false
+  },
+  {
+   "id": "systematic-debugging-2",
+   "prompt": "explain how try/except works",
+   "should_trigger": false
+  },
+  {
+   "id": "systematic-debugging-3",
+   "prompt": "design the retry logic for the API",
+   "should_trigger": false
+  },
+  {
+   "id": "systematic-debugging-4",
+   "prompt": "catch all exceptions to be safe",
+   "should_trigger": false
+  },
+  {
+   "id": "systematic-debugging-5",
+   "prompt": "tests started failing after my refactor, help me debug",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-6",
+   "prompt": "the API returns 500 on requests that used to work",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-7",
+   "prompt": "why does this function return None instead of the value",
+   "should_trigger": true
+  }
+ ]
+}

@@ -1,0 +1,45 @@
+{
+ "skill_name": "security-and-hardening",
+ "evals": [
+  {
+   "id": "security-and-hardening-0",
+   "prompt": "sanitize the user input in this form",
+   "should_trigger": true
+  },
+  {
+   "id": "security-and-hardening-1",
+   "prompt": "add auth to the API",
+   "should_trigger": true
+  },
+  {
+   "id": "security-and-hardening-2",
+   "prompt": "is this SQL query injectable?",
+   "should_trigger": true
+  },
+  {
+   "id": "security-and-hardening-3",
+   "prompt": "store the password securely",
+   "should_trigger": true
+  },
+  {
+   "id": "security-and-hardening-4",
+   "prompt": "speed up the login page render",
+   "should_trigger": false
+  },
+  {
+   "id": "security-and-hardening-5",
+   "prompt": "write a regex that extracts emails",
+   "should_trigger": false
+  },
+  {
+   "id": "security-and-hardening-6",
+   "prompt": "change the button color on the login form",
+   "should_trigger": false
+  },
+  {
+   "id": "security-and-hardening-7",
+   "prompt": "backup the database weekly",
+   "should_trigger": false
+  }
+ ]
+}

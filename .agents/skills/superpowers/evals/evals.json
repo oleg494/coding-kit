@@ -1,0 +1,45 @@
+{
+ "skill_name": "superpowers",
+ "evals": [
+  {
+   "id": "superpowers-0",
+   "prompt": "add a feature that touches three files, make sure nothing breaks",
+   "should_trigger": true
+  },
+  {
+   "id": "superpowers-1",
+   "prompt": "refactor this module \u2014 I want tests around the behavior first",
+   "should_trigger": true
+  },
+  {
+   "id": "superpowers-2",
+   "prompt": "build a retry mechanism for failed uploads, prove it works",
+   "should_trigger": true
+  },
+  {
+   "id": "superpowers-3",
+   "prompt": "fix this bug and show me evidence it is really fixed",
+   "should_trigger": true
+  },
+  {
+   "id": "superpowers-4",
+   "prompt": "just change this one line, no ceremony",
+   "should_trigger": false
+  },
+  {
+   "id": "superpowers-5",
+   "prompt": "translate this doc to Russian",
+   "should_trigger": false
+  },
+  {
+   "id": "superpowers-6",
+   "prompt": "what do we know about retries",
+   "should_trigger": false
+  },
+  {
+   "id": "superpowers-7",
+   "prompt": "summarize this file for me",
+   "should_trigger": false
+  }
+ ]
+}

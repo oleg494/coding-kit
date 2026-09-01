@@ -1,0 +1,45 @@
+{
+ "skill_name": "windows-encoding-fixes",
+ "evals": [
+  {
+   "id": "windows-encoding-fixes-0",
+   "prompt": "UnicodeEncodeError \u043f\u0440\u0438 \u0432\u044b\u0432\u043e\u0434\u0435 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u044b",
+   "should_trigger": true
+  },
+  {
+   "id": "windows-encoding-fixes-1",
+   "prompt": "cp1251 in the console output",
+   "should_trigger": true
+  },
+  {
+   "id": "windows-encoding-fixes-2",
+   "prompt": "my script crashes on Windows with an encoding error",
+   "should_trigger": true
+  },
+  {
+   "id": "windows-encoding-fixes-3",
+   "prompt": "CRLF line endings broke my md5 checks",
+   "should_trigger": true
+  },
+  {
+   "id": "windows-encoding-fixes-4",
+   "prompt": "write a python script that runs on Linux",
+   "should_trigger": false
+  },
+  {
+   "id": "windows-encoding-fixes-5",
+   "prompt": "how do I fix a permissions error on Windows",
+   "should_trigger": false
+  },
+  {
+   "id": "windows-encoding-fixes-6",
+   "prompt": "explain unicode normalization",
+   "should_trigger": false
+  },
+  {
+   "id": "windows-encoding-fixes-7",
+   "prompt": "sort these strings alphabetically",
+   "should_trigger": false
+  }
+ ]
+}

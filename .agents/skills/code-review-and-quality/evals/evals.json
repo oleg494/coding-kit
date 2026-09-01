@@ -1,0 +1,45 @@
+{
+ "skill_name": "code-review-and-quality",
+ "evals": [
+  {
+   "id": "code-review-and-quality-0",
+   "prompt": "review this change before merge",
+   "should_trigger": true
+  },
+  {
+   "id": "code-review-and-quality-1",
+   "prompt": "check my code for problems",
+   "should_trigger": true
+  },
+  {
+   "id": "code-review-and-quality-2",
+   "prompt": "is this diff safe to merge?",
+   "should_trigger": true
+  },
+  {
+   "id": "code-review-and-quality-3",
+   "prompt": "look at the whole change for bugs and smells",
+   "should_trigger": true
+  },
+  {
+   "id": "code-review-and-quality-4",
+   "prompt": "fix the bug you found",
+   "should_trigger": false
+  },
+  {
+   "id": "code-review-and-quality-5",
+   "prompt": "write a new feature",
+   "should_trigger": false
+  },
+  {
+   "id": "code-review-and-quality-6",
+   "prompt": "verify the work is done",
+   "should_trigger": false
+  },
+  {
+   "id": "code-review-and-quality-7",
+   "prompt": "\u0437\u0430\u043f\u043e\u043c\u043d\u0438 \u044d\u0442\u043e\u0442 \u0432\u044b\u0432\u043e\u0434",
+   "should_trigger": false
+  }
+ ]
+}

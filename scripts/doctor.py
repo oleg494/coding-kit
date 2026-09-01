@@ -385,6 +385,67 @@ def check_backup_freshness() -> tuple[bool, str]:
     return (True, f"newest backup {int(age_days)}d old")
 
 
+
+# Deployed kit-skills copies the drift check knows about (wave3 Task 10).
+# ~/.gemini/skills and ~/.zcode/skills are junctions to the kit master on
+# this machine — resolve-equal targets are skipped, real copies are
+# byte-compared. Extend the list when a new adapter starts copying.
+_DEPLOYED_SKILL_DIRS = (
+    Path.home() / ".agents" / "skills",
+    Path.home() / ".claude" / "skills",
+    KIT / ".agents" / "skills",
+)
+
+
+def check_skills_sync() -> tuple[bool, str]:
+    """Canonical-skills drift (wave3 Task 10): byte-compare every deployed
+    copy of the kit skills tree against skills/ (pattern:
+    check_engine_sync). Only copies that exist are compared; junctions
+    (resolve() == master) track the master live and are skipped. No
+    deployed copy at all = WARN (backup-freshness semantics: a missing
+    copy must not block work, only nag). FAIL names the drifted slugs."""
+    names = sorted(d.name for d in (KIT / "skills").iterdir()
+                   if d.is_dir())
+    candidates = [d for d in _DEPLOYED_SKILL_DIRS if d.is_dir()]
+    if not candidates:
+        return (True, ("WARN: no deployed skills copy found "
+                       "(run deploy.py --canonical)"))
+    bad: list[str] = []
+    for dest in candidates:
+        for name in names:
+            src, target = KIT / "skills" / name, dest / name
+            if not target.exists():
+                bad.append(f"{dest.parent.name}/{name}: missing")
+                continue
+            try:
+                linked = target.resolve() == src.resolve()
+            except OSError:
+                linked = False
+            if linked:
+                continue
+            for f in src.rglob("*"):
+                if not f.is_file():
+                    continue
+                tf = target / f.relative_to(src)
+                if not tf.exists():
+                    bad.append(f"{dest.parent.name}/{name}/"
+                               f"{f.relative_to(src)}: missing")
+                elif f.read_bytes() != tf.read_bytes():
+                    bad.append(f"{dest.parent.name}/{name}/"
+                               f"{f.relative_to(src)}: diff")
+            for f in target.rglob("*"):
+                if f.is_file() and not (src / f.relative_to(target)).exists():
+                    bad.append(f"{dest.parent.name}/{name}/"
+                               f"{f.relative_to(target)}: extra")
+    if bad:
+        return (False, "; ".join(bad[:5])
+                + (f" (+{len(bad) - 5} more)" if len(bad) > 5 else ""))
+    label = ", ".join(
+        ("repo .agents/skills" if d == KIT / ".agents" / "skills"
+         else str(d.parent).replace(str(Path.home()), "~"))
+        for d in candidates)
+    return (True, f"{len(names)} skills in sync ({label})")
+
 def main() -> int:
     checks = [
         ("manifest", check_manifest()),
@@ -398,6 +459,7 @@ def main() -> int:
         ("integrity", check_integrity()),
         ("supply chain", check_skill_supply_chain()),
         ("frontmatter-spec", check_frontmatter_spec()),
+        ("skills-sync", check_skills_sync()),
         ("backup freshness", check_backup_freshness()),
         ("encoding discipline", check_encoding_discipline()),
     ]

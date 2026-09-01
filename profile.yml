@@ -80,13 +80,20 @@ skills:
 adapters:
   - platform: gemini
     target: adapters/gemini.md
+    canonical: false
   - platform: antigravity
     target: adapters/antigravity.md
+    canonical: false
   - platform: zcode
     target: adapters/zcode.md
+    canonical: false
   - platform: universal
     target: adapters/UNIVERSAL.md
+    canonical: false
 
+  # canonical: write/track the .agents/skills/ copy (deploy.py --canonical).
+  # Default false — enable only for harnesses proven to read the alias.
+  # gemini reads ~/.gemini/skills (junction to the kit master, always current).
 eval:
   scenarios: eval/scenarios
   runner: eval/runner.py
