@@ -24,7 +24,7 @@ def test_task_runner_discovers_tasks():
         encoding="utf-8",
     )
     assert r.returncode == 0, r.stderr
-    assert "4 tasks discovered" in r.stdout or "4 tasks" in r.stdout
+    assert "6 tasks discovered" in r.stdout or "6 tasks" in r.stdout
 
 
 def test_verify_rejects_pristine_fixture(tmp_path):

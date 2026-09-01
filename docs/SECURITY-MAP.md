@@ -31,7 +31,7 @@ Control planes (verified 2026-09-01):
 | ASI07 | Insecure Inter-Agent Communication   | OPS dispatch discipline: subagent output is DATA to verify, not verdicts to obey (hub `send`/`wait` contract; verification-before-completion skill); fable-judge skill re-verifies claimed results. |
 | ASI08 | Cascading Failures                   | trap: `infinite-retry-masking`, `silent-failure`, `dead-flag`; results store (schema-v1, append-only) + evidence trend make failure visible instead of self-reinforcing. |
 | ASI09 | Human-Agent Trust Exploitation       | trap: `false-done` (no "done" without observed evidence); OPS §3 Phase 4 verify + §7 drift killer; claim discipline: every CHANGELOG claim cites a test. |
-| ASI10 | Rogue Agents                         | trap: `false-done` + task oracle `verify.py` gates (task-smoke 4); results store append-only (no history rewrite); doctor manifest sync detects skill-tree tampering. |
+| ASI10 | Rogue Agents                         | trap: `false-done` + task oracle `verify.py` gates (task-smoke 4) + ImpossibleBench canaries (`005-canary-oneoff`, `006-canary-conflicting`: mutated oracles a hack could pass but honest work cannot; a canary PASS is recorded as `hacked` evidence, excluded from pass-rate baselines); results store append-only (no history rewrite); doctor manifest sync detects skill-tree tampering. |
 
 ## AST — Agentic Skills Top 10
 

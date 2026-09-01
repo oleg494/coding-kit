@@ -28,6 +28,25 @@ from ablation_report import render_ablation_section
 BASELINES_DIR = ROOT / "eval" / "baselines"
 KIND_ORDER = {"trap": 0, "tasks": 1, "trigger": 2}
 
+
+def _is_canary_row(row: object) -> bool:
+    """True for ImpossibleBench canary rows (`canary: true`).
+
+    Canary oracles are unsatisfiable by construction; a canary PASS is
+    hacking evidence, not a resolved task. Rows are excluded from pass-rate
+    aggregation and baselines and reported on their own trend line.
+    """
+    return isinstance(row, dict) and row.get("canary") is True
+
+
+def _honest_rows(rows: list) -> list[dict]:
+    """Non-canary rows (the pass-rate population)."""
+    return [r for r in rows if isinstance(r, dict) and not _is_canary_row(r)]
+
+
+def _canary_rows(rows: list) -> list[dict]:
+    return [r for r in rows if _is_canary_row(r)]
+
 def _is_dry_run(r: dict) -> bool:
     if not isinstance(r, dict):
         return False
@@ -102,8 +121,8 @@ def _score(r: dict) -> str:
         passed = sum(1 for s in scenarios if isinstance(s, dict) and s.get("verdict") == "PASS")
         return f"{passed}/{len(scenarios)}"
     if kind == "tasks" and "rows" in r and isinstance(r["rows"], list):
-        rows = r["rows"]
-        passed = sum(1 for row in rows if isinstance(row, dict) and row.get("verdict") == "PASS")
+        rows = _honest_rows(r["rows"])
+        passed = sum(1 for row in rows if row.get("verdict") == "PASS")
         return f"{passed}/{len(rows)}"
     if kind == "trigger":
         if "fired" in r and "total" in r:
@@ -134,10 +153,10 @@ def _rate(r: dict) -> float | None:
             return float(passed) / float(total)
         return 0.0
     if kind == "tasks" and "rows" in r and isinstance(r["rows"], list):
-        rows = r["rows"]
+        rows = _honest_rows(r["rows"])
         total = len(rows)
         if total > 0:
-            passed = sum(1 for row in rows if isinstance(row, dict) and row.get("verdict") == "PASS")
+            passed = sum(1 for row in rows if row.get("verdict") == "PASS")
             return float(passed) / float(total)
         return 0.0
     if kind == "trigger":
@@ -261,6 +280,18 @@ def _evidence_packets(newest_runs: list[dict]) -> list[str]:
                 for row in rows:
                     if not isinstance(row, dict):
                         continue
+                    if _is_canary_row(row):
+                        if row.get("hacked"):
+                            name = row.get("name", "unknown")
+                            packets.append("\n".join([
+                                f"- [tasks] canary hacked: `{name}` | "
+                                f"model: `{model}` | utc: `{utc}`",
+                                f"  error: canary oracle passed — verifier "
+                                f"hack (ImpossibleBench)",
+                                f"  re-verify: python eval/task_runner.py "
+                                f"--task {name} --executor ...",
+                            ]))
+                        continue
                     verdict = row.get("verdict")
                     if verdict != "PASS":
                         name = row.get("name", "unknown")
@@ -369,8 +400,8 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
         existing = grouped.get((kind, model))
         if existing is None or str(r.get("utc", "")) >= str(existing.get("utc", "")):
             grouped[(kind, model)] = r
-
     if grouped:
+        canary_sections: list[str] = []
         lines.append(
             "| kind | model | utc | score | baseline | delta | status | duration | reported cost |")
         lines.append("|---|---|---|---|---|---|---|---|---|")
@@ -383,6 +414,17 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
         newest_runs = []
         for (kind, model), r in sorted_groups:
             newest_runs.append(r)
+            if kind == "tasks":
+                can_list = r.get("rows")
+                can_rows = _canary_rows(can_list if isinstance(can_list, list) else [])
+                if can_rows:
+                    hacked = sum(1 for c in can_rows if c.get("hacked"))
+                    canary_sections.append(
+                        f"- `{model}` @ {r.get('utc', '')[:16]}: "
+                        f"hacked {hacked}/{len(can_rows)} "
+                        f"(ImpossibleBench canaries; excluded from "
+                        f"pass-rate baselines)")
+
             utc_str = r.get("utc", "")[:16]
             score_str = _score(r)
             rate = _rate(r)
@@ -391,6 +433,8 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
             b_str, d_str, status_str = _status_and_delta(rate, baseline_rate)
             lines.append(f"| {kind} | {model} | {utc_str} | {score_str} | {b_str} | {d_str} | {status_str} | {_duration_str(r)} | {_reported_cost_str(r)} |")
 
+        if canary_sections:
+            lines += ["", "## Canary integrity", ""] + canary_sections
         lines += ["", "## Failure Evidence Packets", ""]
         packets = _evidence_packets(newest_runs)
         if packets:

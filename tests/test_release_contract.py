@@ -39,7 +39,7 @@ EXPECTED_VERSION = "3.5.0"
 EXPECTED_SKILL_COUNT = 36
 EXPECTED_SCENARIO_COUNT = 22
 EXPECTED_TRIGGER_QUERY_COUNT = 80
-EXPECTED_TASK_COUNT = 4
+EXPECTED_TASK_COUNT = 6
 
 # Identity-declaration phrases the v3.4.2 release removed from the public
 # release text. Built from parts so this meta-test's own source never
