@@ -4,6 +4,32 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v3.8.0 (wave4 context-hygiene)**: context layering per the
+  2026-09-01 roadmap. (1) OPS/AGENTS diet: 3 inline rule blocks relocated
+  verbatim to JIT skill homes (destructive-commands -> git-workflow-
+  and-versioning, TDD spec/name gate -> testing-discipline, memory-trust
+  ASI06 -> security-and-hardening); OPS.md 154->145 lines; relocation-only
+  proven by red-first no-content-lost tests; adapters/UNIVERSAL.md
+  fragment->harness mapping; AGENTS.md JIT rule-skill index; 6 trigger
+  queries added to co-located evals.json (central stays 80; merged 86).
+  (2) Compaction-continuity scenario 23: owner correction mid-run
+  ("нет, используй postgres, не sqlite") + compact-before-delivery; oracle
+  = correction survives AND verbatim quote in report (9-section summary
+  discipline); mast: FM-1.4 (context loss); runner dry-run 23/23 GREEN.
+  (3) Wiki hygiene: lint_wiki type frontmatter in {user, feedback,
+  project, reference} (legacy WARN), index.md hard cap 200 lines (ERROR
+  demanding consolidation, tail never silently dropped), freshness WARN
+  >180d, modified ISO-8601 stamping (stamp_modified writer helper,
+  build.py stamps indexed copy only — disk never rewritten). Real-Wiki
+  lint read-only: exit 0. Regression tests: test_ops_diet.py (11),
+  test_compaction_scenario.py (9), test_wiki_hygiene.py (11); scenario
+  count 22->23. Verified: pytest = 447 passed, 1 skipped, 34 subtests;
+  doctor 14 checks GREEN; deploy ALL OK (home+repo canonical copies
+  synced, 36 skills restamped 3.8.0). Ablation token delta: live run
+  attempted (claude -p executor) — executor phase failed (subprocess
+  exit 1 + Windows temp-dir lock), no comparable baseline produced;
+  recorded as NOT measured, not skipped silently. Release contract:
+  version 3.8.0, 36 skills.
 - **v3.7.0 (wave3 standards-conformance)**: agentskills.io alignment
   from the 2026-09-01 roadmap. (1) Full Agent Skills spec conformance in
   doctor (`check_frontmatter_spec`): name 1-64 chars ^[a-z0-9]+(-[a-z0-9]+)*$

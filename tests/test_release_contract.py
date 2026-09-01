@@ -35,7 +35,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXPECTED_VERSION = "3.7.0"
+EXPECTED_VERSION = "3.8.0"
 EXPECTED_SKILL_COUNT = 36
 EXPECTED_SCENARIO_COUNT = 23
 EXPECTED_TRIGGER_QUERY_COUNT = 80

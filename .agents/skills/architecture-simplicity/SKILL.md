@@ -3,7 +3,7 @@ name: architecture-simplicity
 description: 'Use when the user wants to: design/redesign modules and layers, choose between a library and your own code, understand why a project became a god file, add an abstraction "just in case", evolve a DB schema without data loss, or review architecture. Covers: YAGNI until second need, stdlib-first, modules by change reason, shared core + thin adapters, config outside repo + defaults in code, schema evolution without DROP, provider fallback chain, unrepresentable invalid states, deleting dead code. Do not use for money (money-path-safety).'
 compatibility: any language and stack, architecture design/review phase
 metadata:
-  version: "3.7.0"
+  version: "3.8.0"
 ---
 
 # Architecture & simplicity: design principles

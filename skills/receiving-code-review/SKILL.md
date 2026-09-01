@@ -2,7 +2,7 @@
 name: receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 metadata:
-  version: "3.7.0"
+  version: "3.8.0"
 ---
 
 # Code Review Reception

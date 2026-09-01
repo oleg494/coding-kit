@@ -2,7 +2,7 @@
 name: web-research
 description: 'Use when you need a fact from the outside world: "find out", "look up", "what do they say about", "how it works", "compare", "find information". Protocol: web search → primary sources → cross-check → answer with sources. Do not use for searching the knowledge base (business-wiki) or for facts already in the Wiki.'
 metadata:
-  version: "3.7.0"
+  version: "3.8.0"
 ---
 
 # Web Research — facts from the outside world

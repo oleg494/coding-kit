@@ -2,7 +2,7 @@
 name: yagni
 description: 'Always-on. Law of minimalism: don''t build what wasn''t asked for. Abstraction with one consumer → inline. New dependency → only if the pain is measurable. Dead code → delete. "For the future" → not a reason. Use for ANY code change.'
 metadata:
-  version: "3.7.0"
+  version: "3.8.0"
 ---
 
 # YAGNI — law of minimalism
