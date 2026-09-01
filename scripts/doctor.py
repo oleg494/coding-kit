@@ -243,6 +243,28 @@ def check_encoding_discipline() -> tuple[bool, str]:
                 bad.append(f"{p.relative_to(KIT).as_posix()}:{ln}")
     return (not bad, "no bare text=True" if not bad else "; ".join(bad[:5]))
 
+def check_backup_freshness() -> tuple[bool, str]:
+    """Backup/DR freshness (wave1 Task 4): WARN when the newest memory
+    backup is older than 14 days or none exists. WARN-tier: doctor stays
+    green (ok=True) — a stale backup must not block work, only nag."""
+    root = Path(os.environ.get("MEMORY_ROOT") or Path.home() / ".memory")
+    backups = root / "backups"
+    if not backups.is_dir():
+        return (True, "no backups yet (WARN: run scripts/tools/backup_memory.py)")
+    stamps = sorted(e.name for e in backups.iterdir()
+                    if e.is_dir() and len(e.name) == 15 and e.name[:15].isdigit())
+    if not stamps:
+        return (True, "backups dir has no YYYYMMDDTHHMMSS entries (WARN)")
+    try:
+        age_days = (datetime.now()
+                    - datetime.strptime(stamps[-1], "%Y%m%dT%H%M%S")
+                    ).total_seconds() / 86400
+    except ValueError:
+        return (True, f"unparseable backup name: {stamps[-1]}")
+    if age_days > 14:
+        return (True, f"newest backup {int(age_days)}d old (WARN: refresh)")
+    return (True, f"newest backup {int(age_days)}d old")
+
 
 def main() -> int:
     checks = [
@@ -256,6 +278,7 @@ def main() -> int:
         ("engine sync", check_engine_sync()),
         ("integrity", check_integrity()),
         ("supply chain", check_skill_supply_chain()),
+        ("backup freshness", check_backup_freshness()),
         ("encoding discipline", check_encoding_discipline()),
     ]
     fails = 0

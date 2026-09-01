@@ -1,7 +1,7 @@
 {
  "files": {
   "AGENTS.md": "d0bb50dfdb712413bb865f79e4f3c87ef1b269383fd4ccb7e94b423f7784040c",
-  "OPS.md": "18c71e013f50e38629dc65915e879f18c9c9c801a4710f5102c6dc0d91869289",
+  "OPS.md": "d611db2099a8a820934586f863fe234dc549c1e36cf92fe00999dd0351b2bd41",
   "SKILL_RUNTIME.md": "3411d2856a53f92c7dc6bb1dc91748f08474dcd52413c2f7b6b2b7b23dfd0a8c",
   "adapters/UNIVERSAL.md": "14696e4031c431f0fb8eaad510fd9f659f24df6b0ac6f46fb6bbf50f96fc3582",
   "adapters/antigravity.md": "aba535c2796a96a48aa89b6b7c93e8c00987084a536a8a0da66f08e1ccbb6570",
@@ -43,8 +43,9 @@
   "memory/scripts/_compat.py": "47ad633897121b3f8d8d9c3dae2d4ce947fd76bdb6400460fb7c764e9f339941",
   "memory/scripts/memory-warmup.py": "4599211238737188be65f568cac44f8a5fc7d342a38850839143bc4c3f52658f",
   "profile.yml": "2080ad9d6f0868fecd795fe46a2df042ad5b2975a8ab75030df3cad7fbcd8b46",
-  "scripts/doctor.py": "97ec3196450a8514f1d01bf181f6677fc30d83dac6bd996ed540f7d5b972bf4b",
+  "scripts/doctor.py": "4a8ad7a3585752a60d2114559bde22d237afaf54ca158c93af646b8969ab0168",
   "scripts/install.py": "6cbccf49c6e6f72791b8a2048d7fd580e8c91d932f0dddadf731f10c7dc133f9",
+  "scripts/tools/backup_memory.py": "59f85d3c5e44518ed641113f4e5a53abed93e426549b2a85657df67c8929cae3",
   "scripts/tools/check_file_sizes.py": "9a886160e9880830405d9223d3e5d30dc254fe8377afbcd3de8566361ad33f5b",
   "scripts/tools/deploy.py": "06dc7485e5e180ae6088fae2ab1e0295aeee72c51ef80ef5fba94ba35adfb09b",
   "scripts/tools/integrity_manifest.py": "57d258041de4e2c39581048537fac0f90670db1917ab91581e7d64797b9125e3",
