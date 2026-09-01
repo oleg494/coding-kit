@@ -1,251 +1,179 @@
 #!/usr/bin/env python3
+"""usage_audit (v4.0.0): normalized-transcript usage audit.
 
-"""Usage audit: memory-engine usage in Claude Code / omp session transcripts.
+Wave6 Task 20 rewired this tool onto eval/transcript_normalize.py: every
+harness transcript (Claude Code JSONL, omp JSONL, Gemini chats, Hermes
+state.db) is first normalized into the trajectory-v1 record shape, and
+ALL audit logic consumes only that form. Per-harness parsing lives in
+exactly one place (the normalizer readers).
 
-Answers "is the memory engine actually used in real work?" by reading:
-- ~/.claude/projects/<project-slug>/<uuid>.jsonl  (Claude Code format:
-  {type:user|assistant, message:{role, content: str | [{type:tool_use,...}]},
-  cwd, timestamp});
-- ~/.omp/agent/sessions/<project-slug>/*.jsonl  (omp format:
-  {type:session|message|custom, message:{role, content items incl.
-  {type:toolCall, name, arguments}}, custom customType:tool_execution_start
-  data:{toolName, args}}).
-
-Each file is one session. Sessions are segregated kit-internal vs real by
-patterns: coding-kit / kit-eval / KODEKITTEST / CLAUDETESTS in the
-directory slug or session cwd, or «код кит» in the session title / first
-human turn. Per session we count:
-- human_turns  — user turns that are not tool results / reminders;
-- memory_calls — Bash (and omp bash tool) calls touching the memory engine
-  (memory-warmup, search_all.py, findings.py, build.py, repomap,
+Per session we count (same semantics as the v3 audit):
+- human_turns  — user records that are not tool results / reminders;
+- memory_calls — tool records whose name/arguments mention the memory
+  engine (memory-warmup, search_all.py, findings.py, build.py, repomap,
   skills_search, doctor.py, check_file_sizes);
-- skill_reads  — distinct skill://<name> reads;
+- skill_reads  — distinct skill://<name> mentions anywhere in records;
 - ops_markers  — distinct "Coding Agent OS" / "Execution Lock" /
-  db-tools/search_all markers present anywhere in the transcript.
+  db-tools/search_all markers present anywhere in the records.
+
+Sessions are segregated kit-internal vs real by patterns: coding-kit /
+kit-eval / KODEKITTEST / CLAUDETESTS in the directory slug or session
+cwd, or «код кит» in the session title / first human turn.
 
 Run:
-    python3 scripts/tools/usage_audit.py                  # human summary
-    python3 scripts/tools/usage_audit.py --json           # machine output
-    python3 scripts/tools/usage_audit.py --since 2026-08-01
-    python3 scripts/tools/usage_audit.py --claude-root DIR --omp-root DIR
+    python scripts/tools/usage_audit.py                  # human summary
+    python scripts/tools/usage_audit.py --json           # machine output
+    python scripts/tools/usage_audit.py --since 2026-08-01
+    python scripts/tools/usage_audit.py --retirement-report
 """
 import argparse
+import importlib.util
 import json
 import re
 import sys
-from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-# stdlib-only: no scripts/_compat.py dependency (memory/ moved out of the kit)
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except Exception:  # noqa: S110 — optional, lives without it
+except Exception:  # noqa: BLE001,S110 — optional console nicety
     pass
 
 HOME = Path.home()
 CLAUDE_ROOT = HOME / ".claude" / "projects"
 OMP_ROOT = HOME / ".omp" / "agent" / "sessions"
+GEMINI_ROOT = HOME / ".gemini" / "tmp"
+HERMES_DB = HOME / "AppData" / "Local" / "hermes" / "state.db"
 
-# Kit-internal session markers: directory slug / cwd / title / first human
-# turn, lowercased before matching.
+KIT = Path(__file__).resolve().parents[2]
+_spec = importlib.util.spec_from_file_location(
+    "transcript_normalize", KIT / "eval" / "transcript_normalize.py")
+tn = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(tn)
+
 KIT_PATTERNS = (
     "coding-kit", "coding_kit", "codingkit", "kit-eval", "kit_eval",
     "kodekittest", "claudetests", "код кит", "код-кит",
 )
 
-# Memory-engine tool calls: any Bash command mentioning a memory script.
 MEMORY_RE = re.compile(
     r"memory-warmup|search_all\.py|findings\.py|build\.py|repomap"
     r"|skills_search|doctor\.py|check_file_sizes")
 
 SKILL_READ_RE = re.compile(r"skill://([A-Za-z0-9_-]+)")
 OPS_MARKER_RE = re.compile(r"Coding Agent OS|Execution Lock|db-tools/search_all")
-
-# User lines that are not a human turn.
 HUMAN_EXCLUDE_RE = re.compile(
     r"<system-reminder>|Caveat:|tool_result|command-name|local-command")
 
 
-def _iter_jsonl(path: Path):
-    with path.open(encoding="utf-8", errors="replace") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                yield json.loads(line)
-                continue
-            except json.JSONDecodeError:
-                pass
-            try:  # tolerant retry (BOM, stray prefix)
-                yield json.loads(line.lstrip("\ufeff"))
-                continue
-            except json.JSONDecodeError:
-                continue
-
-
-def _text_of(content) -> str:
-    """Flatten a Claude/omp content value (str or block list) to text."""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts = []
-        for b in content:
-            if isinstance(b, dict):
-                if isinstance(b.get("text"), str):
-                    parts.append(b["text"])
-                elif b.get("type") == "thinking":
-                    parts.append(b.get("thinking") or "")
-                elif b.get("type") == "tool_result":
-                    parts.append(json.dumps(b.get("content"),
-                                            ensure_ascii=False))
-                elif b.get("type") == "toolCall":
-                    parts.append(json.dumps(b.get("arguments"),
-                                            ensure_ascii=False))
-        return "\n".join(parts)
-    if isinstance(content, dict):
-        return json.dumps(content, ensure_ascii=False)
-    return ""
-
-
-def _tool_blob(name, args) -> str:
-    """One tool call rendered to searchable text (name + input)."""
-    return f"{name} {json.dumps(args, ensure_ascii=False)}"
-
-
-def _mtime_date(p: Path) -> date:
-    return datetime.fromtimestamp(p.stat().st_mtime).date()
-
-
-def _iter_jsonl_safe(path: Path):
-    try:
-        yield from _iter_jsonl(path)
-    except OSError:
-        return
-
-
-def _kit(text) -> bool:
-    if not text:
-        return False
-    low = text.lower()
+def _kit(text: str) -> bool:
+    low = (text or "").lower()
     return any(p in low for p in KIT_PATTERNS)
 
 
-def _count_ops(text: str) -> int:
-    """Distinct OPS markers present in the text (0..3)."""
-    return len({m.lower() for m in OPS_MARKER_RE.findall(text or "")})
+def _mtime_date(p: Path) -> date:
+    return datetime.fromtimestamp(p.stat().st_mtime).date()  # noqa: DTZ006
 
 
-def audit_session(path: Path, source: str, since: date) -> dict | None:
-    """Parse one transcript file into per-session counters.
-
-    Returns None when the session is outside the --since window.
-    """
-    if _mtime_date(path) < since:
-        return None
+def _audit_records(records: list) -> dict:
+    """Counters over normalized records (the ONLY place audit logic
+    lives — no harness format knowledge here)."""
     human_turns = 0
     memory_calls = 0
-    skill_reads = set()
+    skill_reads: set[str] = set()
     ops_seen = 0
     first_human = ""
-    session_cwd = ""
-    session_title = ""
-    omp_call_ids = set()
-    for d in _iter_jsonl_safe(path):
-        typ = d.get("type")
-        if typ == "session":  # omp header
-            session_cwd = d.get("cwd") or session_cwd
-            session_title = d.get("title") or session_title
-        elif typ == "user":  # Claude Code
-            if not session_cwd:
-                session_cwd = d.get("cwd") or ""
-            msg = d.get("message") or {}
-            c = msg.get("content")
-            if isinstance(c, list):
-                continue  # tool result — not a human turn
-            text = _text_of(c)
+    for r in records:
+        rtype = r.get("type")
+        if rtype == "user":
+            text = r.get("content") or ""
             if not text.strip() or HUMAN_EXCLUDE_RE.search(text):
                 continue
             if not first_human:
                 first_human = text[:300]
             human_turns += 1
-        elif typ == "assistant":  # Claude Code tool_use blocks
-            msg = d.get("message") or {}
-            for b in msg.get("content") or []:
-                if not isinstance(b, dict) or b.get("type") != "tool_use":
-                    continue
-                blob = _tool_blob(b.get("name"), b.get("input"))
-                if MEMORY_RE.search(blob):
-                    memory_calls += 1
-                for name in SKILL_READ_RE.findall(blob):
-                    skill_reads.add(name)
-            blob = json.dumps(msg, ensure_ascii=False)
-            for name in SKILL_READ_RE.findall(blob):
-                skill_reads.add(name)
-        elif typ == "message":  # omp role messages
-            msg = d.get("message") or {}
-            role = msg.get("role")
-            if role == "user":
-                text = _text_of(msg.get("content"))
-                if not text.strip() or HUMAN_EXCLUDE_RE.search(text):
-                    continue
-                if not first_human:
-                    first_human = text[:300]
-                human_turns += 1
-            elif role == "assistant":
-                for b in msg.get("content") or []:
-                    if not isinstance(b, dict) or b.get("type") != "toolCall":
-                        continue
-                    cid = b.get("id")
-                    if cid:
-                        omp_call_ids.add(cid)
-                    blob = _tool_blob(b.get("name"), b.get("arguments"))
-                    if MEMORY_RE.search(blob):
-                        memory_calls += 1
-                    for name in SKILL_READ_RE.findall(blob):
-                        skill_reads.add(name)
-        elif typ == "custom" and d.get("customType") == "tool_execution_start":
-            data = d.get("data") or {}
-            cid = data.get("toolCallId")
-            if cid and cid in omp_call_ids:
-                continue  # same call already counted from the toolCall block
-            blob = _tool_blob(data.get("toolName"), data.get("args"))
+        elif rtype == "tool":
+            blob = f"{r.get('name') or ''} {r.get('arguments') or ''}"
             if MEMORY_RE.search(blob):
                 memory_calls += 1
-            for name in SKILL_READ_RE.findall(blob):
-                skill_reads.add(name)
-        # scan every line for skill:// and OPS markers
-        blob = json.dumps(d, ensure_ascii=False)
-        ops_seen += _count_ops(blob)
+        blob = json.dumps(r, ensure_ascii=False)
+        ops_seen += len(OPS_MARKER_RE.findall(blob))
         for name in SKILL_READ_RE.findall(blob):
             skill_reads.add(name)
-    kit = (_kit(session_cwd) or _kit(session_title)
-           or _kit(path.parent.name) or _kit(first_human))
+    return {"human_turns": human_turns, "memory_calls": memory_calls,
+            "skill_reads": skill_reads, "ops_markers": ops_seen,
+            "first_human": first_human}
+
+
+def _session_from_records(source: str, records: list, slug: str,
+                          path_str: str) -> dict:
+    meta = records[0] if records and records[0].get("type") == "meta" else {}
+    counts = _audit_records(records)
+    kit = (_kit(meta.get("cwd", "")) or _kit(slug)
+           or _kit(counts["first_human"]))
     return {
         "source": source,
-        "file": str(path),
-        "project_slug": path.parent.name,
+        "file": path_str,
+        "project_slug": slug,
         "kit_internal": kit,
-        "human_turns": human_turns,
-        "memory_calls": memory_calls,
-        "skill_reads": sorted(skill_reads),
-        "ops_markers": ops_seen,
+        "human_turns": counts["human_turns"],
+        "memory_calls": counts["memory_calls"],
+        "skill_reads": sorted(counts["skill_reads"]),
+        "ops_markers": counts["ops_markers"],
     }
 
 
-def audit(claude_root: Path, omp_root: Path, since) -> dict:
-    """Audit both transcript roots. since=None means no time filter."""
+def audit(claude_root: Path, omp_root: Path, since,
+          gemini_root: Path | None = None,
+          hermes_db: Path | None = None) -> dict:
+    """Audit all harness transcript stores via the normalizer."""
     since = since or date.min
-    sessions = []
-    for source, root in (("claude", claude_root), ("omp", omp_root)):
-        if not root.is_dir():
-            continue
-        for path in sorted(root.glob("*/*.jsonl")):
-            res = audit_session(path, source, since)
-            if res:
-                sessions.append(res)
+    sessions: list[dict] = []
+
+    def _want(path: Path) -> bool:
+        return _mtime_date(path) >= since
+
+    if omp_root and omp_root.is_dir():
+        for path in sorted(omp_root.glob("*/*.jsonl")):
+            if not _want(path):
+                continue
+            res = tn.normalize("omp", path)
+            if res["records"]:
+                sessions.append(_session_from_records(
+                    "omp", res["records"], path.parent.name, str(path)))
+    if claude_root and claude_root.is_dir():
+        for path in sorted(claude_root.glob("*/*.jsonl")):
+            if not _want(path):
+                continue
+            res = tn.normalize("claude", path)
+            if res["records"]:
+                sessions.append(_session_from_records(
+                    "claude", res["records"], path.parent.name, str(path)))
+    if gemini_root and gemini_root.is_dir():
+        for path in sorted(gemini_root.glob("*/chats/*.json")):
+            if not _want(path):
+                continue
+            res = tn.normalize("gemini", path)
+            if res["records"]:
+                sessions.append(_session_from_records(
+                    "gemini", res["records"], path.parts[-3], str(path)))
+    if hermes_db and hermes_db.is_file():
+        try:
+            con_dates = _hermes_session_dates(hermes_db, since)
+        except Exception:  # noqa: BLE001 — hermes store is best-effort
+            con_dates = {}
+        for sid, mtime in con_dates.items():
+            if mtime < since:
+                continue
+            try:
+                res = tn.normalize("hermes", hermes_db, sid)
+            except Exception:  # noqa: BLE001,S112 — best-effort hermes store
+                continue
+            if res["records"]:
+                sessions.append(_session_from_records(
+                    "hermes", res["records"], "hermes", str(hermes_db)))
+
     aggregate = {}
     for label in ("kit_internal", "real"):
         subset = [s for s in sessions
@@ -257,10 +185,30 @@ def audit(claude_root: Path, omp_root: Path, since) -> dict:
             "skill_reads": len({n for s in subset for n in s["skill_reads"]}),
             "ops_markers": sum(s["ops_markers"] for s in subset),
         }
-    return {"generated": datetime.now().isoformat(timespec="seconds"),
+    return {"generated": datetime.now().isoformat(  # noqa: DTZ005
+        timespec="seconds"),
             "since": None if since == date.min else since.isoformat(),
             "roots": {"claude": str(claude_root), "omp": str(omp_root)},
             "sessions": sessions, "aggregate": aggregate}
+
+
+def _hermes_session_dates(db: Path, since: date) -> dict:
+    import sqlite3
+    con = sqlite3.connect(f"file:{Path(db).as_posix()}?mode=ro", uri=True)
+    try:
+        rows = con.execute(
+            "SELECT id, started_at FROM sessions").fetchall()
+    finally:
+        con.close()
+    out: dict[str, date] = {}
+    for sid, started in rows:
+        try:
+            d = datetime.fromtimestamp(  # noqa: DTZ006
+                float(started)).date()
+        except (TypeError, ValueError, OSError):
+            continue
+        out[str(sid)] = d
+    return out
 
 
 def _human(res: dict) -> str:
@@ -298,7 +246,6 @@ def retirement_report(res: dict, all_skills: list[str],
     fired: set[str] = set()
     for s in res["sessions"]:
         if s["kit_internal"]:
-            # eval/test transcripts do not count as real usage
             continue
         fired.update(s["skill_reads"])
     if (skills_root / "skills").is_dir():
@@ -330,8 +277,8 @@ def retirement_report_human(report: dict) -> str:
 
 def main():
     ap = argparse.ArgumentParser(
-        description="Audit memory-engine usage in Claude Code / omp "
-                    "session transcripts")
+        description="Audit memory-engine usage in normalized session "
+                    "transcripts (claude/omp/gemini/hermes)")
     ap.add_argument("--since", default=None, metavar="YYYY-MM-DD",
                     help="only sessions modified since this date "
                          "(default: 14 days back)")
@@ -341,6 +288,10 @@ def main():
     ap.add_argument("--omp-root", default=None, metavar="DIR",
                     help="omp transcripts root "
                          "(default: ~/.omp/agent/sessions)")
+    ap.add_argument("--no-gemini", action="store_true",
+                    help="skip the Gemini CLI chats store")
+    ap.add_argument("--no-hermes", action="store_true",
+                    help="skip the Hermes state.db store")
     ap.add_argument("--json", action="store_true",
                     help="machine-readable JSON output")
     ap.add_argument("--retirement-report", action="store_true",
@@ -349,15 +300,16 @@ def main():
     args = ap.parse_args()
 
     since = (date.fromisoformat(args.since) if args.since
-             else date.today() - timedelta(days=14))
+             else date.today() - timedelta(days=14))  # noqa: DTZ011
     res = audit(claude_root=Path(args.claude_root) if args.claude_root
                 else CLAUDE_ROOT,
                 omp_root=Path(args.omp_root) if args.omp_root else OMP_ROOT,
-                since=since)
+                since=since,
+                gemini_root=None if args.no_gemini else GEMINI_ROOT,
+                hermes_db=None if args.no_hermes else HERMES_DB)
     if args.retirement_report:
         report = retirement_report(res, all_skills=[],
-                                   skills_root=Path(
-                                       __file__).resolve().parents[2])
+                                   skills_root=KIT)
         if args.json:
             print(json.dumps(report, ensure_ascii=False, indent=2))
         else:

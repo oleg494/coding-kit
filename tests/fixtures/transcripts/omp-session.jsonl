@@ -1,0 +1,6 @@
+{"type":"session","id":"omp-fix-1","cwd":"C:/work/proj","title":"fix bug"}
+{"type":"message","message":{"role":"user","content":"че там со сборкой"},"timestamp":"2026-08-01T10:00:00Z"}
+{"type":"message","message":{"role":"assistant","content":[{"type":"text","text":"смотрю"},{"type":"toolCall","id":"call-1","name":"bash","arguments":{"command":"python search_all.py x"}}]},"timestamp":"2026-08-01T10:00:05Z"}
+{"type":"custom","customType":"tool_execution_start","data":{"toolCallId":"call-1","toolName":"bash","args":{"command":"python search_all.py x"}}}
+{"type":"custom","customType":"tool_execution_end","data":{"toolCallId":"call-1","result":"found 2 hits"}}
+{"type":"message","message":{"role":"assistant","content":"нашёл 2"},"timestamp":"2026-08-01T10:00:09Z"}
