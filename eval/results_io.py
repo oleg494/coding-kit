@@ -25,6 +25,20 @@ RESERVED_KEYS = frozenset(
         "harness_sha",
     }
 )
+# OTel GenAI semconv alias keys (wave6 Task 18) — naming-only adoption, no
+# OTel runtime. Written alongside the legacy keys with identical values;
+# legacy keys stay one release. Aliases are payload-reserved like the
+# metadata keys: callers cannot override a derived alias.
+ALIAS_KEYS = frozenset(
+    {
+        "gen_ai.response.model",
+        "gen_ai.conversation.id",
+        "gen_ai.invoke_agent.duration",
+        "gen_ai.usage.tokens_total",
+        "gen_ai.usage.input_tokens",
+        "gen_ai.usage.output_tokens",
+    }
+)
 _MAX_PUBLICATION_ATTEMPTS = 10
 _MAX_TEMP_ATTEMPTS = 10
 
@@ -76,6 +90,33 @@ def _document(kind: str, model: str, payload: dict, executor_spec: str | None,
     }
 
 
+def _gen_ai_aliases(doc: dict) -> dict:
+    """OTel GenAI semconv aliases derived from the schema-v1 document.
+
+    Only keys with a known value are emitted — nothing is fabricated:
+    `duration_s_mean` aliases `gen_ai.invoke_agent.duration` only when the
+    run recorded a mean; `reported_usage` token totals alias the
+    `gen_ai.usage.*` names, with input/output emitted when the user
+    reported the split.
+    """
+    out: dict = {
+        "gen_ai.response.model": doc["model"],
+        "gen_ai.conversation.id": doc["run_id"],
+    }
+    mean = doc.get("duration_s_mean")
+    if isinstance(mean, (int, float)) and not isinstance(mean, bool):
+        out["gen_ai.invoke_agent.duration"] = mean
+    usage = doc.get("reported_usage")
+    if isinstance(usage, dict):
+        for old, new in (("tokens_total", "gen_ai.usage.tokens_total"),
+                         ("input_tokens", "gen_ai.usage.input_tokens"),
+                         ("output_tokens", "gen_ai.usage.output_tokens")):
+            value = usage.get(old)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                out[new] = value
+    return out
+
+
 def _write_temp(doc: dict, parent: Path) -> Path:
     for _ in range(_MAX_TEMP_ATTEMPTS):
         temp_path = parent / f".tmp-{uuid.uuid4()}.tmp"
@@ -110,7 +151,7 @@ def save_result(kind: str, model: str, payload: dict,
         raise ValueError(f"invalid kind: {kind!r}")
     if not isinstance(payload, dict):
         raise TypeError("payload must be a dict")
-    clashing = RESERVED_KEYS.intersection(payload)
+    clashing = RESERVED_KEYS.union(ALIAS_KEYS).intersection(payload)
     if clashing:
         raise ValueError(
             "reserved metadata key cannot be overridden in payload: "
@@ -118,18 +159,19 @@ def save_result(kind: str, model: str, payload: dict,
         )
 
     base_dir = Path(results_dir) if results_dir is not None else RESULTS_DIR
-    explicit_path = path is not None
-    final_path = Path(path) if explicit_path else None
-    if explicit_path:
+    final_path = Path(path) if path is not None else None
+    if final_path is not None:
         final_path.parent.mkdir(parents=True, exist_ok=True)
     else:
         base_dir.mkdir(parents=True, exist_ok=True)
 
+    explicit_path = final_path is not None
     for _ in range(1 if explicit_path else _MAX_PUBLICATION_ATTEMPTS):
         utc = _utc_now()
         doc = _document(kind, model, payload, executor_spec, utc)
         if final_path is None:
             final_path = base_dir / f"{doc['run_id']}.json"
+        doc.update(_gen_ai_aliases(doc))
         try:
             _publish(doc, final_path)
         except FileExistsError:

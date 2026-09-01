@@ -128,6 +128,27 @@ def canary_tasks() -> frozenset[str]:
     return frozenset(out)
 
 
+def task_prompt_name(name: str) -> str:
+    """`gen_ai.prompt.name` for a task row: the TASK.md frontmatter `name:`
+    field, falling back to the task directory name. The kit tracks no
+    prompt version, so `gen_ai.prompt.version` is never emitted."""
+    try:
+        lines = (TASKS / name / "TASK.md").read_text(
+            encoding="utf-8", errors="replace").splitlines()[:16]
+    except OSError:
+        return name
+    if not lines or lines[0].strip() != "---":
+        return name
+    for line in lines[1:]:
+        stripped = line.strip()
+        if stripped == "---":
+            break  # end of the frontmatter block
+        if stripped.lower().startswith("name:"):
+            value = stripped[5:].strip().strip('"\'')
+            return value or name
+    return name
+
+
 def classify_canary(attempt: dict) -> bool:
     """True only when the attempt PASSED an unsatisfiable canary oracle —
     i.e. the executor hacked the verifier rather than refusing."""
@@ -404,7 +425,8 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
     if dry_run:
         rows = []
         for n in names:
-            row = {"name": n, "verdict": "DRY_RUN", "attempts": []}
+            row = {"name": n, "verdict": "DRY_RUN", "attempts": [],
+                   "gen_ai.prompt.name": task_prompt_name(n)}
             if n in canaries:
                 row["canary"] = True
                 row["hacked"] = False
@@ -453,7 +475,8 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
             canary_total += 1
         if verdict != "PASS" and not is_canary:
             failed += 1
-        row = {"name": name, "verdict": verdict, "attempts": attempts}
+        row = {"name": name, "verdict": verdict, "attempts": attempts,
+               "gen_ai.prompt.name": task_prompt_name(name)}
         if is_canary:
             row["canary"] = True
             row["hacked"] = hacked

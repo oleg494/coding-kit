@@ -60,7 +60,7 @@ def load_reported_usage(path: str | Path | None) -> dict | None:
         print("[telemetry] --usage-json must be a JSON object", file=sys.stderr)
         return None
     out: dict = {}
-    for key in ("tokens_total", "cost_usd"):
+    for key in ("tokens_total", "input_tokens", "output_tokens", "cost_usd"):
         if key in data and data[key] is not None:
             value = data[key]
             if not _finite_nonneg(value):

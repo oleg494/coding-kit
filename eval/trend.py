@@ -300,13 +300,17 @@ def _status_and_delta(rate: float | None, baseline_rate: float | None) -> tuple[
     return baseline_str, delta_str, status_str
 
 def _duration_str(r: dict) -> str:
-    mean = r.get("duration_s_mean")
+    """Newest-key-first read: `gen_ai.invoke_agent.duration` (OTel alias)
+    wins over the legacy `duration_s_mean`; both are the same value on
+    v4 documents."""
+    mean = r.get("gen_ai.invoke_agent.duration")
+    if isinstance(mean, bool) or not isinstance(mean, (int, float)):
+        mean = r.get("duration_s_mean")
     if isinstance(mean, bool) or not isinstance(mean, (int, float)):
         return "-"
     if not math.isfinite(mean) or mean < 0:
         return "-"
     return f"{mean:.3f}s"
-
 
 def _reported_cost_str(r: dict) -> str:
     usage = r.get("reported_usage")
