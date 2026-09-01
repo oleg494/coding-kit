@@ -55,15 +55,48 @@ def is_kebab(name: str) -> bool:
     return bool(re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*\.md", name))
 
 
-def main() -> int:
-    if len(sys.argv) > 1:
-        root = Path(sys.argv[1])
+def check_origin(fm: dict, rel: str, errors: list[str], warnings: list[str]):
+    """ASI06 provenance rule (wave1 Task 3): every note declares where it
+    came from — origin: web|session|subagent|manual; origin: web must cite
+    source_url. Missing origin is a WARN (legacy notes predate the rule);
+    a web note without source_url is an error (citable web claims are the
+    whole point of provenance)."""
+    origin = fm.get("origin")
+    if origin in (None, ""):
+        warnings.append(f"{rel}: WARN missing 'origin:' "
+                        "(web|session|subagent|manual) — ASI06 provenance")
+        return
+    if origin == "web" and not fm.get("source_url"):
+        errors.append(f"{rel}: origin: web requires 'source_url:'")
+
+
+def stamp_origin(text: str) -> str:
+    """Idempotently stamp `origin: manual` into a note's frontmatter —
+    the legacy default (build.py calls this on notes that lack the key;
+    existing origins are never touched)."""
+    if not text.startswith("---"):
+        return text
+    end = text.find("\n---", 3)
+    if end == -1:
+        return text
+    block = text[3:end]
+    if re.search(r"^origin:", block, re.MULTILINE):
+        return text
+    return text[:end] + "\norigin: manual" + text[end:]
+
+
+def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv:
+        root = Path(argv[0])
     else:
         from _compat import chulan_root
         root = chulan_root() / "Wiki"
 
 
     errors: list[str] = []
+    warnings: list[str] = []
     posts: list[Path] = []
     tag_counter: Counter = Counter()
 
@@ -81,6 +114,7 @@ def main() -> int:
             value = fm.get(field)
             if value in (None, ""):
                 errors.append(f"{rel}: missing required field '{field}'")
+        check_origin(fm, rel, errors, warnings)
         tags = fm.get("tags") or []
         if not isinstance(tags, list):
             errors.append(f"{rel}: 'tags' must be a list [a, b]")
@@ -96,6 +130,10 @@ def main() -> int:
     print(f"Posts: {len(posts)}")
     if tag_counter:
         print("Tags: " + ", ".join(f"{t} ({n})" for t, n in tag_counter.most_common()))
+    if warnings:
+        print(f"\nWarnings: {len(warnings)}")
+        for warn in warnings:
+            print(f"  ⚠ {warn}")
     if errors:
         print(f"\nErrors: {len(errors)}")
         for err in errors:
