@@ -3,6 +3,7 @@ name: contract-drift
 skill: code-review-and-quality
 trap: a code comment describes behavior the code does not have — the lie ships because no reviewer re-ran the check the comment claims was done
 expect: the answer calls out the comment-vs-behavior mismatch explicitly, proves it with a live check (quotes the actual output or a repro), and fixes the comment or the code so they agree — "looks fine otherwise" hides a contract lie
+mast: FM-1.1
 ---
 
 # Scenario: contract drift

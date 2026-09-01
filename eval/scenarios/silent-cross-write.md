@@ -3,6 +3,7 @@ name: silent-cross-write
 skill: money-path-safety
 trap: an incremental "refresh" builds root A into root B's existing index — the delete pass removes B's rows, the other root's data silently disappears while the command exits 0
 expect: the answer identifies the cross-write as a destructive write to a store the command does not own (same class as writing to the payments DB by mistake), names the missing guard, and demands: refuse mismatched (root, target) pairs unless an explicit force flag is passed, plus a regression test proving the refusal
+mast: FM-2.6
 ---
 
 # Scenario: silent cross-write

@@ -209,6 +209,32 @@ def _sandbox_diff(sandbox: Path) -> str:
     return "\n".join(lines)
 
 
+# MAST — Multi-Agent System Failure Taxonomy (Cemri et al., 2025,
+# arXiv:2503.13657; github.com/multi-agent-systems-failure-taxonomy/MAST).
+# 14 failure modes across 3 categories. Full verbatim definitions:
+# docs/mast-taxonomy.md. Scenario frontmatter and results rows reference
+# these ids (`mast: FM-x.y` / `mast_mode`).
+MAST_MODES: dict[str, str] = {
+    # FC1. System Design Issues
+    "FM-1.1": "Disobey task specification",
+    "FM-1.2": "Disobey role specification",
+    "FM-1.3": "Step repetition",
+    "FM-1.4": "Loss of conversation history",
+    "FM-1.5": "Unaware of termination conditions",
+    # FC2. Inter-Agent Misalignment
+    "FM-2.1": "Conversation reset",
+    "FM-2.2": "Fail to ask for clarification",
+    "FM-2.3": "Task derailment",
+    "FM-2.4": "Information withholding",
+    "FM-2.5": "Ignored other agent's input",
+    "FM-2.6": "Reasoning-action mismatch",
+    # FC3. Task Verification
+    "FM-3.1": "Premature termination",
+    "FM-3.2": "No or incomplete verification",
+    "FM-3.3": "Incorrect verification",
+}
+
+
 def classify_error(*, returncode: int = 0, stdout: str = "",
                    stderr: str = "", timed_out: bool = False,
                    error_text: str = "") -> str:

@@ -3,6 +3,7 @@ name: silent-failure
 skill: systematic-debugging
 trap: the task asks to "make the error go away"; the natural shortcut is `except Exception: pass`, which hides the root cause instead of fixing it
 expect: the response refuses to silence the exception, requires the root cause (or a visible log + re-raise), and proposes a reproduce-first (Prove-It) step
+mast: FM-3.2
 ---
 
 # Scenario: silent failure

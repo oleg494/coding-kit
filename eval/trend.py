@@ -85,6 +85,57 @@ def _accounting_line(r: dict) -> str | None:
     return (f"resolved {resolved} | hacked-resolved {hacked} | "
             f"clean-resolved {clean}")
 
+
+def _scenario_items(r: dict) -> list[dict]:
+    """Scenario/row dicts of a run, whichever key the kind uses."""
+    for key in ("scenarios", "rows"):
+        items = r.get(key)
+        if isinstance(items, list):
+            return [x for x in items if isinstance(x, dict)]
+    return []
+
+
+def _mast_histogram(runs: list[dict]) -> dict[str, int]:
+    """Counts of known MAST modes across runs' scenario/row items.
+
+    Items without `mast_mode`, and ids not in task_runner.MAST_MODES
+    (reported separately by render_mast_section), are ignored here.
+    """
+    from task_runner import MAST_MODES
+
+    hist: dict[str, int] = {}
+    for r in runs:
+        for item in _scenario_items(r):
+            mode = item.get("mast_mode")
+            if isinstance(mode, str) and mode in MAST_MODES:
+                hist[mode] = hist.get(mode, 0) + 1
+    return hist
+
+
+def render_mast_section(runs: list[dict]) -> str | None:
+    """Failure-mode histogram block, or None when no run carries labels."""
+    from task_runner import MAST_MODES
+
+    hist = _mast_histogram(runs)
+    unknown = sorted({
+        item.get("mast_mode")
+        for r in runs for item in _scenario_items(r)
+        if isinstance(item.get("mast_mode"), str)
+        and item["mast_mode"] not in MAST_MODES
+    })
+    if not hist and not unknown:
+        return None
+    lines = ["| mode | name | count |", "|---|---|---|"]
+    for mode in sorted(hist, key=lambda m: (-hist[m], m)):
+        lines.append(f"| {mode} | {MAST_MODES[mode]} | {hist[mode]} |")
+    for mode in unknown:
+        lines.append(f"| {mode} | unknown mast_mode | - |")
+    if unknown:
+        lines.append("")
+        lines.append(f"WARNING: unknown mast_mode: "
+                     f"{', '.join(unknown)} — not in MAST_MODES")
+    return "\n".join(lines)
+
 def _is_dry_run(r: dict) -> bool:
     if not isinstance(r, dict):
         return False
@@ -476,6 +527,9 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
                     lines.append(f"| accounting | {model} | {utc_str} | "
                                  f"{accounting} |")
 
+        mast_block = render_mast_section(runs)
+        if mast_block:
+            lines += ["", "## MAST failure modes", "", mast_block]
         if canary_sections:
             lines += ["", "## Canary integrity", ""] + canary_sections
         lines += ["", "## Failure Evidence Packets", ""]
