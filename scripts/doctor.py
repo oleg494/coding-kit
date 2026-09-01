@@ -157,11 +157,16 @@ def frontmatter_spec_problems(slug: str, fm_text: str,
             elif len(compat) > 500:
                 note(f"WARN compatibility length {len(compat)} > 500")
         meta = fm_yaml.get("metadata")
-        if meta is not None and (not isinstance(meta, dict)
-                                 or not all(isinstance(k, str)
-                                            and isinstance(v, str)
-                                            for k, v in meta.items())):
+        if meta is None:
+            note("WARN metadata.version missing (skill lifecycle, "
+                 "wave3 Task 11)")
+        elif not isinstance(meta, dict) \
+                or not all(isinstance(k, str) and isinstance(v, str)
+                           for k, v in meta.items()):
             note("metadata must be a str->str map")
+        elif not meta.get("version"):
+            note("WARN metadata.version missing (skill lifecycle, "
+                 "wave3 Task 11)")
         tools = fm_yaml.get("allowed-tools")
         if tools is not None and not (isinstance(tools, str)
                                       and tools.strip()

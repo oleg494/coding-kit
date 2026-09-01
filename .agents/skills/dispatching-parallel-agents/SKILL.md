@@ -1,6 +1,8 @@
 ---
 name: dispatching-parallel-agents
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+metadata:
+  version: "3.7.0"
 ---
 
 # Dispatching Parallel Agents

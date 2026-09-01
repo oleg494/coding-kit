@@ -287,6 +287,47 @@ def _human(res: dict) -> str:
     return "\n".join(out)
 
 
+def retirement_report(res: dict, all_skills: list[str],
+                      skills_root=None) -> dict:
+    """Zero-use retirement proposal (wave3 Task 11): skills with 0
+    firings across the audited REAL sessions (kit-internal sessions are
+    excluded — their skill reads are evals/tests, not usage). Proposal
+    only: never deletes; retirement is an owner decision (v3.4.6
+    precedent: agent-ux removed after 0 real uses)."""
+    skills_root = Path(skills_root) if skills_root else Path.home()
+    fired: set[str] = set()
+    for s in res["sessions"]:
+        if s["kit_internal"]:
+            # eval/test transcripts do not count as real usage
+            continue
+        fired.update(s["skill_reads"])
+    if (skills_root / "skills").is_dir():
+        installed = sorted(d.name for d in
+                           (skills_root / "skills").iterdir()
+                           if d.is_dir())
+    else:
+        installed = all_skills
+    zero = sorted(s for s in installed if s not in fired)
+    return {"since": res.get("since"),
+            "action": "proposal-only",
+            "sessions_audited": len(res["sessions"]),
+            "skills_total": len(installed),
+            "fired_count": len(fired),
+            "count": len(zero),
+            "zero_use": zero}
+
+
+def retirement_report_human(report: dict) -> str:
+    out = [(f"retirement proposal (since {report['since'] or 'all time'}, "
+            f"{report['sessions_audited']} real sessions audited)"),
+           (f"action: {report['action']} — owner decides, nothing is "
+            "deleted"),
+           (f"zero-use skills ({len(report['zero_use'])}/"
+            f"{report['skills_total']}):")]
+    out += [f"  - {s}" for s in report["zero_use"]] or ["  (none)"]
+    return "\n".join(out)
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Audit memory-engine usage in Claude Code / omp "
@@ -302,6 +343,9 @@ def main():
                          "(default: ~/.omp/agent/sessions)")
     ap.add_argument("--json", action="store_true",
                     help="machine-readable JSON output")
+    ap.add_argument("--retirement-report", action="store_true",
+                    help="list skills with 0 firings in the audited "
+                         "window (proposal only — nothing is deleted)")
     args = ap.parse_args()
 
     since = (date.fromisoformat(args.since) if args.since
@@ -310,6 +354,15 @@ def main():
                 else CLAUDE_ROOT,
                 omp_root=Path(args.omp_root) if args.omp_root else OMP_ROOT,
                 since=since)
+    if args.retirement_report:
+        report = retirement_report(res, all_skills=[],
+                                   skills_root=Path(
+                                       __file__).resolve().parents[2])
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+        else:
+            print(retirement_report_human(report))
+        sys.exit(0)
     if args.json:
         print(json.dumps(res, ensure_ascii=False, indent=2))
     else:

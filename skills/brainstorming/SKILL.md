@@ -1,6 +1,8 @@
 ---
 name: brainstorming
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+metadata:
+  version: "3.7.0"
 ---
 
 # Brainstorming Ideas Into Designs

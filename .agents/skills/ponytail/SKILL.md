@@ -1,6 +1,8 @@
 ---
 name: ponytail
 description: 'Lazy senior-dev mode for any coding task (write, refactor, fix, review): climb the minimalism ladder — skip it, reuse it, stdlib, native, installed dependency, one line, then the minimum that works. Deletion over addition, no unrequested abstractions, one runnable check for non-trivial logic. Use for any code change to ship the minimum that works.'
+metadata:
+  version: "3.7.0"
 ---
 
 # Ponytail — lazy senior dev mode

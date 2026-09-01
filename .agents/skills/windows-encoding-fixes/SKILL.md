@@ -3,6 +3,8 @@ name: windows-encoding-fixes
 description: 'Use when working with Windows (cmd/PowerShell console, MINGW64, script installation): stdout encoding (cp1251 vs UTF-8, UnicodeEncodeError on ✓/Cyrillic), CRLF/LF when writing files (md5 checks of mirrors), UTF-8 BOM for PowerShell 5.1, npm.cmd instead of npm, venv Scripts vs bin, PYTHONIOENCODING/PYTHONUTF8. Verified against 2 Windows 10 bug reports.'
 compatibility: Windows (win32), PowerShell 5.1, MINGW64, Python 3.12
 license: Proprietary
+metadata:
+  version: "3.7.0"
 ---
 
 
