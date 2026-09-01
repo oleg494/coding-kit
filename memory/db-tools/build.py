@@ -14,9 +14,11 @@ Run:
     python3 build.py --full                             # full rebuild
 """
 import argparse
+import datetime
 import fnmatch
 import hashlib
 import os
+import re
 import sqlite3
 import sys
 
@@ -172,6 +174,33 @@ END;
 
 
 
+
+def stamp_wiki_frontmatter(rel: str, content: str, content_hash: str):
+    """wave4 Task 14: wiki notes get the writer-maintained frontmatter
+    stamps in the INDEXED COPY only — the file on disk is never rewritten
+    (no history rewrite; wave1 origin-stamp pattern, now generic):
+    - `origin: manual` when the note lacks any origin (ASI06, wave1);
+    - `modified: <ISO-8601>` when the note lacks the freshness stamp.
+    Returns (stamped_content, recomputed_hash_or_None)."""
+    if "/Wiki/" not in f"/{rel}" or not rel.endswith(".md"):
+        return content, None
+    head_end = content.find("\n---", 3) if content.startswith("---") else -1
+    if head_end == -1:
+        return content, None
+    head = content[3:head_end]
+    stamped = content
+    if "origin:" not in head:
+        stamped = stamped[:head_end] + "\norigin: manual" + stamped[head_end:]
+        head_end = stamped.find("\n---", 3)
+        head = stamped[3:head_end]
+    if not re.search(r"^modified:", head, re.MULTILINE):
+        stamped = stamped[:head_end] + \
+            f"\nmodified: {datetime.date.today().isoformat()}" + stamped[head_end:]  # noqa: DTZ011 — local day is the contract
+    else:
+        return content, None  # nothing to stamp
+    return stamped, hashlib.sha256(stamped.encode("utf-8")).hexdigest()
+
+
 def upsert_file(cur, rel, full, mtime, size, stats, action, content_hash=None,
                 content=None):
     """Read the file and insert/update it (content + symbols + edges).
@@ -179,16 +208,13 @@ def upsert_file(cur, rel, full, mtime, size, stats, action, content_hash=None,
     comparison) to avoid reading the file twice."""
     if content is None:
         content_hash, content = read_hashed(full)
-    # ASI06 (wave1 Task 3): wiki notes without `origin:` get the legacy
-    # default `origin: manual` in the indexed copy only — the file on
-    # disk is never rewritten (no history rewrite), and the hash is
-    # recomputed so the index stays self-consistent.
-    if "/Wiki/" in f"/{rel}" and rel.endswith(".md"):
-        head_end = content.find("\n---", 3) if content.startswith("---") else -1
-        if head_end != -1 and "origin:" not in content[3:head_end]:
-            content = content[:head_end] + "\norigin: manual" + content[head_end:]
-            content_hash = hashlib.sha256(
-                content.encode("utf-8")).hexdigest()
+    # wave4 Task 14 (generalizes wave1's origin stamp): wiki notes get
+    # `origin: manual` + `modified: <ISO>` stamps in the indexed copy
+    # only — the file on disk is never rewritten, the hash is recomputed
+    # so the index stays self-consistent.
+    stamped, new_hash = stamp_wiki_frontmatter(rel, content, content_hash)
+    if new_hash is not None:
+        content, content_hash = stamped, new_hash
     cur.execute("DELETE FROM symbols WHERE rel_path = ?", (rel,))
     cur.execute("DELETE FROM imports WHERE rel_path = ?", (rel,))
     cur.execute("DELETE FROM calls WHERE rel_path = ?", (rel,))
