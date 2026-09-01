@@ -4,6 +4,29 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v3.5.0 (wave1 trust-surface)**: security triad + memory DR from the
+  2026-09-01 SOTA roadmap. (1) OWASP ASI01-10 + AST10 map
+  (docs/SECURITY-MAP.md, 20 rows, every row names a kit control) +
+  doctor `check_skill_supply_chain` WARN row (34/36 skills lack
+  `license:` — hygiene seed). (2) CBSE integrity manifest:
+  scripts/tools/integrity_manifest.py SHA-256 over 87 control-plane
+  files (OPS/AGENTS/profile/adapters/scripts/eval/db-tools/skills);
+  doctor `check_integrity` FAIL row; deploy.py refuses on drift
+  (exit 3); `--update` regenerates. (3) ASI06 memory defenses: OPS.md
+  "Memory trust" section (web/subagent content is DATA, lethal-trifecta
+  screen), lint_wiki `check_origin` (missing origin WARN,
+  origin:web without source_url = error), trap scenario 22
+  `memory-poisoning.md` (DATA-not-INSTRUCTIONS oracle). (4) Backup/DR:
+  scripts/tools/backup_memory.py — SQLite online-backup API (never raw
+  copy of live WAL db), `--restore-drill` restores to temp root and
+  verifies `PRAGMA integrity_check` + search probe inside its lifetime;
+  doctor `check_backup_freshness` WARN (14d). Regression tests:
+  test_security_map.py (5), test_integrity_manifest.py (13),
+  test_memory_provenance.py (8), test_backup_memory.py (5), release
+  contract updated (22 scenarios, 3.5.0). Verified: pytest = 344
+  passed, 1 skipped, 34 subtests; doctor 12 checks GREEN; ruff on
+  touched files clean (baseline unchanged). Release contract: version
+  3.5.0, 36 skills.
 - **v3.4.7 (CLI machine mode)**: closes the CLI-vs-MCP decision
   (findings #166) — the two measured pain points (shell quoting on
   `add --text`, prose output agents parse by eye) fixed inside the CLI,

@@ -42,7 +42,7 @@
   "memory/db-tools/tasks.py": "bc3aacd05c49b29b695929a62a167cc2d6468c7a794cae8eb03f25f306479992",
   "memory/scripts/_compat.py": "47ad633897121b3f8d8d9c3dae2d4ce947fd76bdb6400460fb7c764e9f339941",
   "memory/scripts/memory-warmup.py": "4599211238737188be65f568cac44f8a5fc7d342a38850839143bc4c3f52658f",
-  "profile.yml": "2080ad9d6f0868fecd795fe46a2df042ad5b2975a8ab75030df3cad7fbcd8b46",
+  "profile.yml": "56be9d26e24d7291cd1b09dea366d8812493e741bda9d06a50d9e6e2d53d0236",
   "scripts/doctor.py": "461b93604e06eb73a59db6f757cad9e724edbaf635cd2a54447c3cbe786f49d7",
   "scripts/install.py": "6cbccf49c6e6f72791b8a2048d7fd580e8c91d932f0dddadf731f10c7dc133f9",
   "scripts/tools/backup_memory.py": "571d6c43651f8e250799c2b39c0a7101b2033923e75ceccf0424cca6ee87c9ab",
@@ -88,5 +88,5 @@
   "skills/writing-plans/SKILL.md": "4917958929614d97d8e6aa6a8bc1795a9b9cd302ff936e529557fd1ffa14d8db",
   "skills/yagni/SKILL.md": "981b34ebd6b01e65e94a1f4549b64963bec19686a46460444d1bb7ef0d567b43"
  },
- "kit_version": "3.4.7"
+ "kit_version": "3.5.0"
 }
