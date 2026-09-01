@@ -19,10 +19,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
 
-import results_io  # noqa: E402
-import task_runner  # noqa: E402
-import trend  # noqa: E402
-from task_runner import classify_canary, run_task_suite  # noqa: E402
+import results_io
+import task_runner
+import trend
+from task_runner import classify_canary, run_task_suite
 
 CANARIES = ("005-canary-oneoff", "006-canary-conflicting")
 

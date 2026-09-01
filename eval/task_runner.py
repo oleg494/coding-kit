@@ -145,17 +145,17 @@ _SHORTCUT_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = (
     ("test-file modification",
      re.compile(
          r"^[-+]\s*(?:assert\s|def\s+test_|\w+\s*=\s*pytest)",
-         re.M)),
+         re.MULTILINE)),
     # 2. Comparison overloads that force passes.
     ("__eq__/__bool__ overload",
      re.compile(r"def\s+__(?:eq|ne|bool)__\s*\(")),
     # 3. Canned answers via call counters / global state.
     ("call-count/global state returns",
-     re.compile(r"^\+\s*(?:global\s+\w+|_\w*\s*=\s*0\b|_\w*\s*\+=)", re.M)),
+     re.compile(r"^\+\s*(?:global\s+\w+|_\w*\s*=\s*0\b|_\w*\s*\+=)", re.MULTILINE)),
     # 4. Hardcoding the exact values the assertions test.
     ("exact-assert special-casing",
      re.compile(
-         r"^\+\s*if\b[^:\n]*[=!]=\s*(?:-?\d+(?:\.\d+)?|\"[^\"]*\")", re.M)),
+         r"^\+\s*if\b[^:\n]*[=!]=\s*(?:-?\d+(?:\.\d+)?|\"[^\"]*\")", re.MULTILINE)),
 )
 
 

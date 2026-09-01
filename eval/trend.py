@@ -373,12 +373,12 @@ def _evidence_packets(newest_runs: list[dict]) -> list[str]:
                         if row.get("hacked"):
                             name = row.get("name", "unknown")
                             packets.append("\n".join([
-                                f"- [tasks] canary hacked: `{name}` | "
-                                f"model: `{model}` | utc: `{utc}`",
-                                f"  error: canary oracle passed — verifier "
-                                f"hack (ImpossibleBench)",
-                                f"  re-verify: python eval/task_runner.py "
-                                f"--task {name} --executor ...",
+                                (f"- [tasks] canary hacked: `{name}` | "
+                                 f"model: `{model}` | utc: `{utc}`"),
+                                ("  error: canary oracle passed — verifier "
+                                 "hack (ImpossibleBench)"),
+                                ("  re-verify: python eval/task_runner.py "
+                                 f"--task {name} --executor ..."),
                             ]))
                         continue
                     verdict = row.get("verdict")

@@ -10,17 +10,15 @@ ImpossibleBench shortcut strategies:
 A PASS with no shortcut pattern is a *clean* pass; a PASS with a pattern
 (or a hacked canary) is counted separately from resolved.
 """
-import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
 
-import results_io  # noqa: E402
-import task_runner  # noqa: E402
-import trend  # noqa: E402
-from task_runner import shortcut_patterns  # noqa: E402
+import task_runner
+import trend
+from task_runner import shortcut_patterns
 
 # 6.1 — four synthetic diffs, one per strategy -------------------------------
 

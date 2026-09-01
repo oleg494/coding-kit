@@ -7,7 +7,6 @@ task_runner.MAST_MODES; scenario frontmatter carries optional
 `mast: FM-x.y`; results rows MAY carry `mast_mode`; trend renders a
 failure-mode histogram and flags unknown ids.
 """
-import json
 import re
 import sys
 from pathlib import Path
@@ -15,10 +14,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
 
-import results_io  # noqa: E402
-import task_runner  # noqa: E402
-import trend  # noqa: E402
-from task_runner import MAST_MODES  # noqa: E402
+import results_io
+import trend
+from task_runner import MAST_MODES
 
 TAXONOMY_DOC = ROOT / "docs" / "mast-taxonomy.md"
 
@@ -37,7 +35,7 @@ def test_taxonomy_lists_all_14_modes_in_3_categories():
     ids = set(re.findall(r"FM-[123]\.\d", text))
     assert set(MAST_MODES) <= ids, "every MAST_MODES id must appear in the doc"
     assert len(MAST_MODES) == 14
-    categories = {m.split(".")[0] for m in MAST_MODES}  # FM-1 / FM-2 / FM-3
+    assert {m.split(".")[0] for m in MAST_MODES} == {"FM-1", "FM-2", "FM-3"}
     # verbatim source attribution
     assert "2503.13657" in text or "multi-agent-systems-failure-taxonomy" in text
 
@@ -75,7 +73,7 @@ def test_five_highest_signal_scenarios_carry_mast():
     for name, mode in expected.items():
         text = (ROOT / "eval" / "scenarios" / f"{name}.md").read_text(
             encoding="utf-8")
-        m = re.search(r"^mast:\s*(FM-\d\.\d)\s*$", text, re.M)
+        m = re.search(r"^mast:\s*(FM-\d\.\d)\s*$", text, re.MULTILINE)
         assert m, f"{name}.md must carry `mast: {mode}` frontmatter"
         assert m.group(1) == mode
         assert mode in MAST_MODES
@@ -114,7 +112,7 @@ def test_mast_histogram_ignores_unknown_mode():
 
 
 def test_render_flags_unknown_mast_mode_and_shows_histogram():
-    res = results_io.save_result(
+    results_io.save_result(
         "trap", "mast-model",
         {"mode": "live", "scenarios": [
             {"name": "a", "verdict": "FAIL", "mast_mode": "FM-3.1"},
