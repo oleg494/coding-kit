@@ -1,0 +1,45 @@
+{
+ "skill_name": "fable-judge",
+ "evals": [
+  {
+   "id": "fable-judge-0",
+   "prompt": "verify that the work is actually done",
+   "should_trigger": true
+  },
+  {
+   "id": "fable-judge-1",
+   "prompt": "\u043f\u0440\u043e\u0432\u0435\u0440\u044c \u0447\u0442\u043e \u0441\u0434\u0435\u043b\u0430\u043d\u043e",
+   "should_trigger": true
+  },
+  {
+   "id": "fable-judge-2",
+   "prompt": "judge whether this agent really finished the task",
+   "should_trigger": true
+  },
+  {
+   "id": "fable-judge-3",
+   "prompt": "did the tests really pass or is the report fake?",
+   "should_trigger": true
+  },
+  {
+   "id": "fable-judge-4",
+   "prompt": "write a test for this function",
+   "should_trigger": false
+  },
+  {
+   "id": "fable-judge-5",
+   "prompt": "review the code style",
+   "should_trigger": false
+  },
+  {
+   "id": "fable-judge-6",
+   "prompt": "explain how to verify builds",
+   "should_trigger": false
+  },
+  {
+   "id": "fable-judge-7",
+   "prompt": "fix the flaky assertion",
+   "should_trigger": false
+  }
+ ]
+}

@@ -1,0 +1,45 @@
+{
+ "skill_name": "dev-wiki",
+ "evals": [
+  {
+   "id": "dev-wiki-0",
+   "prompt": "save this decision so the next session sees it",
+   "should_trigger": true
+  },
+  {
+   "id": "dev-wiki-1",
+   "prompt": "\u0437\u0430\u043f\u043e\u043c\u043d\u0438 \u0447\u0442\u043e \u043c\u044b \u0440\u0435\u0448\u0438\u043b\u0438",
+   "should_trigger": true
+  },
+  {
+   "id": "dev-wiki-2",
+   "prompt": "record this bug before we forget how it was solved",
+   "should_trigger": true
+  },
+  {
+   "id": "dev-wiki-3",
+   "prompt": "what do we know about this topic",
+   "should_trigger": true
+  },
+  {
+   "id": "dev-wiki-4",
+   "prompt": "turn this procedure into a reusable skill",
+   "should_trigger": false
+  },
+  {
+   "id": "dev-wiki-5",
+   "prompt": "write a python script that checks the logs",
+   "should_trigger": false
+  },
+  {
+   "id": "dev-wiki-6",
+   "prompt": "fix this bug right now",
+   "should_trigger": false
+  },
+  {
+   "id": "dev-wiki-7",
+   "prompt": "what is the weather today",
+   "should_trigger": false
+  }
+ ]
+}

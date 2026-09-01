@@ -81,6 +81,57 @@ def listing_entries() -> list[dict]:
     return entries
 
 
+def load_queries(skills_root, legacy_path) -> list[dict]:
+    """Per-skill evals.json co-location (wave3 Task 9).
+
+    Prefers skills/<slug>/evals/evals.json — {skill_name, evals:
+    [{id, prompt, should_trigger, assertions?}]} — for every skill that
+    has one; skills without the file fall back to the central
+    eval/trigger_queries.json rows (which stay in place as the fallback
+    source). Returns the flat validate()-compatible query list
+    ({skill, should, query, id}); ids are stable <slug>-<position>.
+    A query present in both sources is taken once, from the per-skill
+    file."""
+    skills_root = Path(skills_root)
+    legacy_path = Path(legacy_path)
+    out: list[dict] = []
+    central: list[dict] = []
+    if legacy_path.is_file():
+        try:
+            central = json.loads(
+                legacy_path.read_text(encoding="utf-8")) or []
+        except (json.JSONDecodeError, OSError):
+            central = []
+    covered: set[str] = set()
+    for d in sorted(p for p in skills_root.iterdir() if p.is_dir()):
+        f = d / "evals" / "evals.json"
+        if not f.is_file():
+            continue
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        slug = data.get("skill_name") or d.name
+        for i, ev in enumerate(data.get("evals") or []):
+            out.append({"skill": slug,
+                        "should": bool(ev.get("should_trigger")),
+                        "query": ev.get("prompt", ""),
+                        "id": ev.get("id") or f"{slug}-{i}"})
+        covered.add(slug)
+    pos: dict[str, int] = {}
+    for q in central:
+        if q.get("skill") in covered:
+            continue
+        slug = q.get("skill", "")
+        n = pos.get(slug, 0)
+        out.append({"skill": slug,
+                    "should": bool(q.get("should")),
+                    "query": q.get("query", ""),
+                    "id": q.get("id") or f"{slug or 'x'}-{n}"})
+        pos[slug] = n + 1
+    return out
+
+
 def _render_listing() -> str:
     rows = listing_entries()
     if not rows:
@@ -275,7 +326,9 @@ def summarize(results: dict[str, list[tuple[str, bool, bool]]]) -> tuple[list[st
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--queries", required=True, help="JSON file with {skill, should, query}")
+    ap.add_argument("--queries", required=True,
+                    help="JSON file with {skill, should, query}, or 'auto' "
+                         "for per-skill evals.json + central fallback")
     ap.add_argument("--executor", help='CLI reading prompt from stdin, '
                      'printing answer to stdout (e.g. "gemini -p -")')
     ap.add_argument("--model", default=None,
@@ -300,12 +353,24 @@ def main() -> int:
               file=sys.stderr)
         return 2
 
-    try:
-        queries = json.loads(Path(args.queries).read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        print(f"queries file not found: {args.queries}"); return 2
-    except json.JSONDecodeError as e:
-        print(f"queries file is not valid JSON: {e}"); return 2
+    if args.queries == "auto":
+        queries = load_queries(_SKILLS_DIR, ROOT / "eval"
+                               / "trigger_queries.json")
+        from collections import Counter
+        per_skill = Counter(q["skill"] for q in queries)
+        fallback = [s for s in sorted(per_skill)
+                    if not (_SKILLS_DIR / s / "evals" / "evals.json")
+                    .is_file()]
+        if fallback:
+            print(f"fallback to central file: {', '.join(fallback)}")
+    else:
+        try:
+            queries = json.loads(
+                Path(args.queries).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            print(f"queries file not found: {args.queries}"); return 2
+        except json.JSONDecodeError as e:
+            print(f"queries file is not valid JSON: {e}"); return 2
     problems = validate(queries)
     if problems:
         print("queries validation FAILED:")

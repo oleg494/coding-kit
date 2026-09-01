@@ -1,0 +1,45 @@
+{
+ "skill_name": "money-path-safety",
+ "evals": [
+  {
+   "id": "money-path-safety-0",
+   "prompt": "add a promo code to the checkout",
+   "should_trigger": true
+  },
+  {
+   "id": "money-path-safety-1",
+   "prompt": "charge the user only after a successful job",
+   "should_trigger": true
+  },
+  {
+   "id": "money-path-safety-2",
+   "prompt": "refund logic for failed payments",
+   "should_trigger": true
+  },
+  {
+   "id": "money-path-safety-3",
+   "prompt": "deduct credits when the task starts successfully",
+   "should_trigger": true
+  },
+  {
+   "id": "money-path-safety-4",
+   "prompt": "format the price display nicely",
+   "should_trigger": false
+  },
+  {
+   "id": "money-path-safety-5",
+   "prompt": "add a shopping cart UI",
+   "should_trigger": false
+  },
+  {
+   "id": "money-path-safety-6",
+   "prompt": "rename the invoice template",
+   "should_trigger": false
+  },
+  {
+   "id": "money-path-safety-7",
+   "prompt": "write a query to list all users",
+   "should_trigger": false
+  }
+ ]
+}
