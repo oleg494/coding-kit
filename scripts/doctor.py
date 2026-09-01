@@ -11,6 +11,7 @@ Checks:
   7.  override           .override.md mode validity
   8.  engine sync        the two shipped _compat.py copies are identical
   9.  encoding discipline no bare text=True subprocess calls (cp1251 class)
+ 10.  supply chain      WARN: skills with inconsistent license: frontmatter
 
 Usage:
     python scripts/doctor.py          # table + exit 1 on any failure
@@ -157,6 +158,29 @@ def check_engine_sync() -> tuple[bool, str]:
     return (False, "memory/db-tools/_compat.py != memory/scripts/_compat.py")
 
 
+def check_skill_supply_chain() -> tuple[bool, str]:
+    """AST02 supply-chain hygiene seed: optional `license:` frontmatter
+    across skills must be consistent. WARN tier (FILE-SIZE soft-gate
+    semantics): ok=True — the doctor stays green, the detail names the
+    unlicensed skills. Skills are local-authored (no third-party installs),
+    so licensing is a hygiene signal, not a gate (wave1 Task 1)."""
+    unlicensed = []
+    total = 0
+    for sk in sorted((KIT / "skills").iterdir()):
+        md = sk / "SKILL.md"
+        if not md.is_file():
+            continue
+        total += 1
+        head = md.read_text(encoding="utf-8", errors="replace").split("---")
+        if len(head) >= 3 and not re.search(r"^license:\s*\S+", head[1], re.M):
+            unlicensed.append(sk.name)
+    if not unlicensed:
+        return (True, f"{total} skills, all licensed" if total else "no skills")
+    return (True, f"WARN: {len(unlicensed)}/{total} skills lack license: "
+                  + ", ".join(unlicensed[:5])
+                  + ("…" if len(unlicensed) > 5 else ""))
+
+
 def find_bare_text_true(source: str) -> list[int]:
     """Line numbers of subprocess.* calls whose text=True keyword has no
     encoding= sibling. The v2.4 BUG-1/4 class: text=True decodes child
@@ -210,6 +234,7 @@ def main() -> int:
         ("adapters", check_adapters()),
         ("override", check_override()),
         ("engine sync", check_engine_sync()),
+        ("supply chain", check_skill_supply_chain()),
         ("encoding discipline", check_encoding_discipline()),
     ]
     fails = 0
