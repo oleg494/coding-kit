@@ -4,6 +4,32 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.0.0 (wave6 interchange)**: MAJOR — observability interchange
+  layer from the 2026-09-01 roadmap. (1) OTel GenAI semconv key names as
+  aliases (old keys kept one release): results_io emits
+  gen_ai.usage.tokens_total / gen_ai.response.model /
+  gen_ai.invoke_agent.duration / gen_ai.conversation.id alongside legacy
+  keys with identical values; task rows carry gen_ai.prompt.name from
+  TASK.md frontmatter; load_reported_usage accepts input/output token
+  split; trend prefers new keys. (2) ATIF v1.7 export layer:
+  eval/atif_export.py to_atif() — one Trajectory per run (agent
+  coding-kit, steps, tool_calls linked via source_call_id, per-step
+  token/cost metrics, llm_call_count), structural validator vs Harbor
+  RFC tables, CLI --from/--out; smoke export of real run
+  tasks-20260829-083643 (10 steps, validator clean); token_ids/logprobs
+  skipped. (3) Multi-harness transcript normalization:
+  eval/transcript_normalize.py — trajectory-v1 records (meta/user/system/
+  assistant/tool, tool results linked by tool_call_id) with readers for
+  OMP JSONL, Claude Code JSONL, Gemini chats, Hermes state.db;
+  usage_audit.py rewritten to consume ONLY normalized records;
+  sanitized fixtures per harness under tests/fixtures/transcripts/.
+  Live run 2026-09-01 since 2026-08-01: 850 sessions audited (omp 145,
+  claude 678, hermes 27; gemini store present, 0 sessions in window) —
+  189 real sessions, 5.42 memory calls/session. Regression tests:
+  test_otel_names.py (8), test_atif_export.py (7),
+  test_transcript_normalize.py (8); corpus restamped 4.0.0. Verified:
+  pytest = 513 passed, 1 skipped, 57 subtests; doctor 14 checks GREEN.
+  Release contract: version 4.0.0, 36 skills.
 - **v3.9.0 (wave5 devflow-gates)**: SDD + review discipline from the
   2026-09-01 roadmap. (1) spec-kit gates in the superpowers cycle:
   clarify-before-plan (<=5 targeted questions folded into the spec

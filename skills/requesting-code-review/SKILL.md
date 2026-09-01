@@ -2,7 +2,7 @@
 name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
 metadata:
-  version: "3.9.0"
+  version: "4.0.0"
 ---
 
 # Requesting Code Review

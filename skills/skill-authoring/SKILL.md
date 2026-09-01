@@ -3,7 +3,7 @@ name: skill-authoring
 description: 'Use when creating or editing any skill: frontmatter rules (name/description), folder structure, script bundling, quality checklist — including converting the current session/procedure/URL into a new reusable skill ("learn", "/learn", "turn this session into a skill", "make a skill from this workflow", "сделай скилл из этой процедуры", "навык из"). Per the Agent Skills specification (Hermes-compatible).'
 compatibility: applies to skills/ in this set, ~/.hermes/skills, .claude/skills
 metadata:
-  version: "3.8.0"
+  version: "4.0.0"
 ---
 
 # How to author skills correctly

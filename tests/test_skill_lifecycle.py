@@ -138,15 +138,8 @@ class RetirementReportTest(unittest.TestCase):
 
 
 class StampedCorpusTest(unittest.TestCase):
-    # Since v3.8.0 the WHOLE corpus is restamped at every release
+    # Since v4.0.0 the WHOLE corpus is restamped at every release
     # boundary (parent integrator) — one kit version, one skill version.
-    # Wave 5 (v3.9.0) touches a subset mid-release: those expect 3.9.0,
-    # the untouched rest stay pinned at the previous release 3.8.0.
-    TOUCHED_IN_390 = frozenset({
-        "superpowers", "brainstorming",
-        "code-review-and-quality", "requesting-code-review", "fable-judge",
-    })
-
     def test_all_36_skills_stamped(self):
         import re
         stamped = 0
@@ -155,10 +148,9 @@ class StampedCorpusTest(unittest.TestCase):
             m = re.search(r"^metadata:\s*\n(?:\s+.*)*?^\s+version:\s*"
                           r"\"?([0-9.]+)\"?", fm, re.MULTILINE)
             slug = md.parent.name
-            expected = "3.9.0" if slug in self.TOUCHED_IN_390 else "3.8.0"
             self.assertIsNotNone(m, f"{slug}: no metadata.version")
-            self.assertEqual(m.group(1), expected,
-                             f"{slug}: expected {expected}")
+            self.assertEqual(m.group(1), "4.0.0",
+                             f"{slug}: expected 4.0.0")
             stamped += 1
         self.assertEqual(stamped, 36)
 
