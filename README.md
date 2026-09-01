@@ -71,6 +71,27 @@ python eval/task_runner.py --dry-run                  # validate task layout
 python eval/trigger_eval.py --queries eval/trigger_queries.json   # validate queries
 ```
 
+## Measured cost (external benchmark)
+
+A/B-tested on [DeepSWE](https://deepswe.datacurve.ai) (pier + mini-swe-agent in
+Docker, model `deepseek-v4-pro`, 10-task seed-0 subset, 1 concurrent trial):
+the same agent with the kit (OPS.md + AGENTS.md + 36-skill manifest inlined,
+~5.4k tokens) vs. without it.
+
+- **Pass rate: no difference** — 6/9 both arms. The kit did not make a strong
+  model solve more tasks.
+- **Token cost is real**: +21% steps, +41% prompt tokens on identical outcomes
+  (99.5M vs 70.4M across 5 mutually-solved tasks). Cache absorbs the kit's
+  static ~5.4k-token overhead; the extra spend is the methodology's own
+  iterations (plan → TDD → verify).
+- **Task-dependent flips**: kit won one task outright (24/24 vs 6/24 — process
+  discipline rescued a flailing attempt) and lost one small fiddly task
+  (2/5 vs 5/5 — ceremony overhead). n=9: trend, not a verdict.
+
+Honest takeaway: on a strong model and well-specified tasks the kit is not a
+uniform win — it buys reliability on hard multi-part tasks at a measurable
+token premium. Budget accordingly.
+
 ## Where your data lives
 
 The kit repo contains only methodology and engine. Your knowledge (Wiki posts, findings, indexes) lives in `~/.memory/` — personal, never committed, gitignored in every place it can appear.

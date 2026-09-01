@@ -4,6 +4,15 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.0.1 (docs)**: README gains a "Measured cost (external benchmark)"
+  section from the 2026-09-01 DeepSWE A/B (findings #199): pass rate
+  6/9 vs 6/9 (no effect), +21% steps / +41% prompt tokens on identical
+  outcomes, task-dependent flips (igel 24/24-vs-6/24 win, opa 2/5-vs-5/5
+  loss), n=9 trend-not-verdict caveat. Verification: section rendered in
+  README lines 74–93; `check_file_sizes.py --ci` green (README 115 lines,
+  docs soft limit 300). Claim source is an external benchmark run, not a
+  kit test — no regression test applies; raw jobs preserved under
+  `~/Desktop/deepswe-ab/jobs/`.
 - **v4.0.0 (wave6 interchange)**: MAJOR — observability interchange
   layer from the 2026-09-01 roadmap. (1) OTel GenAI semconv key names as
   aliases (old keys kept one release): results_io emits
