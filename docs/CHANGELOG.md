@@ -4,6 +4,35 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v3.9.0 (wave5 devflow-gates)**: SDD + review discipline from the
+  2026-09-01 roadmap. (1) spec-kit gates in the superpowers cycle:
+  clarify-before-plan (<=5 targeted questions folded into the spec
+  before any plan exists), checklist sovereignty (implementer never
+  toggles reviewer-owned - [ ] markers; counts unchecked, asks),
+  converge pass (strictly append-only anti-false-done audit; its only
+  write is ADDING missed work; severity-graded findings) — in
+  skills/superpowers + OPS.md §3 + skills/brainstorming; trap scenario
+  24 converge-audit.md (mast FM-3.1). (2) Cloudflare review protocol:
+  "What NOT to Flag" preamble (no theoretical risks, no
+  defense-in-depth when primary suffices, no issues in unchanged code,
+  no "consider library X"), 3-value severity with machine-checkable
+  counts line, verdict_from_counts(critical, warning) canonical
+  implementation in scripts/tools/review_protocol.py (critical>0 ->
+  REFUTED; warning<=2 -> VERIFIED; else VERIFIED WITH CAVEATS) —
+  fable-judge's rubric example lines are extracted by tests and must
+  behave identically (doc = executable spec); break-glass keyword
+  (срочно-пропустить) skips the gate only with a logged note. (3)
+  AGENTS.md materiality gate: scripts/tools/contract_drift.py
+  (materiality high/medium/low; needs_contract_update = high-tier
+  change without a contract doc in the same diff; CLI exit 1 on
+  flagged drift), fable-judge "contract drift?" step, CONTRIBUTING.md
+  rule 7. 5 skills restamped 3.9.0 (lifecycle pin: 3.9.0 touched /
+  3.8.0 rest). Regression tests: test_sdd_gates.py (13),
+  test_review_protocol.py (13 + 4 doctests), test_contract_drift.py
+  (17 + 23 subtests); scenario count 23->24. Verified: pytest = 490
+  passed, 1 skipped, 57 subtests; doctor 14 checks GREEN; deploy ALL
+  OK; integrity 92 files; contract_drift CLI smoke (VERSION diff ->
+  exit 1). Release contract: version 3.9.0, 36 skills.
 - **v3.8.0 (wave4 context-hygiene)**: context layering per the
   2026-09-01 roadmap. (1) OPS/AGENTS diet: 3 inline rule blocks relocated
   verbatim to JIT skill homes (destructive-commands -> git-workflow-
