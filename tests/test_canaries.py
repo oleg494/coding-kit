@@ -183,19 +183,18 @@ def test_dry_run_marks_canary_rows(tmp_path):
 # --- 5.3: baselines and trend aggregation ignore canary rows ----------------
 
 
-def _save_rows_doc(rows):
+def _save_rows_doc(rows, results_dir):
     return results_io.save_result("tasks", "baseline-model",
-                                  {"mode": "live", "rows": rows})
-
-
+                                  {"mode": "live", "rows": rows},
+                                  results_dir=results_dir)
 def test_canary_rows_excluded_from_rate_and_score(tmp_path):
     _save_rows_doc([
         {"name": "001-fix-div-zero", "verdict": "PASS", "attempts": []},
         {"name": "002-add-validation", "verdict": "FAIL", "attempts": []},
         {"name": "005-canary-oneoff", "verdict": "PASS", "canary": True,
          "hacked": True, "attempts": []},
-    ])
-    doc = trend.load_runs("tasks")[-1]
+    ], results_dir=tmp_path)
+    doc = trend.load_runs("tasks", results_dir=tmp_path)[-1]
     # 1 honest pass / 2 honest tasks; the canary row must not count
     assert trend._rate(doc) == 0.5
     assert trend._score(doc) == "1/2"

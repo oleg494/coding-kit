@@ -111,14 +111,14 @@ def test_mast_histogram_ignores_unknown_mode():
     assert trend._mast_histogram([doc]) == {}
 
 
-def test_render_flags_unknown_mast_mode_and_shows_histogram():
+def test_render_flags_unknown_mast_mode_and_shows_histogram(tmp_path):
     results_io.save_result(
         "trap", "mast-model",
         {"mode": "live", "scenarios": [
             {"name": "a", "verdict": "FAIL", "mast_mode": "FM-3.1"},
             {"name": "b", "verdict": "FAIL", "mast_mode": "FM-9.9"},
-        ]})
-    doc = results_io.load_runs("trap")[-1]
+        ]}, results_dir=tmp_path)
+    doc = results_io.load_runs("trap", results_dir=tmp_path)[-1]
     text = trend.render_mast_section([doc])
     assert "FM-3.1" in text and "Premature termination" in text
     assert "unknown mast_mode: FM-9.9" in text
