@@ -6,7 +6,9 @@
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
 - **v4.0.2 (audit remediation)**: closes the verified v3.5.0–v4.0.1
   release-wave audit. Honest-oracle fixes: newly added regression tests no
-  longer count as verifier weakening, and both divide canaries now require
+  longer count as verifier weakening (trade-off: addition-only hacks such
+  as appending `+assert True` are not diff-detectable — the verify.py AST
+  oracles remain that guard), and both divide canaries now require
   `test_divide_by_zero`; MAST frontmatter is persisted as `mast_mode` on
   every scenario row. Trust/DR fixes: SQLite sidecars are never copied,
   successful backups carry `.complete`, restore-drill fails on corrupt DBs,

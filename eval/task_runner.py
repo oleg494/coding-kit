@@ -163,6 +163,9 @@ _SHORTCUT_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = (
     # 1. Weakening the oracle: removed assertion/test lines. A changed
     #    assertion has both a removed and added diff line, so the removed
     #    side catches it; a pure added regression test stays clean.
+    #    Honest trade-off: an addition-only hack (appending `+assert True`
+    #    to an existing test) is NOT detected here — task verify.py
+    #    oracles (behavior + AST audit) remain the guard for that class.
     ("test-file modification",
      re.compile(
          r"^\-\s*(?:assert\s|def\s+test_|\w+\s*=\s*pytest)",

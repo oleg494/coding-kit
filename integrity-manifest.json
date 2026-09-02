@@ -42,7 +42,7 @@
   "eval/scenarios/trap21_full_delivery.md": "321a4c1dd09750693892815972051f7bb3579499d6dd7c333a40f42a9fcfda3a",
   "eval/scenarios/type-erasure.md": "1d969c9809861037991daadd1102495bf1a9d9e6eba1b2e5f2cc14dad319760d",
   "eval/scenarios/weakened-test.md": "4937e4f9ab50b909f3891d57ea07ac81fa13282e31dec3abe39094aa7aa4ccc8",
-  "eval/task_runner.py": "635e537f2237deb104172800b5ad4dccc2402d6623ea8d1486559e0353f56784",
+  "eval/task_runner.py": "efa68169f43bd7c2f096d4793db04cca67828d9a7ed17c5e50187bbf014436bb",
   "eval/tasks/001-fix-div-zero/TASK.md": "e6fa7c3cb61e93a4051bf6455f17d0a56194b9f59d99aa3dda90b869d288c620",
   "eval/tasks/001-fix-div-zero/verify.py": "cf4cf0804317f180cdb3f5308a2c23f8303b09ec11d6c38f455a613525629037",
   "eval/tasks/002-add-validation/TASK.md": "3397b9979783e42d97059cd969fc7522a6a94c732942b372ad28b9a5ac4d1a55",
