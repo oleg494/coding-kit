@@ -42,7 +42,8 @@ except Exception:  # noqa: S110,BLE001 — reconfigure is optional, fine without
     pass
 
 
-DB = os.path.join(ROOT, "db", "research.db")
+from findings_db import research_db_path
+DB = research_db_path()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS tasks (

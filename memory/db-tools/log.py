@@ -26,7 +26,8 @@ import _compat
 
 ROOT = _compat.chulan_root()
 
-DB = os.path.join(ROOT, "db", "research.db")
+from findings_db import research_db_path
+DB = research_db_path()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS search_log (
@@ -47,7 +48,9 @@ def _connect():
     con = sqlite3.connect(DB)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA journal_mode=WAL")
-    con.executescript(SCHEMA)
+    if not con.execute("SELECT 1 FROM sqlite_master WHERE name = "
+                       "'search_log'").fetchone():
+        con.executescript(SCHEMA)
     return con
 
 
@@ -92,7 +95,8 @@ def search_stats(limit=20):
 
 def empty_queries(limit=30):
     """Mine empty queries: which topics are searched but NOT found (all runs
-    empty) — candidates for docs/wiki (audit 14.08, research.db id=489).
+    empty) — candidates for docs/wiki (audit 14.08 — finding id lost in a
+    research.db reset).
     Exclude fragments (a single meaningless word) and utility junk."""
     con = _connect()
     rows = con.execute(

@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v3.9.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 24, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
+> **v4.1.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 24, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.

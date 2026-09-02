@@ -271,14 +271,15 @@ class FindingsCLIEquivalenceTest(unittest.TestCase):
         self.assertEqual(r_s1.returncode, 0, r_s1.stdout + r_s1.stderr)
         self.assertIn("found: 1", r_s1.stdout)
         self.assertIn("[1]", r_s1.stdout)
-        self.assertIn("SQLite FTS5 Tokenizer Rules", r_s1.stdout)
+        # P9: human search line carries the highlighted topic
+        self.assertIn("SQLite FTS5 [Tokenizer] Rules", r_s1.stdout)
 
         # Query matching only finding 2
         r_s2 = self._findings("search", "Sanitize")
         self.assertEqual(r_s2.returncode, 0, r_s2.stdout + r_s2.stderr)
         self.assertIn("found: 1", r_s2.stdout)
         self.assertIn("[2]", r_s2.stdout)
-        self.assertIn("Sanitize Query Helper Behavior", r_s2.stdout)
+        self.assertIn("[Sanitize] Query Helper Behavior", r_s2.stdout)
 
         # Query matching both findings on common indexed term "FTS5"
         r_s_both = self._findings("search", "FTS5")

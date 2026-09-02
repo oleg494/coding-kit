@@ -66,7 +66,9 @@ class FindingsCLIMachineModeTest(unittest.TestCase):
         # human search still works
         r2 = self._findings("search", "quoting")
         self.assertEqual(r2.returncode, 0, r2.stdout.decode('utf-8','replace') + r2.stderr.decode('utf-8','replace'))
-        self.assertIn("Quoting Survival Topic", r2.stdout.decode("utf-8","replace"))
+        # P9: the human line carries the highlighted topic ([Quoting])
+        self.assertIn("[Quoting] Survival Topic",
+                      r2.stdout.decode("utf-8", "replace"))
 
         # machine search: valid JSON list with the contract fields
         r3 = self._findings("search", "quoting", "--json")

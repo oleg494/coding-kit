@@ -3,7 +3,7 @@ name: debug-incident-protocol
 description: 'Use when the user says: «it doesn''t work», «still broken», «hung/stuck», «disappeared after the update», «it used to work», «the metric is zero but the UI is fine» — or when an incident needs to be analyzed, the root cause of a hang found, and whether a process was actually restarted verified. Covers: facts before theories (storage/logs/PID), symptom vs root cause, silent failure, restart ritual, localizing hangs with a progress marker, timeouts, cache masking. Do not use for writing tests (testing-discipline).'
 compatibility: 'any stack: processes, logs, DB, network, tests'
 metadata:
-  version: "4.0.3"
+  version: "4.1.0"
 ---
 
 # Debug & incident protocol: facts before theories

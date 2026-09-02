@@ -4,7 +4,7 @@ description: 'Use when working with Windows (cmd/PowerShell console, MINGW64, sc
 compatibility: Windows (win32), PowerShell 5.1, MINGW64, Python 3.12
 license: Proprietary
 metadata:
-  version: "4.0.3"
+  version: "4.1.0"
 ---
 
 

@@ -2,7 +2,7 @@
 name: superpowers
 description: 'Always-on. The main development method: Plan → TDD → Implement → Verify → Report. Use for ANY non-trivial task. Do not write code without a plan and a test. Complex tasks (>3 files) → split into atomic tasks. Bug fix → Prove-It Pattern (reproduce with a test before the fix).'
 metadata:
-  version: "4.0.3"
+  version: "4.1.0"
 ---
 
 # Superpowers — main development method

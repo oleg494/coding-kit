@@ -16,6 +16,9 @@ Output of the command `python ~/.memory/db-tools/search_all.py "Отклик"`:
 ```
 [agent] docs/status/otklik-sales-agent-status.md
   # «Отклик»: state of the sales-agent project toward the first client
+[research] finding#181 otklik sales-agent first client
+  …contract signed, [pilot] scope agreed…
+  findings.py show 181
 [wiki] index.md
   Tests against a live DB — pytest… (not about «Отклик»)
 ```

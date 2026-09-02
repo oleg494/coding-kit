@@ -211,9 +211,10 @@ def bump_claude_md():
     t = CLAUDE_MD.read_text(encoding="utf-8")
     t2 = re.sub(
         r"coding-kit v\d+\.\d+\.\d+ \(repo master; machine CLAUDE\.md"
-        r" refreshed \d{4}-\d{2}-\d{2}",
+        r" refreshed \d{4}-\d{2}-\d{2}\)*",
         f"coding-kit v{VERSION} (repo master; machine CLAUDE.md"
-        f" refreshed {TODAY})", t, count=1)
+        f" refreshed {TODAY})",
+        t, count=1)
     t2 = re.sub(r"\(\d+, English\)", f"({n}, English)", t2, count=1)
     if t2 != t:
         CLAUDE_MD.write_text(t2, encoding="utf-8")
@@ -333,6 +334,10 @@ def main():
     print("\n=== ROUTERS ===")
     for path, action in regen_routers():
         print(f"{action}: {path}")
+    # the machine CLAUDE.md keeps its local triggers; only its version/
+    # date/skill-count line is bumped in place (docstring promise — the
+    # call was missing, so verify() failed on every VERSION bump)
+    print(f"CLAUDE.md: {bump_claude_md()}")
     return 0 if verify() else 1
 
 

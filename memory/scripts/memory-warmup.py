@@ -14,7 +14,7 @@ import json
 import os
 import sqlite3
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # MEMORY_ROOT overrides the install location (OPS §5 contract; the kit
@@ -129,20 +129,54 @@ def recent_entries(limit: int = 5) -> list:
     return [{"path": r[0], "date": r[1]} for r in rows]
 
 
-def recent_findings(limit: int = 3) -> list:
-    """Most recent research.db findings."""
+def _clip(text: str, width: int = 60) -> str:
+    """Clip a topic: the unsure feed carries a ~200-token budget (P12)
+    and prod topics run long."""
+    return text if len(text) <= width else text[:width - 1] + "…"
+
+
+def unsure_feed() -> list:
+    """What memory is NOT sure about (P12) — replaces the raw
+    `ORDER BY id DESC LIMIT 3` topic feed: junk newest-topics acted as a
+    hidden curriculum teaching new agents to imitate junk. Push cannot
+    know relevance, but it CAN know uncertainty — and uncertainty grows
+    with scale: open contradicts links (both endpoints joined, dangling
+    links drop out) + last-7d rows anchored to neither verify_cmd nor
+    source, then a literal pull hint toward the documented search reflex.
+
+    ro bare-SELECT on purpose: warmup runs at session start and MUST NOT
+    run migrations (findings_db.connect may write); any sqlite3 error
+    degrades to an empty feed, never a crash."""
     if not RESEARCH_DB.exists():
         return []
+    # same local-wall-clock string format findings.py writes into created
+    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M")
     try:
         con = sqlite3.connect(f"file:{RESEARCH_DB}?mode=ro", uri=True)
-        rows = con.execute(
-            "SELECT id, created, topic FROM findings ORDER BY id DESC LIMIT ?",
-            (limit,),
+        contra = con.execute(
+            "SELECT l.from_id, l.to_id, a.topic, b.topic FROM links l "
+            "JOIN findings a ON a.id = l.from_id "
+            "JOIN findings b ON b.id = l.to_id "
+            "WHERE l.kind = 'contradicts' ORDER BY l.id DESC LIMIT 2"
+        ).fetchall()
+        # IFNULL: rows from before the verify_cmd/source ALTERs may hold
+        # NULL instead of '' — NULL is exactly "no anchor"
+        unanch = con.execute(
+            "SELECT id, topic FROM findings WHERE created >= ? "
+            "AND IFNULL(verify_cmd,'') = '' AND IFNULL(source,'') = '' "
+            "ORDER BY id DESC LIMIT 3", (week_ago,)
         ).fetchall()
         con.close()
     except sqlite3.Error:
         return []
-    return [{"id": r[0], "date": r[1], "topic": r[2]} for r in rows]
+    feed = [f"contradiction: #{f} vs #{t} {_clip(ta)} | {_clip(tb)}"
+            for f, t, ta, tb in contra]
+    feed += [f"unanchored: #{i} {_clip(t)}" for i, t in unanch]
+    # warmup has no session-topic input; a literal query would push a
+    # fixed junk pull on every boot — placeholder keeps the hint a
+    # template, not a curriculum (advisory 2026-09-03)
+    feed.append('pull: search_all.py "<your topic>"')
+    return feed
 
 
 def integrity_check() -> dict:
@@ -163,6 +197,29 @@ def integrity_check() -> dict:
             errors.append(f"{md.relative_to(WIKI_ROOT)}: unreadable")
     return {"ok": len(errors) == 0, "errors": errors}
 
+def git_stale_days(root: Path = None) -> int:
+    """Days since the memory repo's last commit, or -1 if not a git repo /
+    no git / no commits. Variant A of the git-hygiene decision (plan §Q3):
+    warmup only WARNS; a human commits. Agents never auto-commit — a wrong
+    finding committed by an agent would be enshrined as canon in history.
+    """
+    import subprocess
+    root = root or PROFILE_ROOT
+    if not (root / ".git").exists():
+        return -1
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "log", "-1", "--format=%ct"],
+            capture_output=True, text=True, timeout=10,
+            encoding="utf-8", errors="replace",
+        )
+        if r.returncode != 0 or not r.stdout.strip():
+            return -1
+        last = int(r.stdout.strip())
+        return max(0, (datetime.now().timestamp() - last) // 86400)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return -1
+
 
 def main():
     import argparse
@@ -182,8 +239,9 @@ def main():
     else:
         output["stats"] = stats()
         output["recent"] = recent_entries()
-        output["findings"] = recent_findings()
+        output["findings"] = unsure_feed()
         output["integrity"] = integrity_check()
+        output["git_stale_days"] = git_stale_days()
 
     if args.json:
         print(json.dumps(output, ensure_ascii=False, indent=2))
@@ -200,14 +258,19 @@ def main():
         for r in output["recent"]:
             print(f"  {r['path']} ({r['date']})")
     if "findings" in output and output["findings"]:
-        print("\nFindings:")
-        for f in output["findings"]:
-            print(f"  [#{f['id']}] {f['topic']} ({f['date']})")
+        print("\nUnsure (what memory is NOT sure about):")
+        for line in output["findings"]:
+            print(f"  {line}")
     if "integrity" in output:
         ic = output["integrity"]
         print(f"\nIntegrity: {'OK' if ic['ok'] else str(len(ic['errors'])) + ' issue(s)'}")
         for e in ic["errors"][:10]:
             print(f"  ! {e}")
+    if output.get("git_stale_days", -1) >= 0:
+        d = output["git_stale_days"]
+        if d >= 7:
+            print(f"  ! git stale: {d}d since last commit — run "
+                  f"`git -C {PROFILE_ROOT} add -A && git commit` (human ritual)")
     if "search" in output:
         q = output["search"]
         print(f"\nSearch: '{q['query']}' → {len(q['results'])} results")

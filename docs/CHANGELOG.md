@@ -4,6 +4,30 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.1.0 (memory findings remediation)**: research.db из write-only памяти
+  стал retrievable. Retrieval: `findings.py search` ранжирует bm25(10.0,1.0)
+  вместо id DESC, честный «found/showing», highlight, prefix-retry,
+  fallback для dot-запросов (`5.3` больше не крашит FTS5); `search_all.py`
+  (маршрут AGENTS.md §4) теперь union'ит findings-стор и мерджит глобально по
+  bm25 — до этого research.db был структурно невидим (нет files_fts);
+  warmup печатает «в чём память НЕ уверена» (открытые contradicts + unanchored
+  за 7 дней + pull-шаблон) вместо сырого фида последних топиков. Trust:
+  `add --supersedes` + бейджи (скалярный подзапрос, не LEFT JOIN — второй
+  supersedes не размножает строку), tag-нормализация на записи + свип 40
+  comma-строк prod, dedup-хинт «edit id=N», auto-source только URL-формы,
+  verify_cmd исполняется как shell-строка (quote-guard на записи), doctor-
+  команда self-heal (FTS rank=1 integrity-check). DR: restore-контракт —
+  pre-snapshot деградирует на CORRUPT и отказывает на LOCKED (busy ≠ corrupt:
+  `_is_corruption`), sidecars удаляются после замены, backup API ограничен
+  preflight-пробой (CPython backup() крутит BUSY вечно), degraded-снапшоты
+  (`.degraded` вместо `.complete`) не градуируются в restore-point (restore
+  rc 3 без --include-degraded, drill fail-fast, --list тегирует, отдельный
+  prune cap=3). Регресс-тесты: test_ftsquery.py, test_search_all.py (25),
+  test_v29.py (unsure-feed + шаблон), test_findings_lifecycle.py (supersedes
+  fanout, URL-only, deployed-parity), test_findings_migration.py (trigger
+  self-heal, log DDL-guard, ro-contract), test_backup_memory.py (23: locked/
+  corrupt/degraded/retention), canaries P2/P3 переписаны в after-state.
+  642 passed, doctor 14 GREEN, manifest 126.
 - **v4.0.3 (dead-harness cutover)**: Gemini CLI install plane removed —
   Google retired the CLI on 2026-06-18 (individual accounts stopped
   being served; official discussion google-gemini/gemini-cli#28017);

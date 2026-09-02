@@ -3,7 +3,7 @@ name: code-graph-review
 description: 'Use BEFORE a commit or change review, when you need to understand "what this N-file change will break": blast radius over the diff, affected execution paths, dead code, architectural hubs/bridges, weak spots, rename with preview. Do not use for code search — CRG is for structural diff analysis, not navigation.'
 compatibility: git repo with a built graph (code-review-graph MCP)
 metadata:
-  version: "4.0.3"
+  version: "4.1.0"
 ---
 
 # Code graph review: what will the change break

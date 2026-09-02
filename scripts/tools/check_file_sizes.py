@@ -9,7 +9,7 @@ ONE source of truth for the limits. Consumers:
   (the hook is autonomous, runs from ~/.claude/hooks/ etc. — does not import
   scripts/); when editing limits, change BOTH places.
 
-Limits (industry practice, research.db id=543):
+Limits (industry practice; original finding id lost in a research.db reset):
 - code: soft 500 / hard 1000 (SonarQube python:S104 = 1000, ESLint = 300 —
   we sit between: the agent's context budget);
 - docs: soft 300 / hard 500 (canon MD/SKILL.md are read by the agent whole).

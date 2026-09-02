@@ -34,7 +34,8 @@ def fix_encoding():
         pass
 
 
-def run(cmd, *, timeout=None, cwd=None, env=None, check=False):
+def run(cmd, *, timeout=None, cwd=None, env=None, check=False,
+        shell=False):
     """subprocess.run for CLI scripts: cross-platform encoding.
 
     Windows gotcha (bug report v2.4 BUG-1/4): text=True without an explicit
@@ -51,7 +52,8 @@ def run(cmd, *, timeout=None, cwd=None, env=None, check=False):
         child_env.setdefault("PYTHONUTF8", "1")
     return subprocess.run(cmd, capture_output=True, text=True,
                           encoding="utf-8", errors="replace",
-                          timeout=timeout, cwd=cwd, env=child_env, check=check)
+                          timeout=timeout, cwd=cwd, env=child_env,
+                          check=check, shell=shell)
 
 
 # Memory root markers: files/folders present ONLY in the workspace root

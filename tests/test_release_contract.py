@@ -35,7 +35,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXPECTED_VERSION = "4.0.3"
+EXPECTED_VERSION = "4.1.0"
 EXPECTED_SKILL_COUNT = 36
 EXPECTED_SCENARIO_COUNT = 24
 EXPECTED_TRIGGER_QUERY_COUNT = 80
@@ -310,6 +310,53 @@ class StaleDocReferencesTest(unittest.TestCase):
                 stale, all_text,
                 f"active docs/skills must not reference stale path: {stale}"
             )
+
+
+class DeployReleaseMechTest(unittest.TestCase):
+    """The release mechanism itself: a VERSION bump must propagate to
+    the machine CLAUDE.md (deploy docstring promise). The call was
+    missing from main() for at least one release — verify() then failed
+    on every bump (observed 2026-09-03, v4.1.0)."""
+
+    def _deploy(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "deploy", ROOT / "scripts" / "tools" / "deploy.py")
+        dep = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(dep)
+        return dep
+
+    def test_bump_claude_md_rewrites_version_line(self):
+        import tempfile
+        from unittest import mock
+        dep = self._deploy()
+        with tempfile.TemporaryDirectory() as td:
+            f = Path(td) / "CLAUDE.md"
+            f.write_text(
+                "# coding-kit v0.0.1 (repo master; machine CLAUDE.md"
+                " refreshed 2020-01-01) (0, English)\n"
+                "# local trigger line\n",
+                encoding="utf-8")
+            with mock.patch.object(dep, "CLAUDE_MD", f), \
+                    mock.patch.object(dep, "master_skill_names",
+                                      lambda: ["a", "b", "c"]):
+                self.assertEqual(dep.bump_claude_md(), "bumped")
+                first = f.read_text(encoding="utf-8").splitlines()[0]
+                self.assertIn(f"v{dep.VERSION}", first)
+                self.assertIn("(3, English)", first)
+                self.assertNotIn("))", first,
+                                 "bump must not double the closing paren")
+                self.assertIn("# local trigger line",
+                              f.read_text(encoding="utf-8"))
+                self.assertEqual(dep.bump_claude_md(), "unchanged")
+
+    def test_main_calls_bump_claude_md(self):
+        src = (ROOT / "scripts" / "tools" / "deploy.py").read_text(
+            encoding="utf-8")
+        main_src = src[src.index("def main():"):]
+        self.assertIn("bump_claude_md()", main_src,
+                      "main() must bump the machine CLAUDE.md or "
+                      "verify() fails on every VERSION bump")
 
 if __name__ == "__main__":
     unittest.main()

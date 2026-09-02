@@ -85,8 +85,8 @@ def cmd_stats(args):
 
 def cmd_empty(args):
     """--empty: mine empty queries — topics people search for and do not find.
-    Candidates for docs/wiki (knowledge missing from the databases; audit
-    14.08.2026, research.db id=489)."""
+    Candidates for docs/wiki (knowledge missing from the databases;
+    audit 14.08.2026 — original finding id lost in a research.db reset)."""
     rows = empty_queries(limit=args.limit)
     if not rows:
         print("no stably empty queries — topics are covered")
@@ -262,7 +262,7 @@ def cmd_search(con, args):
     fallback = False
     if not rows and not args.substring and len(args.query) >= 3:
         # Auto-fallback on empty results: the trigram index (substring).
-        # Spike 12.08.2026 (research.db id=348): 33% of queries come up empty;
+        # Spike 12.08.2026 (finding lost in a research.db reset): 33% of
         # «delet»/«settin»/«delete file» return 0 in plain FTS but dozens
         # in trigram. Trigram has no boolean operators — use the raw query
         # as a literal substring.
@@ -291,8 +291,9 @@ def cmd_search(con, args):
         print("nothing found")
         print("hint: shorter query (2-3 words, no AND chains) and no inflected"
               " forms — content is indexed as-is without stemming («file»"
-              " won't match «files»); another database:"
-              " -b db/wiki.db or research.db — findings.py search")
+              " won't match «files»); another database: -b db/wiki.db;"
+              " research.db findings ride along in search_all.py"
+              " (findings.py search for the full payload)")
         if wiki_hint:
             print(wiki_hint)
         dym = _did_you_mean(args.query,
@@ -316,10 +317,11 @@ def _did_you_mean(query, db_name):
     """Empty result → similar NON-empty queries from search_log (research.db):
     match by a shared token of >=3 chars, top-2 by hit count. The industry
     "did you mean" pattern (search UX); the data is our own (30.7% empty
-    queries, audit 15.08, research.db id=540)."""
+    queries, audit 15.08 — finding lost in a research.db reset)."""
     if len(query) < 3:
         return ""
-    rd = os.path.join(ROOT, "db", "research.db")
+    from findings_db import research_db_path
+    rd = research_db_path()
     if not os.path.isfile(rd):
         return ""
     toks = {t.lower() for t in query.split() if len(t) >= 3}
@@ -352,8 +354,9 @@ def _did_you_mean(query, db_name):
 
 def _wiki_hint(query, current_db):
     """Cross-database hint: empty/few results in this database → how many in Wiki.
-    The Wiki library is barely searched (302 posts → 22 searches of 563, audit
-    15.08, research.db id=540) — the knowledge sits unused. Hint when: empty
+    The Wiki library is barely searched (302 posts → 22 searches of 563,
+    audit 15.08 — finding lost in a research.db reset) — the knowledge sits
+    unused. Hint when: empty
     result in ANY database (except wiki itself) or few (<=2) in non-workspace
     databases. No hint for a non-empty wiki.db: Wiki/ is already inside its
     index (duplicate results)."""

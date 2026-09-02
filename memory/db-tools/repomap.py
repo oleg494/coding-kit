@@ -179,7 +179,8 @@ def map_project(conn, tokens: int = 2000, focus: list | None = None) -> str:
 def _findings_for(rel_path: str) -> str:
     """research.db findings attached to a file (findings.py add --file)."""
     try:
-        con = sqlite3.connect(chulan_root() / "db" / "research.db")
+        from findings_db import research_db_path
+        con = sqlite3.connect(research_db_path())
         con.row_factory = sqlite3.Row
         rows = con.execute(
             "SELECT id, topic, symbol FROM findings "

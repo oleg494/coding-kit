@@ -2,7 +2,7 @@
 name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 metadata:
-  version: "4.0.3"
+  version: "4.1.0"
 ---
 
 # Systematic Debugging
