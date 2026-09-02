@@ -145,6 +145,16 @@ class BreakGlassTest(unittest.TestCase):
         self.assertIn("logged note", hay,
                       "break-glass must demand a logged note")
 
+    def test_no_dead_break_glass_api_in_module(self):
+        """The bypass is a review-process rule carried by the skill
+        prose (checked above); the arithmetic module keeps no unused
+        break-glass API (v4.0.2 cleanup)."""
+        src = (KIT / "scripts" / "tools" / "review_protocol.py"
+               ).read_text(encoding="utf-8")
+        self.assertNotIn("is_break_glass", src)
+        self.assertNotIn("BREAK_GLASS_KEYWORDS", src)
+        self.assertFalse(hasattr(review_protocol, "is_break_glass"))
+
 
 class RecomputableVerdictTest(unittest.TestCase):
     """Judge rubric: approval bias, verdict recomputable from counts."""

@@ -133,10 +133,11 @@ class HermesReaderTest(unittest.TestCase):
             self.assertEqual(recs[0]["model"], "qwen3-max")
             self.assertEqual(recs[0]["cwd"], "C:/work/proj")
             tools = [r for r in recs if r["type"] == "tool"]
-            self.assertEqual(len(tools), 2)  # tool_calls blob + tool role row
-            by_id = {t["tool_call_id"]: t for t in tools}
-            self.assertIn("tc-9", by_id)
-            self.assertEqual(by_id["tc-9"]["result"], "pushed ok")
+            self.assertEqual(len(tools), 1)  # call+result merged, no halves
+            tc = tools[0]
+            self.assertEqual(tc["tool_call_id"], "tc-9")
+            self.assertIn("git push", tc["arguments"])
+            self.assertEqual(tc["result"], "pushed ok")
             users = [r for r in recs if r["type"] == "user"]
             self.assertEqual(users[0]["content"], "залей на гитхаб")
 

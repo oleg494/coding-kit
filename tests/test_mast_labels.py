@@ -7,6 +7,7 @@ task_runner.MAST_MODES; scenario frontmatter carries optional
 `mast: FM-x.y`; results rows MAY carry `mast_mode`; trend renders a
 failure-mode histogram and flags unknown ids.
 """
+import json
 import re
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
 
 import results_io
+import runner
 import trend
 from task_runner import MAST_MODES
 
@@ -120,5 +122,78 @@ def test_render_flags_unknown_mast_mode_and_shows_histogram(tmp_path):
         ]}, results_dir=tmp_path)
     doc = results_io.load_runs("trap", results_dir=tmp_path)[-1]
     text = trend.render_mast_section([doc])
-    assert "FM-3.1" in text and "Premature termination" in text
     assert "unknown mast_mode: FM-9.9" in text
+
+
+# mast_mode persistence on runner result rows ---------------------------------
+
+
+def _scenario_file(tmp_path, mast, valid=True):
+    meta = "name: sc-mast\nskill: s1\ntrap: t1\nexpect: pass\n"
+    if not valid:
+        meta = "name: sc-mast\nskill: s1\ntrap: t1\n"  # missing expect -> skip row
+    if mast:
+        meta += f"mast: {mast}\n"
+    f = tmp_path / ("sc_mast.md" if mast else "sc_nomast.md")
+    f.write_text(meta + "\nbody", encoding="utf-8")
+    return f
+
+
+def test_capability_skip_fail_row_carries_mast_mode(tmp_path):
+    f = _scenario_file(tmp_path, "FM-3.1", valid=False)
+    rc, rows = runner._evaluate_scenarios(None, None, [f], repeat=1, timeout=1)
+    assert rc == 1
+    assert rows[0]["verdict"] == "FAIL" and rows[0]["attempts"] == []
+    assert rows[0]["mast_mode"] == "FM-3.1"
+
+
+def test_dry_run_pass_row_carries_mast_mode(tmp_path):
+    f = _scenario_file(tmp_path, "FM-3.1")
+    out = tmp_path / "dry.json"
+    code = runner.run_scenarios(
+        executor=None, judge=None, scenario_files=[f], json_out=out)
+    assert code == 0
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    row = doc["scenarios"][0]
+    assert row["verdict"] == "PASS" and row["attempts"] == []
+    assert row["mast_mode"] == "FM-3.1"
+
+
+def test_live_final_row_carries_mast_mode(tmp_path, monkeypatch):
+    f = _scenario_file(tmp_path, "FM-3.1")
+    out = tmp_path / "live.json"
+    monkeypatch.setattr(runner, "run_prompt", lambda cmd, prompt, timeout=600: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda cmd, exp, ans, timeout=600: "PASS")
+    code = runner.run_scenarios(
+        executor=["mock_exe"], judge=["mock_judge"], scenario_files=[f],
+        json_out=out, model="mast-live")
+    assert code == 0
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    row = doc["scenarios"][0]
+    assert row["verdict"] == "PASS"
+    assert row["mast_mode"] == "FM-3.1"
+
+
+def test_unknown_mast_mode_is_preserved_not_invented(tmp_path):
+    f = _scenario_file(tmp_path, "FM-9.9", valid=False)
+    rc, rows = runner._evaluate_scenarios(None, None, [f], repeat=1, timeout=1)
+    assert rc == 1
+    assert rows[0]["mast_mode"] == "FM-9.9"
+    assert "FM-9.9" not in MAST_MODES  # row keeps the raw id; trend flags it
+
+
+def test_missing_mast_frontmatter_means_no_mast_mode_key(tmp_path):
+    f = _scenario_file(tmp_path, None, valid=False)
+    rc, rows = runner._evaluate_scenarios(None, None, [f], repeat=1, timeout=1)
+    assert rc == 1
+    assert "mast_mode" not in rows[0]
+
+
+def test_mast_mode_rows_are_trend_compatible(tmp_path):
+    f = _scenario_file(tmp_path, "FM-3.1", valid=False)
+    rc, rows = runner._evaluate_scenarios(None, None, [f], repeat=1, timeout=1)
+    assert rc == 1
+    doc = {"kind": "trap", "mode": "live", "scenarios": rows}
+    assert trend._mast_histogram([doc]) == {"FM-3.1": 1}
+    text = trend.render_mast_section([doc])
+    assert "FM-3.1" in text and "Premature termination" in text

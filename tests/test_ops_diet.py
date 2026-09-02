@@ -12,10 +12,11 @@ Contract (relocation only — NOTHING deleted):
     the home; pinned here against regression)
 - No content lost: every moved rule's whitespace-normalized text must appear
   in its receiving skill EXACTLY ONCE, and the operative rule text must be
-  GONE from OPS.md (a one-line pointer replaces it). The per-section checks
-  below are the decomposition of the no-content-lost concatenation checksum:
-  sha256 over "\x1e".join(normalized moved sections) — presence + uniqueness
-  + absence-from-OPS is strictly stronger than the digest alone.
+  GONE from OPS.md (a one-line pointer replaces it). Presence+uniqueness
+  alone cannot catch a partial edit that keeps the count at 1, so each
+  relocated block is additionally pinned by the sha256 of its
+  whitespace-normalized text (EXPECTED_DIGESTS); a bare len()==64 check on
+  that digest is tautological and detects nothing.
 - Trigger eval: 6 new queries (the relocated rule surfaces) live in the
   co-located skills/<slug>/evals/evals.json files; the central
   eval/trigger_queries.json fallback stays at 80; the merged set is 86.
@@ -41,7 +42,10 @@ OPS = KIT / "OPS.md"
 AGENTS = KIT / "AGENTS.md"
 UNIVERSAL = KIT / "adapters" / "UNIVERSAL.md"
 
-# --- frozen pre-move rule text (OPS.md @ 682f236, wave4 Task 12) -----------
+# --- frozen pre-move rule text (OPS.md @ 682f236, wave4 Task 12) ------------
+# S_TDD is the stitched composite of the three unique sentences of the
+# pre-move §3 Phase 2 block (each verbatim at 682f236); the receiving skill
+# carries the composite contiguously.
 
 S_DESTRUCTIVE = (
     "Destructive commands require explicit user confirmation first: "
@@ -75,6 +79,19 @@ MOVED_SECTIONS = {
         S_MEMORY_TRUST, KIT / "skills" / "security-and-hardening" / "SKILL.md"),
 }
 
+# Pre-relocation digests: sha256 over the whitespace-normalized moved text
+# (stable against line wrapping/reflow). S_DESTRUCTIVE and S_MEMORY_TRUST are
+# verbatim at OPS.md@682f236; S_TDD's three sentences are each verbatim there
+# and the composite lands contiguously in the receiving skill.
+EXPECTED_DIGESTS = {
+    "git-workflow-and-versioning":
+        "728298a73d8846f804c0ce90e50a20a1d70f5f33ddb1a4e4de1acd9ef397ecfe",
+    "testing-discipline":
+        "6387d72d4e634d5e18541612aa66fd0eac8dc02190948ceb41e39289f17dcb91",
+    "security-and-hardening":
+        "30943681ad9924b907694708fddeae23680503b5903479f2d345aa767387c9dc",
+}
+
 # Operative text that must NOT remain in OPS.md after the move (pointers stay).
 _GONE_FROM_OPS = ("git reset --hard", "test_payment_idempotent",
                   "instructions come from the user and OPS.md only")
@@ -101,19 +118,27 @@ class OpsDietTest(unittest.TestCase):
             f"has {lines}")
 
     def test_no_moved_content_lost(self):
-        """Concatenation-checksum decomposition: each moved rule lands in its
-        JIT home exactly once, unchanged (whitespace-normalized)."""
-        parts = []
+        """No-content-loss contract: each moved rule lands in its JIT home
+        present, unchanged, exactly once, and byte-pinned to its
+        pre-relocation digest. Silent rewording or deletion of any relocated
+        rule text fails this test."""
+        # (a) present-unchanged-exactly-once per block; (b) digest pin —
+        # the decomposition of the original concatenated checksum, strictly
+        # stronger than a bare len(digest)==64 well-formedness check.
         for slug, (needle, dest) in MOVED_SECTIONS.items():
             hay = _norm(dest.read_text(encoding="utf-8"))
             n = _norm(needle)
+            self.assertIn(
+                n, hay,
+                f"{slug}: relocated rule block missing or altered in "
+                f"{dest.name}")
             self.assertEqual(
                 hay.count(n), 1,
-                f"{slug}: the moved rule must land exactly once, unchanged")
-            parts.append(n)
-        digest = hashlib.sha256(
-            "\x1e".join(parts).encode("utf-8")).hexdigest()
-        self.assertEqual(len(digest), 64)  # checksum well-formed
+                f"{slug}: relocated rule block must appear exactly once")
+            self.assertEqual(
+                hashlib.sha256(n.encode("utf-8")).hexdigest(),
+                EXPECTED_DIGESTS[slug],
+                f"{slug}: relocated rule text changed since relocation")
 
     def test_moved_rules_absent_from_ops(self):
         ops = OPS.read_text(encoding="utf-8")

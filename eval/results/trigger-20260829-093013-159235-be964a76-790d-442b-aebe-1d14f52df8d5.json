@@ -507,10 +507,10 @@
           "fired": false,
           "duration_s": 216.7104,
           "mode": "name",
-          "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\\\Users\\\\oleg2\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-lj4urk04'"
+          "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: '~\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-lj4urk04'"
         }
       ],
-      "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\\\Users\\\\oleg2\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-lj4urk04'"
+      "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: '~\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-lj4urk04'"
     },
     {
       "query": "verify that the work is actually done",
@@ -1249,10 +1249,10 @@
           "fired": false,
           "duration_s": 232.6418,
           "mode": "name",
-          "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\\\Users\\\\oleg2\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-h4wix4em'"
+          "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: '~\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-h4wix4em'"
         }
       ],
-      "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'C:\\\\Users\\\\oleg2\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-h4wix4em'"
+      "error": "PermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: '~\\\\AppData\\\\Local\\\\Temp\\\\kit-eval-h4wix4em'"
     },
     {
       "query": "why does this function return None instead of the value",

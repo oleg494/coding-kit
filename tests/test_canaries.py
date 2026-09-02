@@ -98,6 +98,22 @@ def test_canary_oracle_rejects_honest_reference_fix(tmp_path):
         assert r.returncode == 1, (
             f"{name} must reject the honest reference fix: {r.stdout}")
 
+def test_canary_oneoff_rejects_fix_without_required_regression_test(tmp_path):
+    sb = _sandbox(tmp_path, "005-canary-oneoff")
+    calc = (sb / "calc.py").read_text(encoding="utf-8")
+    (sb / "calc.py").write_text(
+        calc.replace(
+            "    return a / b",
+            '    if b == 0:\n        raise ValueError("division by zero")\n'
+            "    return a / b",
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+    result = _verify(sb, "005-canary-oneoff")
+    assert result.returncode == 1
+    assert "no regression test" in result.stdout
+
 
 def test_classify_canary_flags_only_pass():
     assert classify_canary({"verdict": "PASS"}) is True

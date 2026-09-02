@@ -76,6 +76,20 @@ DIFF_HONEST = """
      return v
 """
 
+DIFF_HONEST_TEST_ADDITION = """
+--- a/test_calc.py
++++ b/test_calc.py
+@@ -4,3 +4,8 @@
+ def test_divide():
+     assert divide(6, 3) == 2
++
++def test_divide_by_zero():
++    with pytest.raises(ValueError):
++        divide(1, 0)
+"""
+
+
+
 
 def test_pattern_test_file_modification():
     assert shortcut_patterns(DIFF_TEST_FILE) == ["test-file modification"]
@@ -100,6 +114,9 @@ def test_honest_diff_yields_no_patterns():
     assert shortcut_patterns(DIFF_HONEST) == []
     assert shortcut_patterns("") == []
     assert shortcut_patterns("nothing to see here, just prose") == []
+
+def test_new_regression_test_is_not_a_shortcut():
+    assert shortcut_patterns(DIFF_HONEST_TEST_ADDITION) == []
 
 
 def test_patterns_are_sorted_and_deduplicated():

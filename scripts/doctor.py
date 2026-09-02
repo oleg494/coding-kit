@@ -19,6 +19,8 @@ Checks:
 Usage:
     python scripts/doctor.py          # table + exit 1 on any failure
 """
+import json
+
 import os
 import re
 from datetime import datetime
@@ -134,17 +136,39 @@ def frontmatter_spec_problems(slug: str, fm_text: str,
         elif name != slug:
             note(f"WARN name != dir ({name!r})")
 
-    m = re.search(r"^description:\s*(.+)$", fm_text, re.MULTILINE)
-    desc = m.group(1).strip() if m else None
-    if not desc:
+    m = re.search(r"^description:\s*(.*)$", fm_text, re.MULTILINE)
+    raw_desc = m.group(1).strip() if m else None
+    block_markers = {"|", ">", "|-", ">-", "|+", ">+"}
+    block_content = ""
+    if m and raw_desc in block_markers:
+        parts = []
+        for line in fm_text[m.end():].splitlines():
+            if not line.strip():
+                continue  # blank line inside a block scalar is legal
+            if not line.startswith((" ", "\t")):
+                break  # next top-level key ends the block
+            parts.append(line.strip())
+        block_content = "\n".join(parts)
+    if raw_desc is None:
         note("description missing")
+    elif (
+        raw_desc in {"", "null", "Null", "NULL", "~", "{}", "[]",
+                     "''", '\"\"'}
+        or raw_desc.startswith(("{", "["))
+        or (raw_desc in block_markers and not block_content)
+    ):
+        note("description must be a non-empty string")
+    elif fm_yaml is not None:
+        y = fm_yaml.get("description") if isinstance(fm_yaml, dict) else None
+        if not isinstance(y, str) or not y.strip():
+            note("description must be a non-empty string")
+        elif len(y) > 1024:
+            note(f"description length {len(y)} > 1024")
     else:
-        if fm_yaml is not None:
-            y = fm_yaml.get("description") if isinstance(fm_yaml, dict) else None
-            if isinstance(y, str) and len(y) > 1024:
-                note(f"description length {len(y)} > 1024")
-        elif len(desc) > 1024 + 2:  # regex path: allow for the quotes
-            note(f"description length {len(desc) - 2} > 1024")
+        desc = block_content or raw_desc.strip("'\"")
+        if len(desc) > 1024:
+            note(f"description length {len(desc)} > 1024")
+
 
     m = re.search(r"^compatibility:\s*(.+)$", fm_text, re.MULTILINE)
     if m and fm_yaml is None:
@@ -378,8 +402,11 @@ def check_backup_freshness() -> tuple[bool, str]:
     backups = root / "backups"
     if not backups.is_dir():
         return (True, "no backups yet (WARN: run scripts/tools/backup_memory.py)")
-    stamps = sorted(e.name for e in backups.iterdir()
-                    if e.is_dir() and re.fullmatch(r"\d{8}T\d{6}", e.name))
+    stamps = sorted(
+        e.name for e in backups.iterdir()
+        if (e.is_dir() and (e / ".complete").is_file()
+            and re.fullmatch(r"\d{8}T\d{6}", e.name))
+    )
     if not stamps:
         return (True, "backups dir has no YYYYMMDDTHHMMSS entries (WARN)")
     try:
@@ -412,16 +439,32 @@ def check_skills_sync() -> tuple[bool, str]:
     (resolve() == master) track the master live and are skipped. No
     deployed copy at all = WARN (backup-freshness semantics: a missing
     copy must not block work, only nag). FAIL names the drifted slugs."""
-    names = sorted(d.name for d in (KIT / "skills").iterdir()
-                   if d.is_dir())
+    master = KIT / "skills"
+    names = sorted(d.name for d in master.iterdir() if d.is_dir())
+    master_names = set(names)
     candidates = [d for d in _DEPLOYED_SKILL_DIRS if d.is_dir()]
     if not candidates:
         return (True, ("WARN: no deployed skills copy found "
                        "(run deploy.py --canonical)"))
     bad: list[str] = []
     for dest in candidates:
+        try:
+            if dest.resolve() == master.resolve():
+                continue
+        except OSError:
+            pass
+
+        owned: set[str] = set()
+        manifest = dest / ".kit-manifest.json"
+        if manifest.is_file():
+            try:
+                data = json.loads(manifest.read_text(encoding="utf-8"))
+                owned = {str(x) for x in data.get("skills", [])}
+            except (OSError, ValueError, TypeError, AttributeError):
+                bad.append(f"{dest.parent.name}/.kit-manifest.json: invalid")
+
         for name in names:
-            src, target = KIT / "skills" / name, dest / name
+            src, target = master / name, dest / name
             if not target.exists():
                 bad.append(f"{dest.parent.name}/{name}: missing")
                 continue
@@ -445,6 +488,15 @@ def check_skills_sync() -> tuple[bool, str]:
                 if f.is_file() and not (src / f.relative_to(target)).exists():
                     bad.append(f"{dest.parent.name}/{name}/"
                                f"{f.relative_to(target)}: extra")
+
+        for entry in dest.iterdir():
+            if entry.name == ".kit-manifest.json":
+                continue
+            if entry.is_file() and entry.name not in master_names:
+                bad.append(f"{dest.parent.name}/{entry.name}: extra")
+            elif (entry.is_dir() and entry.name in owned
+                  and entry.name not in master_names):
+                bad.append(f"{dest.parent.name}/{entry.name}: stale")
     if bad:
         return (False, "; ".join(bad[:5])
                 + (f" (+{len(bad) - 5} more)" if len(bad) > 5 else ""))

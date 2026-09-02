@@ -3,7 +3,7 @@ name: fable-judge
 description: 'Adversarial verification of finished work: re-runs the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
 license: MIT
 metadata:
-  version: "4.0.0"
+  version: "4.0.2"
 ---
 
 
@@ -64,8 +64,8 @@ first.
 (`materiality()` in `scripts/tools/contract_drift.py`: workflows,
 install script, pyproject/deps, test-framework, VERSION/profile/OPS/
 AGENTS/adapters) need a contract document (AGENTS.md, OPS.md,
-docs/CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md,
-docs/CHANGELOG.md) in the same diff. Diff without contract doc →
+CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md, docs/CHANGELOG.md) in
+the same diff. Diff without contract doc →
 `needs_contract_update` → REFUTED with the smallest fix: update the
 contract or justify the omission in the report.
 

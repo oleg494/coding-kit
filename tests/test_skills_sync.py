@@ -96,6 +96,55 @@ class DriftCheckTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("beta", detail)
 
+
+    def test_stale_skill_directory_in_copy_fails(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            make_kit_tree(root, {"alpha": "a"})
+            deployed = root / "deployed" / "skills"
+            (deployed / "alpha").mkdir(parents=True)
+            (deployed / "alpha" / "SKILL.md").write_text(
+                "a", encoding="utf-8", newline="\n")
+            (deployed / "removed-skill").mkdir()
+            (deployed / "removed-skill" / "SKILL.md").write_text(
+                "stale", encoding="utf-8", newline="\n")
+            (deployed / ".kit-manifest.json").write_text(
+                '{"skills": ["alpha", "removed-skill"]}',
+                encoding="utf-8", newline="\n")
+            ok, detail = self._check_with_deployment(root, deployed)
+        self.assertFalse(ok)
+        self.assertIn("removed-skill", detail)
+
+    def test_stray_top_level_file_in_copy_fails(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            make_kit_tree(root, {"alpha": "a"})
+            deployed = root / "deployed" / "skills"
+            (deployed / "alpha").mkdir(parents=True)
+            (deployed / "alpha" / "SKILL.md").write_text(
+                "a", encoding="utf-8", newline="\n")
+            (deployed / "STALE.txt").write_text(
+                "stale", encoding="utf-8", newline="\n")
+            ok, detail = self._check_with_deployment(root, deployed)
+        self.assertFalse(ok)
+        self.assertIn("STALE.txt", detail)
+
+    def test_local_only_skill_directory_is_allowed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            make_kit_tree(root, {"alpha": "a"})
+            deployed = root / "deployed" / "skills"
+            (deployed / "alpha").mkdir(parents=True)
+            (deployed / "alpha" / "SKILL.md").write_text(
+                "a", encoding="utf-8", newline="\n")
+            (deployed / "local-only").mkdir()
+            (deployed / "local-only" / "SKILL.md").write_text(
+                "local", encoding="utf-8", newline="\n")
+            (deployed / ".kit-manifest.json").write_text(
+                '{"skills": ["alpha"]}', encoding="utf-8", newline="\n")
+            ok, detail = self._check_with_deployment(root, deployed)
+        self.assertTrue(ok, detail)
+
     def test_junction_copy_skipped_not_flagged(self):
         """A junction tracks the master live — resolve-equal means skip."""
         with tempfile.TemporaryDirectory() as td:

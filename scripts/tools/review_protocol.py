@@ -23,15 +23,9 @@ skills/requesting-code-review/SKILL.md) carry this rule as prose; their
 tests/test_review_protocol.py and compared against this function, so
 doc and code cannot drift.
 
-Break-glass: the keyword "срочно-пропустить" (or "break-glass") skips
-the verdict gate — only with a logged note naming who asked and why
-(BREAK_GLASS_KEYWORDS). The note is the audit trail; no keyword, no skip.
-
 Stdlib only; no runtime dependencies on the rest of the kit.
 """
 from __future__ import annotations
-
-BREAK_GLASS_KEYWORDS = ("срочно-пропустить", "break-glass")
 
 VERIFIED = "VERIFIED"
 CAVEATS = "VERIFIED WITH CAVEATS"
@@ -57,12 +51,6 @@ def verdict_from_counts(critical: int, warning: int) -> str:
     if warning > 2:
         return CAVEATS
     return VERIFIED
-
-
-def is_break_glass(text: str) -> bool:
-    """True when the text carries a break-glass keyword."""
-    lowered = text.lower()
-    return any(kw in lowered for kw in BREAK_GLASS_KEYWORDS)
 
 
 if __name__ == "__main__":

@@ -12,9 +12,14 @@ roll out a drifted tree.
 Honest limitation (Cymulate's own caveat): this detects drift — it cannot
 prevent a harness-level hook compromise.
 
-Scope (exact, wave1 Task 2 — every file that executes or steers):
+Scope (exact, wave1 Task 2 — every file that executes or steers;
+v4.0.2 adds eval truth: scenario briefs, task briefs, trigger queries,
+committed baselines. Mutable eval/results artifacts stay unpinned):
     OPS.md, AGENTS.md, profile.yml, SKILL_RUNTIME.md,
-    adapters/*.md, scripts/**/*.py, eval/*.py,
+    adapters/*.md, scripts/**/*.py, eval/*.py (incl. tasks/*/verify.py
+    and tasks/_verify_common.py), eval/scenarios/*.md,
+    eval/tasks/*/TASK.md, eval/trigger_queries.json,
+    eval/baselines/*.json,
     memory/db-tools/*.py, memory/scripts/*.py, skills/*/SKILL.md
 
 Hashes are computed over utf-8 text with newlines normalized to \n, so a
@@ -26,6 +31,7 @@ Run:
     python scripts/tools/integrity_manifest.py --root DIR # operate on a tree
 """
 import argparse
+import fnmatch
 import hashlib
 import json
 import sys
@@ -42,8 +48,10 @@ MANIFEST_NAME = "integrity-manifest.json"
 
 # (kind, pattern) rows: kind "file" = exact relpath, "glob" = fnmatch over
 # the whole tree, "tree" = all *.py under a directory prefix.
-_FILE_SCOPE = ("OPS.md", "AGENTS.md", "profile.yml", "SKILL_RUNTIME.md")
-_GLOB_SCOPE = ("adapters/*.md", "eval/*.py")
+_FILE_SCOPE = ("OPS.md", "AGENTS.md", "profile.yml", "SKILL_RUNTIME.md",
+               "eval/trigger_queries.json")
+_GLOB_SCOPE = ("adapters/*.md", "eval/*.py", "eval/scenarios/*.md",
+               "eval/tasks/*/TASK.md", "eval/baselines/*.json")
 _TREE_SCOPE = ("scripts", "memory/db-tools", "memory/scripts")
 
 
@@ -60,9 +68,9 @@ def in_scope(rel: str) -> bool:
                 return True
         if rel.startswith("scripts/"):
             return True
-    if rel.startswith("adapters/") and rel.endswith(".md"):
+    if rel.startswith("skills/") and rel.endswith("/SKILL.md"):
         return True
-    return rel.startswith("skills/") and rel.endswith("/SKILL.md")
+    return any(fnmatch.fnmatchcase(rel, pat) for pat in _GLOB_SCOPE)
 
 
 def scope_files(root: Path) -> list[Path]:

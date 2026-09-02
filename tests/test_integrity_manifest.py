@@ -49,10 +49,21 @@ def _seed(root: Path):
     _write(root / "memory" / "db-tools" / "build.py", "x = 4\n")
     _write(root / "memory" / "scripts" / "memory-warmup.py", "x = 5\n")
     _write(root / "skills" / "demo" / "SKILL.md", "---\nname: demo\n---\n")
+    _write(root / "eval" / "tasks" / "001-fix-div-zero" / "TASK.md",
+           "# task\n")
+    _write(root / "eval" / "tasks" / "001-fix-div-zero" / "verify.py",
+           "x = 6\n")
+    _write(root / "eval" / "tasks" / "_verify_common.py", "x = 7\n")
+    _write(root / "eval" / "scenarios" / "false-done.md", "# scenario\n")
+    _write(root / "eval" / "trigger_queries.json", "[]\n")
+    _write(root / "eval" / "baselines" / "trigger.json", "{}\n")
     # out-of-scope files: never hashed
     _write(root / "README.md", "readme\n")
     _write(root / "eval" / "results" / "x.json", "{}\n")
     _write(root / "skills" / "demo" / "reference.md", "ref\n")
+    # .agents/skills deploy mirror: same content, never hashed
+    _write(root / ".agents" / "skills" / "demo" / "SKILL.md",
+           "---\nname: demo\n---\n")
 
 
 class BuildManifestTest(unittest.TestCase):
@@ -70,10 +81,14 @@ class BuildManifestTest(unittest.TestCase):
             "OPS.md", "AGENTS.md", "profile.yml", "SKILL_RUNTIME.md",
             "adapters/zcode.md", "scripts/doctor.py",
             "scripts/tools/deploy.py", "eval/runner.py",
+            "eval/scenarios/false-done.md",
+            "eval/tasks/001-fix-div-zero/TASK.md",
+            "eval/tasks/001-fix-div-zero/verify.py",
+            "eval/tasks/_verify_common.py",
+            "eval/trigger_queries.json", "eval/baselines/trigger.json",
             "memory/db-tools/build.py", "memory/scripts/memory-warmup.py",
             "skills/demo/SKILL.md",
         }
-        self.assertEqual(set(m), expected)
         self.assertEqual(sorted(m), sorted(expected))
         # posix sort: lowercase 'scripts' < 'skills' even though Windows
         self.assertLess(next(k for k in m if k.startswith("scripts/")),
@@ -94,6 +109,18 @@ class BuildManifestTest(unittest.TestCase):
     def test_sorted_order_is_posix_sort_not_windows_casefold(self):
         m = integrity.build_manifest(self.root)
         self.assertEqual(list(m), sorted(m))
+
+    def test_eval_truth_and_agents_mirror_exclusion(self):
+        # v4.0.2: eval truth (scenarios, task briefs, trigger queries,
+        # baselines) is hashed; .agents/skills deploy mirrors never are,
+        # and drift in a mirror alone cannot flag the kit.
+        m = integrity.build_manifest(self.root)
+        self.assertFalse([k for k in m if k.startswith(".agents/")])
+        self.assertIn("skills/demo/SKILL.md", m)
+        _write(self.root / ".agents" / "skills" / "demo" / "SKILL.md",
+               "---\nname: tampered\n---\n")
+        self.assertEqual(integrity.check(self.root, m), [])
+
 
 
 class CheckTest(unittest.TestCase):

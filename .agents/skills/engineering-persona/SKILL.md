@@ -2,7 +2,7 @@
 name: engineering-persona
 description: 'Always-on. Response format rules (not a persona): direct engineering tone, result first, evidence-based, no fluff, no "I would recommend". Code > words. Observation > assumption.'
 metadata:
-  version: "4.0.0"
+  version: "4.0.2"
 ---
 
 # Engineering Persona

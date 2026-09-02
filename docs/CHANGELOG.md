@@ -4,23 +4,47 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
-- **v4.0.1 (docs)**: README gains a "Measured cost (external benchmark)"
-  section from the 2026-09-01 DeepSWE A/B (findings #199): pass rate
-  6/9 vs 6/9 (no effect), +21% steps / +41% prompt tokens on identical
-  outcomes, task-dependent flips (igel 24/24-vs-6/24 win, opa 2/5-vs-5/5
-  loss), n=9 trend-not-verdict caveat. Verification: section rendered in
-  README lines 74–93; `check_file_sizes.py --ci` green (README 115 lines,
-  docs soft limit 300). Claim source is an external benchmark run, not a
-  kit test — no regression test applies; raw jobs preserved under
-  `~/Desktop/deepswe-ab/jobs/`.
-- **v4.0.0 (wave6 interchange)**: MAJOR — observability interchange
-  layer from the 2026-09-01 roadmap. (1) OTel GenAI semconv key names as
-  aliases (old keys kept one release): results_io emits
-  gen_ai.usage.tokens_total / gen_ai.response.model /
-  gen_ai.invoke_agent.duration / gen_ai.conversation.id alongside legacy
-  keys with identical values; task rows carry gen_ai.prompt.name from
-  TASK.md frontmatter; load_reported_usage accepts input/output token
-  split; trend prefers new keys. (2) ATIF v1.7 export layer:
+- **v4.0.2 (audit remediation)**: closes the verified v3.5.0–v4.0.1
+  release-wave audit. Honest-oracle fixes: newly added regression tests no
+  longer count as verifier weakening, and both divide canaries now require
+  `test_divide_by_zero`; MAST frontmatter is persisted as `mast_mode` on
+  every scenario row. Trust/DR fixes: SQLite sidecars are never copied,
+  successful backups carry `.complete`, restore-drill fails on corrupt DBs,
+  incomplete backups do not satisfy freshness, and completed backups retain
+  the newest ten; the integrity manifest now pins eval scenarios/tasks/
+  trigger queries/baselines. Standards/privacy fixes: frontmatter
+  descriptions require a scalar string, canonical-skill drift detects extra
+  dirs/files, committed result paths are scrubbed, SQLite sidecars are
+  ignored, and memory search closes read-only handles on exceptions using
+  Windows-safe URIs. Interchange/devflow fixes: Hermes tool call/result halves
+  normalize to one record, GenAI token-total is documented as a kit
+  extension, contract drift uses root CONTRIBUTING.md, dead review/
+  materiality code was removed, and the OPS relocation proof now pins real
+  content. Regression tests: test_clean_pass.py, test_canaries.py,
+  test_mast_labels.py, test_backup_memory.py, test_doctor.py,
+  test_integrity_manifest.py, test_result_hygiene.py, test_search_all.py,
+  test_transcript_normalize.py, test_contract_drift.py,
+  test_review_protocol.py, test_ops_diet.py, test_otel_names.py. Verified:
+  pytest = 546 passed, 1 skipped, 73 subtests; doctor 14 checks GREEN;
+  file-size gate hard 0; deploy ALL OK. Release contract: version 4.0.2,
+  36 skills. Historical annotated tags v3.5.0 through v4.0.0 published.
+- **Post-v4.0.0 docs update**: README gains a "Measured cost (external
+  benchmark)" section from the 2026-09-01 DeepSWE A/B (findings #199):
+  pass rate 6/9 vs 6/9 (no effect), +21% steps / +41% prompt tokens on
+  identical outcomes, task-dependent flips (igel 24/24-vs-6/24 win, opa
+  2/5-vs-5/5 loss), n=9 trend-not-verdict caveat. Verification: section
+  rendered in README lines 74–93; `check_file_sizes.py --ci` green
+  (README 115 lines, docs soft limit 300). Claim source is an external
+  benchmark run, not a kit test — no regression test applies; retained
+  artifacts are under `~/Desktop/deepswe-ab/keep/`.
+- **v4.0.0 (wave6 interchange)**: MAJOR — observability interchange layer
+  from the 2026-09-01 roadmap. (1) GenAI telemetry aliases: registry-
+  aligned names where available plus explicit kit extensions (notably
+  `gen_ai.usage.tokens_total`; old keys kept one release). results_io emits
+  aliases alongside legacy keys with identical values; task rows carry
+  gen_ai.prompt.name from TASK.md frontmatter;
+  load_reported_usage accepts input/output token split; trend prefers new
+  keys. (2) ATIF v1.7 export layer:
   eval/atif_export.py to_atif() — one Trajectory per run (agent
   coding-kit, steps, tool_calls linked via source_call_id, per-step
   token/cost metrics, llm_call_count), structural validator vs Harbor
@@ -72,7 +96,7 @@
   2026-09-01 roadmap. (1) OPS/AGENTS diet: 3 inline rule blocks relocated
   verbatim to JIT skill homes (destructive-commands -> git-workflow-
   and-versioning, TDD spec/name gate -> testing-discipline, memory-trust
-  ASI06 -> security-and-hardening); OPS.md 154->145 lines; relocation-only
+  ASI06 -> security-and-hardening); OPS.md 155->145 lines; relocation-only
   proven by red-first no-content-lost tests; adapters/UNIVERSAL.md
   fragment->harness mapping; AGENTS.md JIT rule-skill index; 6 trigger
   queries added to co-located evals.json (central stays 80; merged 86).
@@ -114,7 +138,7 @@
   zero-use skills — no retirement proposals. doctor docstring check-list
   refreshed (14 checks). Regression tests: test_skill_spec_conformance.py
   (13), test_evals_colocation.py (9), test_skills_sync.py (10),
-  test_skill_lifecycle.py (9). Verified: pytest = 416 passed, 1 skipped,
+  test_skill_lifecycle.py (8). Verified: pytest = 416 passed, 1 skipped,
   34 subtests; doctor 14 checks GREEN. Release contract: version 3.7.0,
   36 skills.
 - **v3.6.0 (wave2 honest-oracle)**: verifier-integrity axis from the
@@ -135,7 +159,7 @@
   mast_mode on result rows, trend "## MAST failure modes" histogram with
   unknown-id WARNING; 5 scenarios backfilled (false-done FM-3.1,
   silent-failure FM-3.2, weakened-test FM-3.3, contract-drift FM-1.1,
-  silent-cross-write FM-2.6). Regression tests: test_canaries.py (13),
+  silent-cross-write FM-2.6). Regression tests: test_canaries.py (12),
   test_clean_pass.py (11), test_mast_labels.py (9); task count 4->6.
   Verified: pytest = 376 passed, 1 skipped, 34 subtests; doctor 12
   checks GREEN; trap dry-run 22/22 GREEN. Release contract: version

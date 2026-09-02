@@ -89,6 +89,61 @@ class BackupDrillTest(unittest.TestCase):
             finally:
                 os.environ.pop("MEMORY_ROOT", None)
 
+    def test_backup_skips_sqlite_sidecars_and_writes_completion_marker(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            root = _seed_memory_root(tmp)
+            (root / "db" / "research.db-wal").write_bytes(b"live wal")
+            (root / "db" / "research.db-shm").write_bytes(b"live shm")
+            result = backup_memory.backup(dest=tmp / "dest", root=root)
+            saved = Path(result["path"])
+            self.assertTrue((saved / ".complete").is_file())
+            self.assertFalse((saved / "db" / "research.db-wal").exists())
+            self.assertFalse((saved / "db" / "research.db-shm").exists())
+
+    def test_corrupt_restored_db_reports_failed_integrity(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            root = _seed_memory_root(tmp)
+            result = backup_memory.backup(dest=tmp / "dest", root=root)
+            (Path(result["path"]) / "db" / "research.db").write_bytes(
+                b"not sqlite")
+            drill = backup_memory.restore_drill(
+                Path(result["path"]), root=root)
+            self.assertFalse(drill["integrity_ok"])
+
+    def test_cli_fails_when_integrity_check_fails(self):
+        from unittest import mock
+        with mock.patch.object(
+            backup_memory, "restore_drill",
+            return_value={
+                "integrity_ok": False,
+                "probe": {"exists": False},
+                "files": 1,
+                "dbs": 1,
+            },
+        ):
+            self.assertEqual(
+                backup_memory.main(["--restore-drill", "unused"]), 1)
+
+    def test_retention_keeps_latest_completed_backups(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            root = _seed_memory_root(tmp)
+            dest = tmp / "dest"
+            for day in range(1, 6):
+                old = dest / f"2026010{day}T000000"
+                old.mkdir(parents=True)
+                (old / ".complete").write_text("ok", encoding="utf-8")
+            backup_memory.backup(dest=dest, root=root, keep=3)
+            completed = sorted(
+                p for p in dest.iterdir()
+                if p.is_dir() and (p / ".complete").is_file())
+            self.assertEqual(len(completed), 3)
+
 
 class DoctorBackupFreshnessTest(unittest.TestCase):
     def test_warns_when_no_backups(self):
@@ -113,8 +168,10 @@ class DoctorBackupFreshnessTest(unittest.TestCase):
         import time as _time
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "memory"
-            (root / "backups" / _time.strftime("%Y%m%dT%H%M%S")).mkdir(
-                parents=True)
+            fresh = root / "backups" / _time.strftime("%Y%m%dT%H%M%S")
+            fresh.mkdir(parents=True)
+            (fresh / ".complete").write_text("ok", encoding="utf-8")
+
             import os
             old = os.environ.get("MEMORY_ROOT")
             os.environ["MEMORY_ROOT"] = str(root)
@@ -136,13 +193,36 @@ class DoctorBackupFreshnessTest(unittest.TestCase):
             old_stamp = (datetime.datetime.now()  # noqa: DTZ005
                          - datetime.timedelta(days=30)).strftime(
                 "%Y%m%dT%H%M%S")
-            (root / "backups" / old_stamp).mkdir(parents=True)
+            old = root / "backups" / old_stamp
+            old.mkdir(parents=True)
+            (old / ".complete").write_text("ok", encoding="utf-8")
+
             import os
             old = os.environ.get("MEMORY_ROOT")
             os.environ["MEMORY_ROOT"] = str(root)
             try:
                 ok, detail = doctor.check_backup_freshness()
                 self.assertTrue(ok, "WARN-tier stays green")
+                self.assertIn("WARN", detail)
+            finally:
+                if old is None:
+                    os.environ.pop("MEMORY_ROOT", None)
+                else:
+                    os.environ["MEMORY_ROOT"] = old
+
+    def test_warns_when_timestamp_dir_is_incomplete(self):
+        import tempfile
+        import time as _time
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "memory"
+            (root / "backups" / _time.strftime("%Y%m%dT%H%M%S")).mkdir(
+                parents=True)
+            import os
+            old = os.environ.get("MEMORY_ROOT")
+            os.environ["MEMORY_ROOT"] = str(root)
+            try:
+                ok, detail = doctor.check_backup_freshness()
+                self.assertTrue(ok)
                 self.assertIn("WARN", detail)
             finally:
                 if old is None:

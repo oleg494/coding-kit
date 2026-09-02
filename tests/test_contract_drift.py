@@ -18,9 +18,9 @@ Contract:
     low:    everything else.
 - needs_contract_update(paths: list[str]) -> bool — True iff the diff
   touches high-materiality files WITHOUT any contract document
-  (AGENTS.md, OPS.md, docs/CONTRIBUTING.md, README.md,
+  (AGENTS.md, OPS.md, CONTRIBUTING.md, README.md,
   docs/SECURITY-MAP.md, docs/CHANGELOG.md) in the same diff.
-- docs/CONTRIBUTING.md gains one paragraph naming the gate.
+- CONTRIBUTING.md gains one paragraph naming the gate.
 - fable-judge gains a "contract drift?" step.
 
 Run: python -m pytest tests/test_contract_drift.py -v
@@ -97,7 +97,7 @@ class MaterialityTest(unittest.TestCase):
 class NeedsContractUpdateTest(unittest.TestCase):
     """High without contract docs in the same diff -> True."""
 
-    CONTRACT_FILES = ("AGENTS.md", "OPS.md", "docs/CONTRIBUTING.md",
+    CONTRACT_FILES = ("AGENTS.md", "OPS.md", "CONTRIBUTING.md",
                       "README.md", "docs/SECURITY-MAP.md",
                       "docs/CHANGELOG.md")
 
@@ -127,6 +127,28 @@ class NeedsContractUpdateTest(unittest.TestCase):
         self.assertIn("no gate", low)
 
 
+class ContributingContractPathTest(unittest.TestCase):
+    """Regression (v4.0.2): the contract-document path is root
+    CONTRIBUTING.md. The gate listed docs/CONTRIBUTING.md, which does
+    not exist in the kit, so an update to the real contract file did
+    not satisfy the gate."""
+
+    def test_contributing_lives_at_root_only(self):
+        self.assertTrue(CONTRIBUTING.is_file(),
+                        "CONTRIBUTING.md must exist at the repo root")
+        self.assertFalse((KIT / "docs" / "CONTRIBUTING.md").exists(),
+                         "docs/CONTRIBUTING.md must not exist")
+
+    def test_root_contributing_satisfies_gate(self):
+        self.assertFalse(contract_drift.needs_contract_update(
+            [".github/workflows/ci.yml", "CONTRIBUTING.md"]))
+
+    def test_stale_docs_path_dropped(self):
+        self.assertNotIn("docs/contributing.md",
+                         contract_drift._CONTRACT_FILES,
+                         "the nonexistent docs/ path must leave the gate")
+
+
 class FableJudgeStepTest(unittest.TestCase):
     """fable-judge gains the 'contract drift?' step."""
 
@@ -150,6 +172,12 @@ class ContributingParagraphTest(unittest.TestCase):
         self.assertIn("materiality", text.lower())
         self.assertIn("AGENTS.md", text,
                       "the paragraph must say which contract to update")
+
+    def test_doctor_check_count_agnostic(self):
+        text = CONTRIBUTING.read_text(encoding="utf-8")
+        self.assertNotIn("# 9 checks", text,
+                         "the check count drifts; say 'all checks'")
+        self.assertIn("# all checks", text)
 
 
 if __name__ == "__main__":

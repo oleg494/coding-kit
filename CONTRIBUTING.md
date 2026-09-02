@@ -6,7 +6,7 @@ Short version: issues and PRs are welcome. Keep the kit thin.
 
 1. **Run the gates before proposing a change**
    ```bash
-   python scripts/doctor.py                     # 9 checks
+   python scripts/doctor.py                     # all checks
    python -m pytest tests -q                    # unit suite must be green
    python scripts/tools/check_file_sizes.py --ci # file-size gate (hard limits)
    ```

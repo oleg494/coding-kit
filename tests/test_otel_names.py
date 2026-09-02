@@ -1,10 +1,10 @@
-"""Task 18 (wave6 v4.0.0): OTel GenAI semconv key names as aliases.
+"""Task 18 (wave6 v4.0.0): GenAI telemetry aliases.
 
-Naming-only adoption (semconv Development status — no OTel runtime).
-Round-trip contract: the schema-v1 store WRITE emits both the legacy keys
-and the `gen_ai.*` alias keys with identical values; READ accepts documents
-carrying either key set (legacy pre-v4 docs stay loadable); trend.py
-prefers the new keys. Legacy keys are kept one release.
+Naming-only adoption (no OTel runtime): registry-aligned where attributes
+exist, with explicit kit extensions such as `gen_ai.usage.tokens_total`.
+Round-trip contract: schema-v1 WRITE emits legacy and alias keys with equal
+values; READ accepts either key set; trend prefers aliases. Legacy keys stay
+one release.
 """
 import json
 import sys

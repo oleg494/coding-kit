@@ -29,15 +29,18 @@ def list_searchable_dbs(db_dir=None) -> list:
     ddir = Path(db_dir) if db_dir else DB_DIR
     out = []
     for p in sorted(ddir.glob("*.db")):
+        con = None
         try:
-            con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+            con = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
             has = con.execute(
                 "SELECT COUNT(*) FROM sqlite_master "
                 "WHERE name IN ('files_fts','files_fts_trigram')"
             ).fetchone()[0] > 0
-            con.close()
         except sqlite3.Error:
             continue
+        finally:
+            if con is not None:
+                con.close()
         if has:
             out.append(p)
     return out
@@ -50,15 +53,18 @@ def search_all(query: str, limit: int = 5, substring: bool = False,
     idx = "files_fts_trigram" if substring else "files_fts"
     for p in list_searchable_dbs(db_dir):
         name = p.stem
+        con = None
         try:
-            con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+            con = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
             rows = con.execute(
                 f"SELECT rel_path, snippet({idx}, 1, '<b>', '</b>', "
                 f"'…', 12) FROM {idx} WHERE {idx} MATCH ? LIMIT ?",
                 (sanitize_query(query), limit)).fetchall()
-            con.close()
         except sqlite3.OperationalError:
             continue
+        finally:
+            if con is not None:
+                con.close()
         for rel_path, snip in rows:
             results.append((name, rel_path, snip))
     return results

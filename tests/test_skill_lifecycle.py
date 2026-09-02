@@ -138,7 +138,7 @@ class RetirementReportTest(unittest.TestCase):
 
 
 class StampedCorpusTest(unittest.TestCase):
-    # Since v4.0.0 the WHOLE corpus is restamped at every release
+    # Since v4.0.2 the WHOLE corpus is restamped at every release
     # boundary (parent integrator) — one kit version, one skill version.
     def test_all_36_skills_stamped(self):
         import re
@@ -149,7 +149,7 @@ class StampedCorpusTest(unittest.TestCase):
                           r"\"?([0-9.]+)\"?", fm, re.MULTILINE)
             slug = md.parent.name
             self.assertIsNotNone(m, f"{slug}: no metadata.version")
-            self.assertEqual(m.group(1), "4.0.0",
+            self.assertEqual(m.group(1), "4.0.2",
                              f"{slug}: expected 4.0.0")
             stamped += 1
         self.assertEqual(stamped, 36)

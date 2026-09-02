@@ -1,6 +1,8 @@
 # Build artifacts
 db/*.db
-db/*.db-journal
+*.db-wal
+*.db-shm
+*.db-journal
 __pycache__/
 *.pyc
 .DS_Store

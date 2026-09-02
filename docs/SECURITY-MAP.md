@@ -9,8 +9,8 @@ when a new control lands, update its row here.
 
 Control planes (verified 2026-09-01):
 
-- **doctor** — `scripts/doctor.py`, 10 checks, exit 1 on any failure
-  (`python scripts/doctor.py`).
+- **doctor** — `scripts/doctor.py`, all registered checks, exit 1 on any
+  failure (`python scripts/doctor.py`; the summary prints the live count).
 - **integrity manifest** — `scripts/tools/integrity_manifest.py` +
   `integrity-manifest.json` (wave1 Task 2): SHA-256 over every kit file
   that executes or steers automatically; deploy refuses to copy on drift.

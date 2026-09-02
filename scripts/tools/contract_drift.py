@@ -3,7 +3,7 @@
 
 Review-time check, NOT a doctor row: it needs the diff context (changed
 paths) that the doctor, which audits the tree as-is, does not have.
-fable-judge's "contract drift?" step runs it; docs/CONTRIBUTING.md
+fable-judge's "contract drift?" step runs it; CONTRIBUTING.md
 names it.
 
 materiality(changed_paths) -> "high" | "medium" | "low"
@@ -11,19 +11,21 @@ materiality(changed_paths) -> "high" | "medium" | "low"
     high   — files that execute or steer automatically, or define the
              contract itself: .github/workflows/*, scripts/install.py,
              pyproject/dep definitions (pyproject.toml, setup.py,
-             requirements*.txt, Pipfile*, poetry.lock, environment*.yml),
-             test-framework infrastructure (conftest.py, pytest.ini,
-             tox.ini, tests/_util*, eval/task_runner.py,
-             eval/runner.py), and major restructures (VERSION,
-             profile.yml, OPS.md, AGENTS.md, adapters/*,
-             integrity-manifest.json, skills/*/SKILL.md).
+             requirements*.txt, Pipfile*, poetry.lock,
+             environment.yml/yaml), test-framework infrastructure
+             (conftest.py, pytest.ini, tests/_util*,
+             eval/task_runner.py, eval/runner.py, eval/results_io.py,
+             eval/prompt_assembly.py, eval/scenarios/*), and major
+             restructures (VERSION, profile.yml, OPS.md, AGENTS.md,
+             adapters/*, integrity-manifest.json, skills/*/SKILL.md).
     medium — process config that shifts behavior without steering:
-             lint rules (ruff.toml, .ruff.toml, .flake8, setup.cfg).
+             lint/test-runner rules (ruff.toml, .ruff.toml, .flake8,
+             setup.cfg, tox.ini).
     low    — everything else.
 
 needs_contract_update(paths) -> True iff the diff touches high
 files WITHOUT any contract document (AGENTS.md, OPS.md,
-docs/CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md,
+CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md,
 docs/CHANGELOG.md) in the same diff — i.e. the contract silently
 drifted from the tree it describes.
 
@@ -40,7 +42,7 @@ LOW = "low"
 # Contract documents: their presence in the same diff proves the change
 # carried its contract update. Kept lowercase; compare against _norm().
 _CONTRACT_FILES = frozenset(p.lower() for p in (
-    "AGENTS.md", "OPS.md", "docs/CONTRIBUTING.md", "README.md",
+    "AGENTS.md", "OPS.md", "CONTRIBUTING.md", "README.md",
     "docs/SECURITY-MAP.md", "docs/CHANGELOG.md",
 ))
 _HIGH_EXACT = frozenset({
@@ -57,7 +59,6 @@ _HIGH_SUFFIXES = (
     "requirements.txt", "pipfile", "pipfile.lock", "poetry.lock",
     "environment.yml", "environment.yaml",
 )
-_HIGH_SEGMENTS = frozenset({"tests/_util"})  # tests/_util* helpers
 
 _MEDIUM_EXACT = frozenset({
     "ruff.toml", ".ruff.toml", ".flake8", "setup.cfg", "tox.ini",

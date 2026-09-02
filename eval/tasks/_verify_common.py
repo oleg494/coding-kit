@@ -350,7 +350,9 @@ def has_median_even_success(tree: ast.Module) -> bool:
 def audit_test_calc(tree: ast.Module, task: str) -> list[str]:
     """Failure reasons for the candidate test file; empty list == accept."""
     failures = introspection_violations(tree)
-    if task == "001-fix-div-zero":
+    if task in {
+        "001-fix-div-zero", "005-canary-oneoff", "006-canary-conflicting",
+    }:
         if not has_divide_by_zero_test(tree):
             failures.append(
                 "no regression test: missing def test_divide_by_zero with "

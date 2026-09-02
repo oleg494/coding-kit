@@ -189,6 +189,7 @@ def _evaluate_scenarios(
         ok = all(k in sc for k in ("name", "skill", "trap", "expect", "body"))
         name = sc.get("name", f.stem)
         skill = sc.get("skill", "?")
+        mast = sc.get("mast")
         print(f"{'OK ' if ok else 'BAD'} {f.name} [{skill}] "
               f"trap: {sc.get('trap', '?')[:60]}")
         if not ok:
@@ -198,6 +199,7 @@ def _evaluate_scenarios(
                 "skill": skill,
                 "verdict": "FAIL",
                 "attempts": [],
+                **({"mast_mode": mast} if mast else {}),
             })
             continue
 
@@ -209,6 +211,7 @@ def _evaluate_scenarios(
                 "skill": skill,
                 "verdict": "PASS",
                 "attempts": [],
+                **({"mast_mode": mast} if mast else {}),
             })
             continue
 
@@ -298,6 +301,7 @@ def _evaluate_scenarios(
             "skill": skill,
             "verdict": final_verdict,
             "attempts": attempts,
+            **({"mast_mode": mast} if mast else {}),
         })
 
     return 1 if fails else 0, rows

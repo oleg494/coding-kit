@@ -256,6 +256,8 @@ def normalize_hermes(db_path: Path | None = None,
         q = ("SELECT role, content, tool_call_id, tool_calls, tool_name,"
              " timestamp FROM messages WHERE session_id = ?"
              " ORDER BY id")
+        tools_by_id: dict = {}
+        events: list = []
         for role, content, tool_call_id, tool_calls, tool_name, ts in \
                 con.execute(q, (sid,)):
             try:
@@ -263,6 +265,12 @@ def normalize_hermes(db_path: Path | None = None,
                     float(ts)).isoformat(timespec="seconds")
             except (TypeError, ValueError, OSError):
                 iso = ""
+            if role == "tool":
+                events.append({"role": role, "content": content,
+                               "tool_call_id": str(tool_call_id or ""),
+                               "tool_name": str(tool_name or ""),
+                               "timestamp": iso})
+                continue
             if tool_calls:
                 # assistant tool_calls blob: [{id, function:{name,args}}]
                 try:
@@ -272,24 +280,33 @@ def normalize_hermes(db_path: Path | None = None,
                 for c in calls if isinstance(calls, list) else []:
                     cid = str(c.get("id") or "")
                     fn = (c.get("function") or {})
-                    records.append({
+                    tools_by_id[cid] = {
                         "type": "tool", "tool_call_id": cid,
                         "name": str(fn.get("name") or tool_name or ""),
                         "arguments": json.dumps(fn.get("arguments") or {},
                                                 ensure_ascii=False),
-                        "result": None, "timestamp": iso})
-            if role in ("user", "assistant", "system", "tool") and content:
-                if role == "tool":
-                    records.append({"type": "tool",
-                                    "tool_call_id": str(tool_call_id or ""),
-                                    "name": str(tool_name or ""),
-                                    "arguments": None,
-                                    "result": str(content)[:4000],
-                                    "timestamp": iso})
-                else:
-                    records.append({"type": role,
-                                    "content": str(content),
-                                    "timestamp": iso})
+                        "result": None, "timestamp": iso}
+            if role in ("user", "assistant", "system") and content:
+                events.append({"role": role, "content": str(content),
+                               "timestamp": iso})
+        # attach results to their calls; one record per tool_call_id
+        for ev in events:
+            if ev["role"] == "tool":
+                t = tools_by_id.get(ev["tool_call_id"])
+                if t is not None:
+                    t["result"] = str(ev["content"])[:4000]
+                    continue
+                tools_by_id[ev["tool_call_id"]] = {
+                    "type": "tool", "tool_call_id": ev["tool_call_id"],
+                    "name": ev["tool_name"], "arguments": None,
+                    "result": str(ev["content"])[:4000],
+                    "timestamp": ev["timestamp"]}
+        records.extend(tools_by_id.values())
+        for ev in events:
+            if ev["role"] != "tool":
+                records.append({"type": ev["role"],
+                                "content": ev["content"],
+                                "timestamp": ev["timestamp"]})
     finally:
         con.close()
     return {"records": records, "diagnostics": diagnostics}

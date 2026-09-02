@@ -30,6 +30,19 @@ except Exception:  # noqa: S110,BLE001 — optional console nicety
 DEFAULT_ROOT = Path.home() / ".memory"
 # Files that are rebuilt by install.py / build.py — excluded from backups.
 REBUILDABLE = {"_compat.pyc", "__pycache__"}
+SQLITE_SIDECAR_SUFFIXES = ("-wal", "-shm", "-journal")
+DEFAULT_KEEP = 10
+
+
+def _prune_completed(dest: Path, keep: int) -> None:
+    completed = sorted(
+        p for p in dest.iterdir()
+        if p.is_dir() and (p / ".complete").is_file()
+    ) if dest.is_dir() else []
+    for old in completed[:-max(1, keep)]:
+        shutil.rmtree(old)
+
+
 
 
 def memory_root() -> Path:
@@ -50,10 +63,10 @@ def _backup_db(src: Path, dst: Path) -> None:
         dst_con.close()
 
 
-def backup(dest: Path | None = None, root: Path | None = None) -> dict:
-    """Create a timestamped backup under dest (default <root>/backups).
+def backup(dest: Path | None = None, root: Path | None = None,
+           keep: int = DEFAULT_KEEP) -> dict:
+    """Create a complete timestamped backup, then retain newest `keep`."""
 
-    Returns {"name", "path", "files", "dbs"}; raises on missing root."""
     root = root or memory_root()
     if not root.is_dir():
         raise FileNotFoundError(f"memory root missing: {root}")
@@ -69,6 +82,8 @@ def backup(dest: Path | None = None, root: Path | None = None) -> dict:
         # Never back up the backups, caches, or rebuildable engine state.
         if "backups" in rel.parts or any(p in REBUILDABLE for p in rel.parts):
             continue
+        if item.name.endswith(SQLITE_SIDECAR_SUFFIXES):
+            continue
         if item.is_dir():
             (target / rel).mkdir(parents=True, exist_ok=True)
             continue
@@ -80,8 +95,11 @@ def backup(dest: Path | None = None, root: Path | None = None) -> dict:
         else:
             shutil.copy2(item, out)
             copied += 1
+    (target / ".complete").write_text("ok\n", encoding="utf-8")
+    _prune_completed(target.parent, keep)
     return {"name": target.name, "path": str(target),
             "files": copied, "dbs": dbs}
+
 
 
 def restore_drill(backup_dir: Path, root: Path | None = None) -> dict:
@@ -111,15 +129,21 @@ def restore_drill(backup_dir: Path, root: Path | None = None) -> dict:
         # integrity_check on every restored database
         ok = True
         for db in db_files:
-            con = sqlite3.connect(str(db))
+            con = None
             try:
+                con = sqlite3.connect(str(db))
                 row = con.execute("PRAGMA integrity_check").fetchone()
                 if not row or row[0] != "ok":
                     ok = False
                     break
+            except sqlite3.DatabaseError:
+                ok = False
+                break
             finally:
-                con.close()
+                if con is not None:
+                    con.close()
         result["integrity_ok"] = ok
+
 
         # search probe against the restored root (if db-tools exist)
         tool = root / "db-tools" / "search_all.py"
@@ -157,7 +181,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.restore_drill:
         result = restore_drill(args.restore_drill)
         print(json.dumps(result, ensure_ascii=False, indent=1))
-        return 0 if result["probe"].get("returncode") == 0 else 1
+        probe = result["probe"] or {}
+        probe_ok = not probe.get("exists") or probe.get("returncode") == 0
+        return 0 if result["integrity_ok"] and probe_ok else 1
     result = backup(args.dest)
     print(json.dumps(result, ensure_ascii=False))
     return 0

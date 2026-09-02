@@ -2,7 +2,7 @@
 name: finishing-a-development-branch
 description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work
 metadata:
-  version: "4.0.0"
+  version: "4.0.2"
 ---
 
 # Finishing a Development Branch

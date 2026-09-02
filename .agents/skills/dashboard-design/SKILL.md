@@ -2,7 +2,7 @@
 name: dashboard-design
 description: 'Use when designing, redesigning, or reviewing marketplace, seller, operations, finance, logistics, or analytics dashboards: information hierarchy, KPIs, filters, charts, tables, honest data visualization, design tokens, responsive behavior, loading/empty/error states, and post-change UI verification in the running app. Not for posters, presentations, or static illustrations.'
 metadata:
-  version: "4.0.0"
+  version: "4.0.2"
 ---
 
 # Dashboard Design

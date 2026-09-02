@@ -25,10 +25,11 @@ RESERVED_KEYS = frozenset(
         "harness_sha",
     }
 )
-# OTel GenAI semconv alias keys (wave6 Task 18) — naming-only adoption, no
-# OTel runtime. Written alongside the legacy keys with identical values;
-# legacy keys stay one release. Aliases are payload-reserved like the
-# metadata keys: callers cannot override a derived alias.
+# GenAI telemetry aliases (wave6 Task 18) — registry-aligned where a
+# semantic-convention attribute exists, kit extensions otherwise (notably
+# `gen_ai.usage.tokens_total`). Naming-only adoption; no OTel runtime.
+# Written alongside legacy keys; callers cannot override derived aliases.
+
 ALIAS_KEYS = frozenset(
     {
         "gen_ai.response.model",
@@ -91,13 +92,11 @@ def _document(kind: str, model: str, payload: dict, executor_spec: str | None,
 
 
 def _gen_ai_aliases(doc: dict) -> dict:
-    """OTel GenAI semconv aliases derived from the schema-v1 document.
+    """GenAI telemetry aliases derived from the schema-v1 document.
 
-    Only keys with a known value are emitted — nothing is fabricated:
-    `duration_s_mean` aliases `gen_ai.invoke_agent.duration` only when the
-    run recorded a mean; `reported_usage` token totals alias the
-    `gen_ai.usage.*` names, with input/output emitted when the user
-    reported the split.
+    Only known values are emitted. Registry-aligned names are used where
+    available; `gen_ai.usage.tokens_total` is an explicit kit extension.
+    Input/output names are emitted when the user reported that split.
     """
     out: dict = {
         "gen_ai.response.model": doc["model"],

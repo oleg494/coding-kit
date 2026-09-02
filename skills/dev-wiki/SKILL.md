@@ -2,7 +2,7 @@
 name: dev-wiki
 description: 'Always-on. Cross-chat memory (database, not conversation): record decisions, errors, patterns in the global Wiki (~/.memory). Use on "record"/"save"/"remember"/"запиши"/"сохрани"/"запомни"/"в память"/"память" or "what do we know about X"/"напомни". Hierarchy: portable → ~/.memory/Wiki/; project-specific → WORK/<project>/docs/. Cycle: file → index.md → log.md → python ~/.memory/db-tools/build.py → lint.'
 metadata:
-  version: "4.0.0"
+  version: "4.0.2"
 ---
 
 # Dev Wiki — cross-chat developer memory

@@ -79,6 +79,36 @@ class SpecRuleCasesTest(unittest.TestCase):
         self.assertTrue(any("1024" in p for p in hard_r), hard_r)
         self.assertTrue(any("1024" in p for p in hard_y), hard_y)
 
+    def test_description_must_be_non_empty_scalar_string(self):
+        bad_values = ("{}", "[]", "null", "~", "|")
+        for value in bad_values:
+            with self.subTest(value=value):
+                fm = ("---\nname: some-skill\n"
+                      f"description: {value}\n---\n")
+                hard_r, _, hard_y, _ = both_paths(fm, "some-skill")
+                self.assertTrue(
+                    any("description" in p and "string" in p
+                        for p in hard_r), hard_r)
+                self.assertTrue(
+                    any("description" in p and "string" in p
+                        for p in hard_y), hard_y)
+        fm = ("---\nname: some-skill\ndescription: |\n"
+              "metadata:\n  version: \"4.0.2\"\n---\n")
+        hard_r, _, hard_y, _ = both_paths(fm, "some-skill")
+        self.assertTrue(
+            any("description" in p and "string" in p for p in hard_r),
+            hard_r)
+        self.assertTrue(
+            any("description" in p and "string" in p for p in hard_y),
+            hard_y)
+
+    def test_description_block_scalar_with_content_is_valid(self):
+        fm = ("---\nname: some-skill\n"
+              "description: |\n  Use when testing scalar parsing.\n"
+              "metadata:\n  version: \"4.0.2\"\n---\n")
+        hard_r, _, hard_y, _ = both_paths(fm, "some-skill")
+        self.assertEqual(hard_r + hard_y, [])
+
 
     def test_metadata_wrong_type_fails_yaml_path(self):
         fm = "---\nname: some-skill\ndescription: 'x'\nmetadata: {version: 3}\n---\n"

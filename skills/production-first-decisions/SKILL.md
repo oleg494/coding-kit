@@ -3,7 +3,7 @@ name: production-first-decisions
 description: 'Use for ANY "how to do it" decision: choosing an approach/tool/library/standard, designing, "what if", adopting a new mechanism — when the answer must not come out of your head. Covers: the production-first order (formulate the question → web search as the industry does → verify your hypothesis → do it the industry way), the "everyone does it" criterion (measured, not felt), test-before-integration spike→ADR, research depth per task, and the three decision principles DRY/KISS/YAGNI.'
 compatibility: any project
 metadata:
-  version: "4.0.0"
+  version: "4.0.2"
 ---
 
 # Production-first: decisions by industry practice, not from your head
