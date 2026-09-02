@@ -4,6 +4,24 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.0.3 (dead-harness cutover)**: Gemini CLI install plane removed —
+  Google retired the CLI on 2026-06-18 (individual accounts stopped
+  being served; official discussion google-gemini/gemini-cli#28017);
+  Antigravity is the successor and keeps its own deploy target. Removed:
+  gemini harness target in scripts/tools/deploy.py, adapters/gemini.md,
+  profile.yml adapters entry, README/UNIVERSAL install stanzas. Kept:
+  `normalize_gemini` + fixture (tests/test_transcript_normalize.py) —
+  historical chat-JSON archives remain readable; usage_audit skips the
+  absent store. Also fixed a latent POSIX-branch bug in
+  tests/test_install.py rollback test: `mock.patch.object(Path,
+  "symlink_to", ...)` lacked `autospec=True`, so the side-effect never
+  received `self`, raised TypeError instead of OSError and the
+  rollback branch was silently untested off-Windows (verified green:
+  test_install.py 17 passed; the bug was latent on Windows where the
+  nt/PowerShell branch runs instead). Regression tests:
+  test_release_contract.py (version 4.0.3, 36 skills),
+  test_integrity_manifest.py (adapter pin removed, 127 files).
+
 - **v4.0.2 (audit remediation)**: closes the verified v3.5.0–v4.0.1
   release-wave audit. Honest-oracle fixes: newly added regression tests no
   longer count as verifier weakening (trade-off: addition-only hacks such

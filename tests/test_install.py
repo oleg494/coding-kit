@@ -199,7 +199,7 @@ class LinkEngineHardeningTest(unittest.TestCase):
                     raise OSError("symlink failed")
                 return original_symlink(p, dest, **kwargs)
 
-            with mock.patch.object(Path, "symlink_to", side_effect=failing_symlink):
+            with mock.patch.object(Path, "symlink_to", side_effect=failing_symlink, autospec=True):
                 with self.assertRaises(RuntimeError) as ctx:
                     install.link_engine(self.root)
                 self.assertIn("Failed to link engine", str(ctx.exception))

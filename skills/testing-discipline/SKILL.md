@@ -3,7 +3,7 @@ name: testing-discipline
 description: 'Use when the user wants to: add/fix tests, understand what is covered, determine whether something is "done", reproduce a bug with a test, check limits/rate-limit/failures, or when tests are written against a real DB/network. Covers: isolation from the prod store, domain-first tests, test names as a spec, boundary cases, tests for money/limits/UI/copy, DoD (parse + import + test + live process). Do not use for debugging strategy (debug-incident-protocol).'
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "4.0.2"
+  version: "4.0.3"
 ---
 
 # Testing discipline: tests as a spec and defining "done"

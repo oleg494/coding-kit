@@ -6,12 +6,12 @@ Usage:
 
 Idempotent. Steps:
   1. Skills: sync KIT/skills -> ~/.claude/skills, ~/.agents/skills,
-     ~/.zcode/skills (add / update / remove). Junctions (e.g. ~/.gemini/skills)
+     ~/.zcode/skills (add / update / remove). Junctions on target dirs
      are detected and skipped — they track the master live.
      Local-only skill dirs are never touched: each target keeps a
      .kit-manifest.json naming the skills the kit owns; only manifest
      entries are eligible for removal.
-  2. Routers: regenerate the uniform routers (omp, gemini, antigravity,
+  2. Routers: regenerate the uniform routers (omp, antigravity,
      zcode, codex, opencode) from the kit soul (AGENTS.md) — no drift.
      ~/.claude/CLAUDE.md keeps its machine-local triggers: only the
      version / date / skill-count line is bumped in place.
@@ -45,9 +45,9 @@ HARNESSES = [
     {"id": "omp", "router": "~/.omp/agent/AGENTS.md", "name": "OMP",
      "skills_line": "# Skills: auto-discovered (kit skills synced to ~/.claude/skills)",
      "skills_dir": None},
-    {"id": "gemini", "router": "~/.gemini/GEMINI.md", "name": "Gemini CLI",
-     "skills_line": "# Skills: ~/.gemini/skills/ (junction to the kit - always current)",
-     "skills_dir": "~/.gemini/skills"},
+    # Gemini CLI was retired by Google on 2026-06-18 (Antigravity CLI is
+    # the successor and has its own target above); the chat-JSON reader
+    # (eval/transcript_normalize.py) stays for historical archives.
     {"id": "antigravity", "router": "~/AGENTS.md", "name": "Antigravity",
      "skills_line": "# Skills: ~/.agents/skills/",
      "skills_dir": "~/.agents/skills"},
@@ -264,7 +264,7 @@ def verify():
 def canonical_mode(argv=None):
     """--canonical (wave3 Task 10): sync KIT/skills -> the repo's
     .agents/skills/ — the copy harnesses read (agentskills.io canonical
-    location; Gemini CLI confirmed native). --dry-run lists actions
+    location). --dry-run lists actions
     without writing. Per-adapter opt-in lives in profile.yml
     adapters[].canonical (default false — enable only for harnesses
     proven to read the alias)."""

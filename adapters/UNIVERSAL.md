@@ -21,7 +21,7 @@ has the mechanism:
 |---------|------------------|-------------|
 | Claude Code | `.claude/rules/*.md` with `paths:` frontmatter | skill-triggered (kit form); or point a rule file at the skill's SKILL.md section |
 | Codex CLI | per-directory AGENTS.md concatenation, closest wins | skill-triggered (kit form); drop a project AGENTS.md stub referencing the skill |
-| Gemini CLI | Global-tier skills dir, progressive disclosure | skill-triggered (kit form) — no extra work |
+| Antigravity | user-level `~/AGENTS.md`, `~/.agents/skills/` | skill-triggered (kit form) — no extra work |
 | Hermes | `skills.external_dirs` config | skill-triggered (kit form) — no extra work |
 
 Receiving skills today: money rules -> `money-path-safety`; testing/TDD gate ->
@@ -37,12 +37,10 @@ memory-trust/ASI06 -> `security-and-hardening`. OPS.md keeps one-line pointers.
 cp -r skills/. ~/.claude/skills/   # contents; safe when the dir exists
 ```
 
-### Gemini CLI
-```bash
-# rules: ~/.gemini/GEMINI.md
-# skills: ~/.gemini/skills/ (Global tier) — junction recommended:
-#   mklink /J ~/.gemini/skills <kit>/skills
-```
+
+<!-- Gemini CLI retired by Google 2026-06-18; Antigravity is the successor.
+     Historical chat-JSON archives remain readable via
+     eval/transcript_normalize.py --source gemini. -->
 
 ### Hermes
 ```yaml

@@ -3,7 +3,7 @@ name: money-path-safety
 description: 'Use when the user wants to: pay/buy/subscribe, receive or spend a bonus/promo code/referral, check a balance or limit, get a refund, or when any logic for deducting/crediting/quotas changes — even if the request does not name money explicitly («give me more minutes», «why was I charged twice», «enter a promo code»). Checks: idempotency, atomicity, mutation logging, separate buckets, hard gate before expensive work, charge after success, soft delete, compound PK, structured failure. Do not use for pure CRUD without value semantics and for debugging incidents (that is debug-incident-protocol).'
 compatibility: any languages/stacks with balances, quotas, promo codes, limits
 metadata:
-  version: "4.0.2"
+  version: "4.0.3"
 ---
 
 # Money path safety: money and value — a special class of code

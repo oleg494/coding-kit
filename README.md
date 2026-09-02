@@ -2,7 +2,7 @@
 
 A portable agent-brain kit: methodology (superpowers), minimalism (YAGNI), cross-chat memory (SQLite FTS5), adversarial evals (trap-suite). 43 Hermes-compatible skills, English instructions, one command install.
 
-Works in any environment that reads an agent rules file and SKILL.md skills: Claude Code, OMP, Gemini CLI, Antigravity, Hermes.
+Works in any environment that reads an agent rules file and SKILL.md skills: Claude Code, OMP, Antigravity, Hermes, ZCode.
 
 ## What's inside
 
@@ -32,8 +32,7 @@ python scripts/install.py
 Pick your agent from `adapters/`:
 
 - **Claude Code / OMP**: rules → `~/.claude/CLAUDE.md`; skills → `~/.claude/skills/`
-- **Gemini CLI**: rules → `~/.gemini/GEMINI.md`; skills → `~/.gemini/skills/` (junction recommended)
-- **Antigravity**: rules → `~/AGENTS.md`; skills → `~/.agents/skills/`
+- **Antigravity** (преемник Gemini CLI, отключённого Google 2026-06-18): rules → `~/AGENTS.md`; skills → `~/.agents/skills/`
 - **ZCode (Z.ai)**: rules → `~/.zcode/AGENTS.md`; skills → `~/.zcode/skills/` (junction recommended)
 - **Hermes**: soul → `SOUL.md`; `config.yaml` → `skills.external_dirs`
 

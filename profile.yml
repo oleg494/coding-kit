@@ -3,7 +3,7 @@
 # Superpowers: plan → TDD → implement → verify → report.
 # YAGNI: delete weightless code.
 
-version: "4.0.2"
+version: "4.0.3"
 name: coding-agent-kit
 description: Coding Agent OS — superpowers, YAGNI, TDD, cross-chat memory, trap-suite evals.
 
@@ -78,9 +78,6 @@ skills:
     - design-system              # compact design tokens & shared components
 
 adapters:
-  - platform: gemini
-    target: adapters/gemini.md
-    canonical: false
   - platform: antigravity
     target: adapters/antigravity.md
     canonical: false
@@ -93,7 +90,8 @@ adapters:
 
   # canonical: write/track the .agents/skills/ copy (deploy.py --canonical).
   # Default false — enable only for harnesses proven to read the alias.
-  # gemini reads ~/.gemini/skills (junction to the kit master, always current).
+  # Gemini CLI retired by Google 2026-06-18 (Antigravity is the successor).
+
 eval:
   scenarios: eval/scenarios
   runner: eval/runner.py
