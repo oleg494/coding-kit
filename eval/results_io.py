@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT / "eval" / "results"
-VALID_KINDS = frozenset({"trap", "tasks", "trigger", "ablate"})
+VALID_KINDS = frozenset({"trap", "tasks", "trigger", "ablate", "rigor"})
 RESERVED_KEYS = frozenset(
     {
         "schema_version",

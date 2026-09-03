@@ -1,0 +1,62 @@
+[
+  {
+    "id": "fast-001-readme-typo",
+    "expected_tier": "FAST",
+    "minimum_tier": "FAST",
+    "prompt": "In docs/index.md, fix a spelling typo in the title: 'Welcom' -> 'Welcome'. Only 1 file and 1 line changed."
+  },
+  {
+    "id": "fast-002-internal-comment",
+    "expected_tier": "FAST",
+    "minimum_tier": "FAST",
+    "prompt": "In engine.py, update a developer code comment explaining the helper function. No code logic or runtime behavior is changed."
+  },
+  {
+    "id": "fast-003-metadata-scalar",
+    "expected_tier": "FAST",
+    "minimum_tier": "FAST",
+    "prompt": "In build_meta.json, update 'build_id' from 101 to 102. This is a private metadata scalar not consumed at runtime."
+  },
+  {
+    "id": "standard-001-bounded-bugfix",
+    "expected_tier": "STANDARD",
+    "minimum_tier": "STANDARD",
+    "prompt": "In parser.py, function parse_date('2026-09-03') raises ValueError for leap years. Fix the logic in parser.py and add a test case in test_parser.py."
+  },
+  {
+    "id": "standard-002-local-validation",
+    "expected_tier": "STANDARD",
+    "minimum_tier": "STANDARD",
+    "prompt": "Add input validation to create_user(username) in auth_local.py so it raises ValueError if username is shorter than 3 characters, with tests."
+  },
+  {
+    "id": "standard-003-docs-sweep",
+    "expected_tier": "STANDARD",
+    "minimum_tier": "STANDARD",
+    "prompt": "Rewrite and restructure the documentation across 5 files in docs/ (guide.md, api.md, faq.md, overview.md, install.md) updating outdated links (>50 lines total)."
+  },
+  {
+    "id": "high-001-payments-mutation",
+    "expected_tier": "HIGH_ASSURANCE",
+    "minimum_tier": "HIGH_ASSURANCE",
+    "prompt": "Update the payment deduction balance logic in billing.py to apply user referral bonuses before charging credit cards."
+  },
+  {
+    "id": "high-002-db-migration",
+    "expected_tier": "HIGH_ASSURANCE",
+    "minimum_tier": "HIGH_ASSURANCE",
+    "prompt": "Add a new column 'organization_id' with foreign key constraint to the live users table in schema.sql and create the SQLite migration."
+  },
+  {
+    "id": "high-003-public-api-cutover",
+    "expected_tier": "HIGH_ASSURANCE",
+    "minimum_tier": "HIGH_ASSURANCE",
+    "prompt": "Refactor public client SDK method `Client.request(endpoint, params)` to rename `params` to `query_params` across the entire codebase and 8 modules."
+  },
+  {
+    "id": "escalation-001-hidden-contract",
+    "expected_tier": "HIGH_ASSURANCE",
+    "minimum_tier": "HIGH_ASSURANCE",
+    "prompt": "Change a parameter default in client.py. Context: this method is part of the public exported SDK interface used by external consumers and downstream packages."
+  }
+]
