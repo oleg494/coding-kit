@@ -430,8 +430,8 @@ def main() -> int:
     parser.add_argument("--ref", required=True,
                         help="git commit hash or 'worktree'")
     parser.add_argument("--executor", default=None, help="CLI executor command")
-    parser.add_argument("--models", default="unspecified",
-                        help="comma-separated model IDs (two required live)")
+    parser.add_argument("--models", default=None,
+                        help="comma-separated model IDs (spec requires exactly 2 matching live models)")
     parser.add_argument("--judge", default=None, help="judge CLI command")
     parser.add_argument("--judge-model", default=None)
     parser.add_argument("--only-task", default=None,
@@ -443,7 +443,14 @@ def main() -> int:
     parser.add_argument("--json", default=None,
                         help="path or 'auto' to save schema-v1 rigor result")
     args = parser.parse_args()
-    models = tuple(m.strip() for m in args.models.split(",") if m.strip())
+    if args.models is None:
+        if args.executor:
+            parser.error("--executor requires explicit --models <model1,model2> (exactly two matching arms for the gate)")
+        models = ("unspecified",)
+    else:
+        models = tuple(m.strip() for m in args.models.split(",") if m.strip())
+        if args.executor and len(models) != 2:
+            parser.error(f"Live execution requires exactly 2 model IDs per spec, got {len(models)}: {models}")
     res = run_rigor_suite(args.arm, args.ref, args.executor, models,
                           args.judge, args.judge_model, args.json,
                           only_task=args.only_task, only_trap=args.only_trap,

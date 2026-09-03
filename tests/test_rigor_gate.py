@@ -91,6 +91,8 @@ def test_gate_rejects_fewer_than_two_model_arms(tmp_path):
 
     assert report["verdict"] == "REJECT"
     assert "requires exactly 2 matching model arms" in _findings(report)
+    for i in (2, 3, 4, 5):
+        assert not report["conditions"][str(i)]["ok"]
 
 
 def test_gate_rejects_mismatched_model_arms(tmp_path):
@@ -101,6 +103,9 @@ def test_gate_rejects_mismatched_model_arms(tmp_path):
     )
 
     assert report["verdict"] == "REJECT"
+    for i in (1, 2, 3, 4, 5):
+        assert not report["conditions"][str(i)]["ok"]
+    assert "model arm sets differ" in _findings(report)
 
 
 def test_gate_rejects_zero_overlapping_model_arms_without_vacuous_pass(
