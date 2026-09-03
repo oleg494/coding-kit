@@ -61,6 +61,7 @@ _PROVIDER_ERR = ("rate limit", "rate_limit", "429", "500", "502", "503",
 
 MICROTASK_TOOLS = "Read,Edit,Bash"
 POLICY_FILES = ("AGENTS.md", "OPS.md", "SKILL_RUNTIME.md")
+ROUTE_REPETITIONS = 3
 
 
 def _claude_argv(executor_cmd: str, model: str | None) -> list[str]:
@@ -187,7 +188,7 @@ def _policy_prefix(bundle_root: Path) -> str:
 def evaluate_route(bundle_root: Path, executor_cmd: str | None = None,
                    model: str | None = None,
                    only: str | None = None) -> list[dict]:
-    """Route-accuracy probe: classify each case under the arm's policy."""
+    """Route-accuracy probe: classify each case three times per the spec."""
     cases = json.loads(ROUTE_FILE.read_text(encoding="utf-8"))
     cases = [c for c in cases if only is None or c["id"] == only]
     results = []
@@ -204,56 +205,62 @@ def evaluate_route(bundle_root: Path, executor_cmd: str | None = None,
                           + sp.read_text(encoding="utf-8") + "\n\n")
 
     for case in cases:
-        if not executor_cmd:
-            results.append({"id": case["id"], "expected": case["expected_tier"],
-                            "minimum": case["minimum_tier"],
-                            "verdict": "DRY_RUN", "assigned_tier": None,
-                            "signals": []})
-            continue
+        for repetition in range(1, ROUTE_REPETITIONS + 1):
+            if not executor_cmd:
+                results.append({"id": case["id"],
+                                "repetition": repetition,
+                                "expected": case["expected_tier"],
+                                "minimum": case["minimum_tier"],
+                                "verdict": "DRY_RUN", "assigned_tier": None,
+                                "signals": []})
+                continue
 
-        with tempfile.TemporaryDirectory(prefix="rigor-route-") as rtd:
-            sys_file = Path(rtd) / "system_prompt.txt"
-            sys_file.write_text(
-                "You are a development-task router. Classify each request "
-                "according to the policy below.\n\n" + always_loaded +
-                "\nClassify the user's request into exactly one of: FAST, "
-                "STANDARD, HIGH_ASSURANCE. Return valid JSON matching the "
-                "schema.", encoding="utf-8")
-            prompt = ("Classify this request according to the policy:\n"
-                      f"{case['prompt']}")
-            cmd = _claude_argv(executor_cmd, model)
-            cmd.extend(["-p", "--safe-mode", "--no-session-persistence",
-                        "--tools", "",
-                        "--system-prompt-file", str(sys_file),
-                        "--output-format", "json",
-                        "--json-schema", json.dumps(TIER_SCHEMA)])
-            assigned, signals = None, []
-            proc = _run_claude(cmd, prompt, None, 600)
-            try:
-                data = json.loads(proc.stdout.strip())
-                so = data.get("structured_output")
-                if isinstance(so, dict):
-                    assigned = so.get("tier")
-                    signals = so.get("signals") or []
-                elif isinstance(data.get("result"), str):
-                    inner = json.loads(data["result"])
-                    assigned, signals = inner.get("tier"), inner.get(
-                        "signals") or []
-            except (ValueError, AttributeError):
-                pass
-            rank = TIER_RANKS.get(assigned or "", 0)
-            min_rank = TIER_RANKS.get(case["minimum_tier"], 0)
-            if rank < min_rank:
-                verdict = "FAIL"          # under-classification
-            elif assigned == case["expected_tier"]:
-                verdict = "PASS"
-            else:
-                verdict = "FAIL"          # over-classification (not clean)
-            results.append({"id": case["id"], "expected": case["expected_tier"],
-                            "minimum": case["minimum_tier"],
-                            "assigned_tier": assigned, "signals": signals,
-                            "verdict": verdict,
-                            "under_classified": rank < min_rank})
+            with tempfile.TemporaryDirectory(prefix="rigor-route-") as rtd:
+                sys_file = Path(rtd) / "system_prompt.txt"
+                sys_file.write_text(
+                    "You are a development-task router. Classify each request "
+                    "according to the policy below.\n\n" + always_loaded +
+                    "\nClassify the user's request into exactly one of: FAST, "
+                    "STANDARD, HIGH_ASSURANCE. Return valid JSON matching the "
+                    "schema.", encoding="utf-8")
+                prompt = ("Classify this request according to the policy:\n"
+                          f"{case['prompt']}")
+                cmd = _claude_argv(executor_cmd, model)
+                cmd.extend(["-p", "--safe-mode", "--no-session-persistence",
+                            "--tools", "",
+                            "--system-prompt-file", str(sys_file),
+                            "--output-format", "json",
+                            "--json-schema", json.dumps(TIER_SCHEMA)])
+                assigned, signals = None, []
+                proc = _run_claude(cmd, prompt, None, 600)
+                try:
+                    data = json.loads(proc.stdout.strip())
+                    so = data.get("structured_output")
+                    if isinstance(so, dict):
+                        assigned = so.get("tier")
+                        signals = so.get("signals") or []
+                    elif isinstance(data.get("result"), str):
+                        inner = json.loads(data["result"])
+                        assigned, signals = inner.get("tier"), inner.get(
+                            "signals") or []
+                except (ValueError, AttributeError):
+                    pass
+                rank = TIER_RANKS.get(assigned or "", 0)
+                min_rank = TIER_RANKS.get(case["minimum_tier"], 0)
+                if rank < min_rank:
+                    verdict = "FAIL"          # under-classification
+                elif assigned == case["expected_tier"]:
+                    verdict = "PASS"
+                else:
+                    verdict = "FAIL"          # over-classification (not clean)
+                results.append({"id": case["id"],
+                                "repetition": repetition,
+                                "expected": case["expected_tier"],
+                                "minimum": case["minimum_tier"],
+                                "assigned_tier": assigned,
+                                "signals": signals,
+                                "verdict": verdict,
+                                "under_classified": rank < min_rank})
     return results
 
 

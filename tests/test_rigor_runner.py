@@ -50,6 +50,33 @@ def test_evaluate_route_passes_multiline_prompt_on_stdin(monkeypatch, tmp_path):
     assert rows[0]["verdict"] == "PASS"
 
 
+def test_evaluate_route_runs_each_case_three_times(monkeypatch, tmp_path):
+    route_file = tmp_path / "cases.json"
+    route_file.write_text(json.dumps([{
+        "id": "fast-repeated",
+        "expected_tier": "FAST",
+        "minimum_tier": "FAST",
+        "prompt": "Fix one README typo.",
+    }]), encoding="utf-8")
+    monkeypatch.setattr(runner, "ROUTE_FILE", route_file)
+
+    bundle = tmp_path / "bundle"
+    _write_policy_bundle(bundle)
+    calls = []
+
+    def fake_run(cmd, stdin_text, cwd, timeout):
+        calls.append(stdin_text)
+        payload = {"structured_output": {"tier": "FAST", "signals": []}}
+        return subprocess.CompletedProcess(cmd, 0, json.dumps(payload), "")
+
+    monkeypatch.setattr(runner, "_run_claude", fake_run)
+    rows = runner.evaluate_route(bundle, "claude", model="test-model")
+
+    assert len(calls) == 3
+    assert [row["repetition"] for row in rows] == [1, 2, 3]
+    assert all(row["verdict"] == "PASS" for row in rows)
+
+
 def test_microtask_passes_policy_and_brief_on_stdin_and_counts_nested_tools(
         monkeypatch, tmp_path):
     bundle = tmp_path / "bundle"

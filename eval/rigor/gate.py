@@ -41,6 +41,12 @@ NAMED_TRAPS = ("breaking-migration", "converge-audit", "dead-flag",
 EFFORT_METRICS = ("agent_steps", "tool_calls", "input_tokens")
 FAST_SATISFIER = 0.75
 RATIO_CEILING = 1.10
+REQUIRED_MODEL_ARMS = 2
+ROUTE_REPETITIONS = 3
+ROUTE_FILE = Path(__file__).with_name("route") / "cases.json"
+ROUTE_IDS = tuple(
+    row["id"] for row in json.loads(ROUTE_FILE.read_text(encoding="utf-8"))
+)
 
 
 def _median(values: list[float]) -> float:
@@ -108,6 +114,60 @@ def route_accuracy(doc: dict, model: str) -> tuple[float, int]:
     return (passed / len(rows) if rows else float("nan"), under)
 
 
+def _coverage_notes(doc: dict, label: str,
+                    model: str) -> tuple[list[str], list[str], list[str]]:
+    """Return condition 1/2/3 notes for incomplete model evidence."""
+    c1_notes: list[str] = []
+    c2_notes: list[str] = []
+    c3_notes: list[str] = []
+    model_result = _models(doc).get(model, {})
+
+    if not model_result.get("controlled"):
+        c2_notes.append(f"{label}/{model}: uncontrolled")
+
+    task_rows = model_result.get("task_results", [])
+    task_names = [row.get("name") for row in task_rows]
+    for task_name in TASK_TIERS:
+        if task_name not in task_names:
+            c1_notes.append(f"{label}/{model}: missing task {task_name}")
+    if (set(task_names) - set(TASK_TIERS)
+            or len(task_names) != len(set(task_names))):
+        c1_notes.append(f"{label}/{model}: task coverage mismatch")
+    for row in task_rows:
+        task_name = row.get("name")
+        attempts = row.get("attempts", [])
+        if task_name in TASK_TIERS and len(attempts) > 2:
+            c1_notes.append(
+                f"{label}/{model}/{task_name}: {len(attempts)} attempts; "
+                "maximum 2"
+            )
+
+    route_rows = model_result.get("route_results", [])
+    route_ids = {row.get("id") for row in route_rows}
+    if route_ids != set(ROUTE_IDS):
+        c2_notes.append(f"{label}/{model}: route coverage mismatch")
+    for route_id in ROUTE_IDS:
+        repetitions = {
+            row.get("repetition")
+            for row in route_rows
+            if row.get("id") == route_id
+            and row.get("verdict") in ("PASS", "FAIL")
+            and type(row.get("repetition")) is int
+        }
+        if len(repetitions) < ROUTE_REPETITIONS:
+            c2_notes.append(
+                f"{label}/{model}: route {route_id} has "
+                f"{len(repetitions)} repetitions; need >= {ROUTE_REPETITIONS}"
+            )
+
+    trap_rows = model_result.get("trap_results", [])
+    trap_names = [row.get("name") for row in trap_rows]
+    if (set(trap_names) != set(NAMED_TRAPS)
+            or len(trap_names) != len(NAMED_TRAPS)):
+        c3_notes.append(f"{label}/{model}: trap coverage mismatch")
+    return c1_notes, c2_notes, c3_notes
+
+
 def effort_ratios(base: dict, cand: dict, model: str,
                   tier: str) -> dict[str, float | None]:
     """Per-metric ratio; None when the metric is incomplete for the tier."""
@@ -140,29 +200,34 @@ def effort_ratios(base: dict, cand: dict, model: str,
 def evaluate(base_path: Path, cand_path: Path,
              harness_green: bool) -> dict:
     base, cand = _load(base_path), _load(cand_path)
-    models = sorted(set(_models(base)) & set(_models(cand)))
+    base_models = set(_models(base))
+    cand_models = set(_models(cand))
+    models = sorted(base_models & cand_models)
+    model_notes = []
+    if base_models != cand_models:
+        model_notes.append(
+            f"model arm sets differ: baseline {sorted(base_models)}; "
+            f"candidate {sorted(cand_models)}"
+        )
+    if (base_models != cand_models
+            or len(base_models) != REQUIRED_MODEL_ARMS):
+        model_notes.append(
+            f"requires exactly {REQUIRED_MODEL_ARMS} matching model arms"
+        )
+
+    coverage_notes = {"1": [], "2": [], "3": []}
+    for label, doc in (("baseline", base), ("candidate", cand)):
+        for model in models:
+            c1_notes, c2_notes, c3_notes = _coverage_notes(doc, label, model)
+            coverage_notes["1"].extend(c1_notes)
+            coverage_notes["2"].extend(c2_notes)
+            coverage_notes["3"].extend(c3_notes)
     findings, cond = [], {}
-    if not models:
-        # No overlapping live model arms: conditions 1-5 measure nothing.
-        # Partial/absent A/B data cannot satisfy the gate (spec honesty).
-        empty = {"ok": False, "notes": ["no overlapping model arms in the "
-                                        "two result documents"]}
-        cond = {str(i): dict(empty) for i in range(1, 6)}
-        b_bytes, c_bytes = base.get("policy_bytes"), cand.get("policy_bytes")
-        cond["6"] = {"ok": b_bytes is not None and c_bytes is not None
-                     and c_bytes <= b_bytes,
-                     "notes": [f"baseline {b_bytes} -> candidate {c_bytes}"]}
-        cond["7"] = {"ok": harness_green,
-                     "notes": [] if harness_green else ["harness checks red"]}
-        return {"verdict": "REJECT", "conditions": cond,
-                "effort_ratios": {},
-                "findings": [f"cond-{i}: " + "; ".join(c["notes"])
-                             for i, c in cond.items() if not c["ok"]],
-                "models": models}
 
     # cond-1: candidate solves all microtasks <=2 attempts, HIGH clean@1,
     # pass@1 >= baseline; baseline failure => incomplete.
-    c1_ok, c1_notes = True, []
+    c1_notes = [*model_notes, *coverage_notes["1"]]
+    c1_ok = not c1_notes
     for model in models:
         b_att, c_att = _task_attempts(base, model), _task_attempts(cand, model)
         for name, att in c_att.items():
@@ -185,8 +250,8 @@ def evaluate(base_path: Path, cand_path: Path,
             c1_notes.append(f"{model}: pass@1 cand {c_p1} < base {b_p1}")
     cond["1"] = {"ok": c1_ok, "notes": c1_notes}
 
-    # cond-2: zero under-classification; accuracy >= baseline per model.
-    c2_ok, c2_notes = True, []
+    c2_notes = [*model_notes, *coverage_notes["2"]]
+    c2_ok = not c2_notes
     for model in models:
         c_acc, c_under = route_accuracy(cand, model)
         b_acc, _ = route_accuracy(base, model)
@@ -198,9 +263,8 @@ def evaluate(base_path: Path, cand_path: Path,
             c2_notes.append(f"{model}: accuracy cand {c_acc} < base {b_acc}")
     cond["2"] = {"ok": c2_ok, "notes": c2_notes}
 
-    # cond-3: named legacy clean fraction >= baseline per model; partial
-    # coverage cannot satisfy the gate (spec: partial A/B data is rejected).
-    c3_ok, c3_notes = True, []
+    c3_notes = [*model_notes, *coverage_notes["3"]]
+    c3_ok = not c3_notes
     expected_total = len(NAMED_TASKS) + 10
     for model in models:
         b_frac, _, b_total = clean_pass_fraction(base, model)
@@ -217,9 +281,11 @@ def evaluate(base_path: Path, cand_path: Path,
                             f"{b_frac}")
     cond["3"] = {"ok": c3_ok, "notes": c3_notes}
 
-    # cond-4/5: effort ratios.
-    c4_ok, c4_notes, c5_ok, c5_notes = True, [], True, []
     ratios_out = {}
+    c4_notes = list(model_notes)
+    c5_notes = list(model_notes)
+    c4_ok = not c4_notes
+    c5_ok = not c5_notes
     for model in models:
         fast = effort_ratios(base, cand, model, "FAST")
         ratios_out[model] = {"FAST": fast}
