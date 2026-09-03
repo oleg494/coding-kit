@@ -95,7 +95,7 @@
   "memory/scripts/_compat.py": "38b29af21e0e7d2abb4ee2355ccfcb47307d4f70432e0cd795bc6873a800380e",
   "memory/scripts/memory-warmup.py": "0a757e85072d9d9c4cbda2e64c34082b73efcc709233a8ee3f5deb4692c5bd7a",
   "profile.yml": "e78be8d1b4323e72363662cc63a87e0fba678c819cc54edcb352978b1faa8d25",
-  "scripts/doctor.py": "c4a1e3b0144c718c0728635b08dcce5904a0d96b41b6d72d6d527202d12eedfb",
+  "scripts/doctor.py": "5faf4f4cd3085fc3a34582dcfb4a7e2edfc57d83710fa3135ed0e7239b86428c",
   "scripts/install.py": "6cbccf49c6e6f72791b8a2048d7fd580e8c91d932f0dddadf731f10c7dc133f9",
   "scripts/tools/backup_memory.py": "65a399c7d589725db5ce42c1b40cc62bf32a81499acd625ae279fb18cf320c62",
   "scripts/tools/check_file_sizes.py": "ab00eb1bf2597ebc33ae597f8e5fe78e62f7ba256dd2e0d25a00fe0282b95db2",

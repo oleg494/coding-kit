@@ -84,6 +84,23 @@ class DriftCheckTest(unittest.TestCase):
         self.assertIn("alpha", detail)
         self.assertNotIn("beta", detail)
 
+    def test_expect_skills_drift_opt_in_warns_not_fails(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            make_kit_tree(root, {"alpha": "a", "beta": "b"})
+            deployed = root / "deployed" / "skills"
+            (deployed / "alpha").mkdir(parents=True)
+            (deployed / "alpha" / "SKILL.md").write_text(
+                "DRIFTED", encoding="utf-8", newline="\n")
+            (deployed / "beta").mkdir(parents=True)
+            (deployed / "beta" / "SKILL.md").write_text(
+                "b", encoding="utf-8", newline="\n")
+            with mock.patch.object(doctor, "KIT", root), \
+                    mock.patch.object(doctor, "_DEPLOYED_SKILL_DIRS", [deployed]):
+                ok, msg = doctor.check_skills_sync(expect_drift=True)
+            self.assertTrue(ok)
+            self.assertIn("WARN (expected drift):", msg)
+            self.assertIn("alpha", msg)
     def test_missing_skill_in_copy_fails(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
