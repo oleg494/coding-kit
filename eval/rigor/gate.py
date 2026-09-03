@@ -142,6 +142,23 @@ def evaluate(base_path: Path, cand_path: Path,
     base, cand = _load(base_path), _load(cand_path)
     models = sorted(set(_models(base)) & set(_models(cand)))
     findings, cond = [], {}
+    if not models:
+        # No overlapping live model arms: conditions 1-5 measure nothing.
+        # Partial/absent A/B data cannot satisfy the gate (spec honesty).
+        empty = {"ok": False, "notes": ["no overlapping model arms in the "
+                                        "two result documents"]}
+        cond = {str(i): dict(empty) for i in range(1, 6)}
+        b_bytes, c_bytes = base.get("policy_bytes"), cand.get("policy_bytes")
+        cond["6"] = {"ok": b_bytes is not None and c_bytes is not None
+                     and c_bytes <= b_bytes,
+                     "notes": [f"baseline {b_bytes} -> candidate {c_bytes}"]}
+        cond["7"] = {"ok": harness_green,
+                     "notes": [] if harness_green else ["harness checks red"]}
+        return {"verdict": "REJECT", "conditions": cond,
+                "effort_ratios": {},
+                "findings": [f"cond-{i}: " + "; ".join(c["notes"])
+                             for i, c in cond.items() if not c["ok"]],
+                "models": models}
 
     # cond-1: candidate solves all microtasks <=2 attempts, HIGH clean@1,
     # pass@1 >= baseline; baseline failure => incomplete.
