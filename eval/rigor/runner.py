@@ -122,8 +122,9 @@ def _sandbox_diff(pristine_fixture: Path, sandbox: Path) -> str:
 
 
 def _parse_stream(text: str) -> dict:
-    """Aggregate stream-json: assistant turns, tool_use blocks, usage tokens."""
-    steps = tools = tokens_in = tokens_out = 0
+    """Aggregate stream-json; final result usage overrides assistant usage."""
+    steps = tools = assistant_in = assistant_out = 0
+    result_usage: tuple[int, int] | None = None
     for line in text.splitlines():
         line = line.strip()
         if not line:
@@ -132,16 +133,32 @@ def _parse_stream(text: str) -> dict:
             ev = json.loads(line)
         except ValueError:
             continue
+        if ev.get("type") == "result":
+            usage = ev.get("usage") or {}
+            if "input_tokens" in usage or "output_tokens" in usage:
+                result_usage = (usage.get("input_tokens") or 0,
+                                usage.get("output_tokens") or 0)
+            elif isinstance(ev.get("modelUsage"), dict):
+                values = ev["modelUsage"].values()
+                result_usage = (
+                    sum(v.get("inputTokens") or 0 for v in values),
+                    sum(v.get("outputTokens") or 0 for v in values),
+                )
+            continue
         if ev.get("type") != "assistant":
             continue
         msg = ev.get("message") or {}
-        steps += 1
+        content = msg.get("content")
+        if content:
+            steps += 1
         usage = msg.get("usage") or {}
-        tokens_in += usage.get("input_tokens") or 0
-        tokens_out += usage.get("output_tokens") or 0
-        for block in msg.get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_use":
-                tools += 1
+        assistant_in += usage.get("input_tokens") or 0
+        assistant_out += usage.get("output_tokens") or 0
+        if isinstance(content, list):
+            tools += sum(1 for block in content
+                         if isinstance(block, dict)
+                         and block.get("type") == "tool_use")
+    tokens_in, tokens_out = result_usage or (assistant_in, assistant_out)
     return {"agent_steps": steps, "tool_calls": tools,
             "input_tokens": tokens_in,
             "tokens_total": tokens_in + tokens_out}
@@ -202,17 +219,16 @@ def evaluate_route(bundle_root: Path, executor_cmd: str | None = None,
                 "\nClassify the user's request into exactly one of: FAST, "
                 "STANDARD, HIGH_ASSURANCE. Return valid JSON matching the "
                 "schema.", encoding="utf-8")
+            prompt = ("Classify this request according to the policy:\n"
+                      f"{case['prompt']}")
             cmd = _claude_argv(executor_cmd, model)
-            cmd.extend(["-p",
-                        f"Classify this request according to the policy:\n"
-                        f"{case['prompt']}",
-                        "--safe-mode", "--no-session-persistence",
+            cmd.extend(["-p", "--safe-mode", "--no-session-persistence",
                         "--tools", "",
                         "--system-prompt-file", str(sys_file),
                         "--output-format", "json",
                         "--json-schema", json.dumps(TIER_SCHEMA)])
             assigned, signals = None, []
-            proc = _run_claude(cmd, None, None, 600)
+            proc = _run_claude(cmd, prompt, None, 600)
             try:
                 data = json.loads(proc.stdout.strip())
                 so = data.get("structured_output")
@@ -258,12 +274,12 @@ def run_microtask(task_name: str, bundle_root: Path,
         with tempfile.TemporaryDirectory(prefix=f"rigor-{task_name}-") as sbx:
             sandbox = Path(sbx) / "sandbox"
             shutil.copytree(fixture, sandbox)
+            prompt = _policy_prefix(bundle_root) + brief
             cmd = _claude_argv(executor_cmd, model)
-            cmd.extend(["-p", _policy_prefix(bundle_root) + brief,
-                        *_controlled_flags(bundle_root),
+            cmd.extend(["-p", *_controlled_flags(bundle_root),
                         "--output-format", "stream-json", "--verbose"])
             t0 = time.perf_counter()
-            proc = _run_claude(cmd, None, sandbox, timeout)
+            proc = _run_claude(cmd, prompt, sandbox, timeout)
             metrics = _parse_stream(proc.stdout or "")
             duration = round(time.perf_counter() - t0, 3)
             diff = _sandbox_diff(fixture, sandbox)
