@@ -1,6 +1,7 @@
 ---
 name: design-system
 description: Use when creating or refactoring a product UI system, shared components, themes, tokens, or dashboard styling. Keeps color, typography, spacing, states, and responsive rules coherent without introducing a large component abstraction prematurely.
+license: MIT
 metadata:
   version: "4.1.0"
 ---

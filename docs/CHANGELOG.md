@@ -4,6 +4,21 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.1.1 (skills licensing & warmup hardening)**:
+  - **Skills supply chain license compliance**: standardized `license: MIT`
+    frontmatter across 34 skills (all 36 skills licensed now: 35 MIT, 1
+    Proprietary). Doctor check `supply chain` is now `OK: 36 skills, all licensed`
+    (0 warnings). Verified by `scripts/doctor.py` and
+    `tests/test_skill_spec_conformance.py`. Deployed canonical copies synced
+    to `.agents/skills`, `~/.agents/skills`, and `~/.claude/skills`.
+  - **Memory warmup unsure contradiction hardening**: added filter to exclude
+    superseded contradiction links (`NOT EXISTS s.kind='supersedes'`) so past
+    resolved regressions don't surface in warmup. Regression test:
+    `test_superseded_contradiction_is_excluded_from_unsure_feed` in
+    `tests/test_v29.py` (20 passed).
+  - **Memory findings hygiene**: anchored findings #233, #234, #236 with
+    sources and verify commands; resolved contradiction links around #60 in
+    `research.db` (findings #237 recorded and verified).
 - **v4.1.0 (memory findings remediation)**: research.db из write-only памяти
   стал retrievable. Retrieval: `findings.py search` ранжирует bm25(10.0,1.0)
   вместо id DESC, честный «found/showing», highlight, prefix-retry,

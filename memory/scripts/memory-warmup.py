@@ -157,7 +157,11 @@ def unsure_feed() -> list:
             "SELECT l.from_id, l.to_id, a.topic, b.topic FROM links l "
             "JOIN findings a ON a.id = l.from_id "
             "JOIN findings b ON b.id = l.to_id "
-            "WHERE l.kind = 'contradicts' ORDER BY l.id DESC LIMIT 2"
+            "WHERE l.kind = 'contradicts' "
+            "AND NOT EXISTS (SELECT 1 FROM links s "
+            "               WHERE (s.to_id = l.from_id OR s.to_id = l.to_id) "
+            "               AND s.kind = 'supersedes') "
+            "ORDER BY l.id DESC LIMIT 2"
         ).fetchall()
         # IFNULL: rows from before the verify_cmd/source ALTERs may hold
         # NULL instead of '' — NULL is exactly "no anchor"

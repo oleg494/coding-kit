@@ -1,6 +1,7 @@
 ---
 name: reasoning-engine
 description: 'Use for ANY non-trivial action — always-on skill. Multi-step thinking (5 steps ahead), evidence-first protocol, complexity classifier, skill-first mandate, memory-first protocol. This is the core of the agent''s thinking: do not write code/a solution without this skill.'
+license: MIT
 metadata:
   version: "4.1.0"
 ---
