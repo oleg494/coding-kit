@@ -153,11 +153,14 @@ Verdict **REJECT** (conditions 1-3 failing => reject per spec):
 - cond-1 PASS: candidate cleanly solves all microtasks <=2 attempts on
   both models; HIGH clean@1; pass@1 >= baseline.
 - cond-2 FAIL: deepseek route accuracy cand 0.900 < base 0.967
-  (glm equal 1.000).
+  (glm passes per-model: cand 0.900 > base 0.833, 27/30 vs 25/30 rows,
+  same formula as gate.route_accuracy on the result docs).
 - cond-3 FAIL: glm clean-pass fraction cand 0.857 < base 0.929
-  (`silent-cross-write` FAIL in both arms; candidate additionally lost
-  `shell-injection` on glm while deepseek regained it — judge-level
-  variance, but the fraction rule is per-model and monotone).
+  (12/14 vs 13/14 named legacy cases; `silent-cross-write` FAIL in both
+  arms; on glm the candidate additionally lost `shell-injection` while
+  on deepseek the candidate regained it — executor answers differ across
+  arms and the cause is not isolated here; the fraction rule is
+  per-model and monotone regardless).
 - cond-4 FAIL: no complete FAST ratio <= 0.75 on either model (glm best
   agent_steps 0.846; deepseek FAST steps 1.333 / tools 1.500).
 - cond-5 FAIL: deepseek STANDARD/HIGH ratios 1.25-1.47 > 1.10; glm
