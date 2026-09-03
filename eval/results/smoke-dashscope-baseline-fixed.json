@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "run_id": "rigor-20260903-083303-861874-5cdf986d-eb8c-4cf7-b233-e3ffe61deb04",
+  "kind": "rigor",
+  "model": "dashscope-glm-5.2-fast-preview",
+  "executor_name": "claude",
+  "utc": "2026-09-03T08:33:03.861874+00:00",
+  "harness_sha": "dae65d0138f47b64cc1b77ce9361da2b21eee694",
+  "mode": "live",
+  "arm": "baseline",
+  "policy_ref": "b2b495a4e6cdb8ecfd9450b5812feff8cc82f6f1",
+  "policy_bundle_hash": "5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7",
+  "policy_bytes": 26449,
+  "executor_command": "claude",
+  "claude_version": "2.1.220 (Claude Code)",
+  "isolation_probe": {
+    "has_managed_settings": false,
+    "sources": [],
+    "controlled": true
+  },
+  "models": {
+    "dashscope-glm-5.2-fast-preview": {
+      "controlled": true,
+      "canary_probe": {
+        "canary_passed": true,
+        "canary_injected_found": true,
+        "canary_workspace_leaked": false,
+        "output_sample": "CANARY_INJECTED_70b5650bd3a38d1f\n"
+      },
+      "route_results": [
+        {
+          "id": "fast-001-readme-typo",
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single-line typo fix",
+            "Only 1 file changed",
+            "No code logic involved",
+            "Trivial documentation correction",
+            "No architectural impact"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        }
+      ],
+      "task_results": [
+        {
+          "name": "001-doc-typo",
+          "verdict": "PASS",
+          "attempts": [
+            {
+              "verdict": "PASS",
+              "clean_pass": true,
+              "shortcuts": [],
+              "duration_s": 12.177,
+              "agent_steps": 10,
+              "tool_calls": 6,
+              "input_tokens": 0,
+              "tokens_total": 0,
+              "verifier_stderr": ""
+            }
+          ]
+        }
+      ],
+      "trap_results": [
+        {
+          "name": "dead-flag",
+          "verdict": "PASS",
+          "clean": true,
+          "answer_tail": "ate from the superpowers cycle: *evidence, not inference*. The reviewer accepted \"39 passed, 1 skipped\" as evidence — but none of those 39 tests touch the timeout path, so green is non-evidence for the claim. One behavior test targeting the actual failure mode (a hang) turns a passing-but-useless suite into a gate that holds.\n\n📚 superpowers (Prove-It Pattern, VERIFY phase — evidence not inference)"
+        }
+      ]
+    }
+  },
+  "gen_ai.response.model": "dashscope-glm-5.2-fast-preview",
+  "gen_ai.conversation.id": "rigor-20260903-083303-861874-5cdf986d-eb8c-4cf7-b233-e3ffe61deb04"
+}

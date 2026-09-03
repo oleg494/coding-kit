@@ -30,6 +30,26 @@ Kit v2: each phase has a granular skill helper. A phase is not replaced, but dee
 - Debug → `systematic-debugging`
 - Git → `using-git-worktrees`, `finishing-a-development-branch`
 
+## Adaptive Rigor Tiers (C1-C3)
+
+Execution rigor is computed from the full requested change's blast radius before decomposition:
+
+### FAST
+Strictly applies when there is **no observable runtime behavior change**: copy/comment repair, private non-runtime metadata scalar, or a 1-file mechanical text edit.
+- Process: inspect exact target and its local convention -> make smallest change -> run one direct check -> report.
+- TDD cycle, todo list, worktree, and full-suite run are **not required**.
+
+### STANDARD (default middle tier)
+Applies to ordinary changes that are not FAST-eligible and match no HIGH_ASSURANCE rule.
+- Examples: bounded logic bugs, local validation, non-behavioral sweeps across >2 files (e.g. docs/comments/refactors), or a contained observing refactor with known callers.
+- Process: for behavior changes, prove the contract with a failing test before code; for behavior-preserving refactors, use existing tests instead -> implement minimal change -> run direct tests -> report.
+
+### HIGH ASSURANCE
+Triggered if any high-risk rule matches:
+1. Production blast radius >2 files or >20 lines (excluding docs/comments/refactors).
+2. Any modification to money, balances, quotas, billing, authentication, authorization, security, schema, dependency, secret, permission, public API, CLI contract, file format, config/daemon.
+- Process: design approval (spec), full TDD cycle, todo list, worktree, full-suite run, reviewer/fable-judge verification.
+
 ## Phase 1: PLAN
 
 **Formulate what "done" means — concrete, observable.**
@@ -37,10 +57,9 @@ Kit v2: each phase has a granular skill helper. A phase is not replaced, but dee
 - What should be true when the task is done?
 - Which files do you touch? Which do you NOT touch?
 - What assumptions do you make?
-- Complex task (>3 files / >5 changes) → split into atomic tasks.
+- Tier determination: check HIGH_ASSURANCE rules first, then FAST criteria; default to STANDARD.
 
 **Scope discipline:** touch only what the task requires. Not "I'll clean up along the way".
-
 ## Phase 2: TDD
 
 **Red test → green code → refactoring.**

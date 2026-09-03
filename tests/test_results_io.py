@@ -13,7 +13,7 @@ import results_io
 from results_io import load_runs, save_result
 
 
-VALID_KINDS = {"trap", "tasks", "trigger", "ablate"}
+VALID_KINDS = {"trap", "tasks", "trigger", "ablate", "rigor"}
 
 
 def test_ablate_is_valid_kind(tmp_path):
@@ -22,6 +22,13 @@ def test_ablate_is_valid_kind(tmp_path):
                         results_dir=tmp_path / "r")
     doc = json.loads(saved.read_text(encoding="utf-8"))
     assert doc["kind"] == "ablate"
+
+def test_rigor_is_valid_kind(tmp_path):
+    assert "rigor" in results_io.VALID_KINDS
+    saved = save_result("rigor", "m1", {"experimental": True},
+                        results_dir=tmp_path / "r")
+    doc = json.loads(saved.read_text(encoding="utf-8"))
+    assert doc["kind"] == "rigor"
 RESERVED = {
     "schema_version",
     "run_id",

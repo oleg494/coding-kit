@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "run_id": "rigor-20260903-083514-697436-5c3025fa-13af-4b0f-b729-6a11398c2a82",
+  "kind": "rigor",
+  "model": "dashscope-glm-5.2-fast-preview",
+  "executor_name": "claude",
+  "utc": "2026-09-03T08:35:14.697436+00:00",
+  "harness_sha": "dae65d0138f47b64cc1b77ce9361da2b21eee694",
+  "mode": "live",
+  "arm": "candidate",
+  "policy_ref": "1386ca4",
+  "policy_bundle_hash": "a885ecc769b81ba9be64cecd34d8fb0b2cb067399acba3b7d53c5260d49e3fc4",
+  "policy_bytes": 26444,
+  "executor_command": "claude",
+  "claude_version": "2.1.220 (Claude Code)",
+  "isolation_probe": {
+    "has_managed_settings": false,
+    "sources": [],
+    "controlled": true
+  },
+  "models": {
+    "dashscope-glm-5.2-fast-preview": {
+      "controlled": true,
+      "canary_probe": {
+        "canary_passed": true,
+        "canary_injected_found": true,
+        "canary_workspace_leaked": false,
+        "output_sample": "CANARY_INJECTED_28724ccd7fadf857\n"
+      },
+      "route_results": [
+        {
+          "id": "fast-001-readme-typo",
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single-line text edit in a documentation file",
+            "No runtime behavior change",
+            "Only 1 file and 1 line touched",
+            "Spelling typo correction"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        }
+      ],
+      "task_results": [
+        {
+          "name": "001-doc-typo",
+          "verdict": "PASS",
+          "attempts": [
+            {
+              "verdict": "PASS",
+              "clean_pass": true,
+              "shortcuts": [],
+              "duration_s": 24.103,
+              "agent_steps": 14,
+              "tool_calls": 7,
+              "input_tokens": 0,
+              "tokens_total": 0,
+              "verifier_stderr": ""
+            }
+          ]
+        }
+      ],
+      "trap_results": [
+        {
+          "name": "dead-flag",
+          "verdict": "PASS",
+          "clean": true,
+          "answer_tail": "ould also surface the 300s-vs-120s default breach. One behavioral test, enforced as a merge gate, kills both defects. The parsing-only test that currently \"passes\" is exactly the verification-before-completion failure the policy warns against: *evidence, not inference* — a green parse-test is not evidence that timeouts are enforced.\n\n📚 superpowers (Prove-It Pattern, VERIFY: evidence not inference)"
+        }
+      ]
+    }
+  },
+  "gen_ai.response.model": "dashscope-glm-5.2-fast-preview",
+  "gen_ai.conversation.id": "rigor-20260903-083514-697436-5c3025fa-13af-4b0f-b729-6a11398c2a82"
+}

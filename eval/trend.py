@@ -26,7 +26,7 @@ from results_io import load_runs
 from ablation_report import render_ablation_section
 
 BASELINES_DIR = ROOT / "eval" / "baselines"
-KIND_ORDER = {"trap": 0, "tasks": 1, "trigger": 2}
+KIND_ORDER = {"trap": 0, "tasks": 1, "trigger": 2, "rigor": 3}
 
 
 def _is_canary_row(row: object) -> bool:

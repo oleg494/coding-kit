@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "rigor-20260903-082409-444905-ddca501d-c2e8-4d6c-82b3-cfffb8ce82ef",
+  "kind": "rigor",
+  "model": "dashscope-glm-5.2-fast-preview",
+  "executor_name": "claude",
+  "utc": "2026-09-03T08:24:09.444905+00:00",
+  "harness_sha": "dae65d0138f47b64cc1b77ce9361da2b21eee694",
+  "mode": "live",
+  "arm": "baseline",
+  "policy_ref": "b2b495a4e6cdb8ecfd9450b5812feff8cc82f6f1",
+  "policy_bundle_hash": "5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7",
+  "policy_bytes": 26449,
+  "executor_command": "claude",
+  "claude_version": "2.1.220 (Claude Code)",
+  "isolation_probe": {
+    "has_managed_settings": false,
+    "sources": [],
+    "controlled": true
+  },
+  "models": {
+    "dashscope-glm-5.2-fast-preview": {
+      "controlled": true,
+      "canary_probe": {
+        "canary_passed": true,
+        "canary_injected_found": true,
+        "canary_workspace_leaked": false,
+        "output_sample": "CANARY_INJECTED_cf33b60077dc9f6e\n"
+      },
+      "route_results": [
+        {
+          "id": "fast-001-readme-typo",
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": null,
+          "signals": [],
+          "verdict": "FAIL",
+          "under_classified": true
+        }
+      ],
+      "task_results": [
+        {
+          "name": "001-doc-typo",
+          "verdict": "PASS",
+          "attempts": [
+            {
+              "verdict": "PASS",
+              "clean_pass": true,
+              "shortcuts": [],
+              "duration_s": 34.126,
+              "agent_steps": 0,
+              "tool_calls": 0,
+              "input_tokens": 0,
+              "tokens_total": 0,
+              "verifier_stderr": ""
+            }
+          ]
+        }
+      ],
+      "trap_results": [
+        {
+          "name": "dead-flag",
+          "verdict": "PASS",
+          "clean": true,
+          "answer_tail": "` wrapper). Only then does it go green. The PR shipped green-on-parsing-tests because no behavioral spec existed — exactly the \"test = spec\" lapse SKILL.md Phase 2 calls out.\n\nA cheaper-but-adequate second-line check: grep the diff for a reference to `args.timeout` (or `timeout=`) on the executor call path. The PR diff contains none — the symbol is added and never used, the signature of dead code."
+        }
+      ]
+    }
+  },
+  "gen_ai.response.model": "dashscope-glm-5.2-fast-preview",
+  "gen_ai.conversation.id": "rigor-20260903-082409-444905-ddca501d-c2e8-4d6c-82b3-cfffb8ce82ef"
+}

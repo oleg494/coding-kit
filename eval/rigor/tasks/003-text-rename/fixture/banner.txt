@@ -1,0 +1,5 @@
+==============================
+Project Acme CLI
+Author: Alice Doe
+Licensed under MIT
+==============================

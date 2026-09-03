@@ -432,13 +432,18 @@ _DEPLOYED_SKILL_DIRS = (
 )
 
 
-def check_skills_sync() -> tuple[bool, str]:
+def check_skills_sync(expect_drift: bool = False) -> tuple[bool, str]:
     """Canonical-skills drift (wave3 Task 10): byte-compare every deployed
     copy of the kit skills tree against skills/ (pattern:
     check_engine_sync). Only copies that exist are compared; junctions
     (resolve() == master) track the master live and are skipped. No
     deployed copy at all = WARN (backup-freshness semantics: a missing
-    copy must not block work, only nag). FAIL names the drifted slugs."""
+    copy must not block work, only nag). FAIL names the drifted slugs.
+    When expect_drift=True (or --expect-skills-drift / EXPECT_SKILLS_DRIFT=1),
+    drift is reported as WARN (expected drift) to allow evaluating unmerged
+    candidate branches without premature mirror deployment."""
+    if not expect_drift:
+        expect_drift = os.environ.get("EXPECT_SKILLS_DRIFT") == "1"
     master = KIT / "skills"
     names = sorted(d.name for d in master.iterdir() if d.is_dir())
     master_names = set(names)
@@ -498,6 +503,8 @@ def check_skills_sync() -> tuple[bool, str]:
                   and entry.name not in master_names):
                 bad.append(f"{dest.parent.name}/{entry.name}: stale")
     if bad:
+        if expect_drift:
+            return (True, f"WARN (expected drift): {'; '.join(bad[:3])}")
         return (False, "; ".join(bad[:5])
                 + (f" (+{len(bad) - 5} more)" if len(bad) > 5 else ""))
     label = ", ".join(
@@ -507,6 +514,15 @@ def check_skills_sync() -> tuple[bool, str]:
     return (True, f"{len(names)} skills in sync ({label})")
 
 def main() -> int:
+    import argparse
+    parser = argparse.ArgumentParser(description="Kit health and invariants doctor")
+    parser.add_argument(
+        "--expect-skills-drift",
+        action="store_true",
+        help="downgrade skills-sync failure to WARN (for unmerged candidate branches)",
+    )
+    args = parser.parse_args()
+
     checks = [
         ("manifest", check_manifest()),
         ("versions", check_versions()),
@@ -519,7 +535,7 @@ def main() -> int:
         ("integrity", check_integrity()),
         ("supply chain", check_skill_supply_chain()),
         ("frontmatter-spec", check_frontmatter_spec()),
-        ("skills-sync", check_skills_sync()),
+        ("skills-sync", check_skills_sync(expect_drift=args.expect_skills_drift)),
         ("backup freshness", check_backup_freshness()),
         ("encoding discipline", check_encoding_discipline()),
     ]
