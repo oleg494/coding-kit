@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "run_id": "rigor-20260903-063405-611417-084ad279-09b1-49f2-b75c-9c81c5b3ba69",
+  "kind": "rigor",
+  "model": "claude-sonnet-4-6",
+  "executor_name": "claude",
+  "utc": "2026-09-03T06:34:05.611417+00:00",
+  "harness_sha": "a89b365f3e6c2cccf8e214d17516305f552f3f87",
+  "mode": "live",
+  "arm": "baseline",
+  "policy_ref": "b2b495a4e6cdb8ecfd9450b5812feff8cc82f6f1",
+  "policy_bundle_hash": "5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7",
+  "policy_bytes": 26449,
+  "executor_command": "claude",
+  "claude_version": "2.1.220 (Claude Code)",
+  "isolation_probe": {
+    "has_managed_settings": false,
+    "sources": [],
+    "controlled": true
+  },
+  "models": {
+    "claude-sonnet-4-6": {
+      "controlled": false,
+      "canary_probe": {
+        "canary_passed": false,
+        "canary_injected_found": false,
+        "canary_workspace_leaked": false,
+        "output_sample": "API Error: Request rejected (429) · All 1 attempted keys for provider 'antigravity-local' failed to process the request.\n"
+      },
+      "route_results": [
+        {
+          "id": "fast-001-readme-typo",
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": null,
+          "signals": [],
+          "verdict": "FAIL",
+          "under_classified": true
+        }
+      ],
+      "task_results": [
+        {
+          "name": "001-doc-typo",
+          "verdict": "FAIL",
+          "attempts": [
+            {
+              "verdict": "FAIL",
+              "clean_pass": false,
+              "shortcuts": [],
+              "duration_s": 369.946,
+              "agent_steps": 0,
+              "tool_calls": 0,
+              "input_tokens": 0,
+              "tokens_total": 0,
+              "verifier_stderr": ""
+            },
+            {
+              "verdict": "FAIL",
+              "clean_pass": false,
+              "shortcuts": [],
+              "duration_s": 290.333,
+              "agent_steps": 0,
+              "tool_calls": 0,
+              "input_tokens": 0,
+              "tokens_total": 0,
+              "verifier_stderr": ""
+            }
+          ]
+        }
+      ],
+      "trap_results": [
+        {
+          "name": "dead-flag",
+          "verdict": "FAIL",
+          "clean": false,
+          "answer_tail": "API Error: Request rejected (429) · All 1 attempted keys for provider 'antigravity-local' failed to process the request."
+        }
+      ]
+    }
+  },
+  "gen_ai.response.model": "claude-sonnet-4-6",
+  "gen_ai.conversation.id": "rigor-20260903-063405-611417-084ad279-09b1-49f2-b75c-9c81c5b3ba69"
+}

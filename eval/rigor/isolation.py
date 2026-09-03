@@ -79,7 +79,7 @@ def run_canary_isolation_probe(claude_cmd: str, model: str | None = None) -> dic
             cmd.extend(["--model", model])
             
         try:
-            r = subprocess.run(cmd, cwd=probe_dir, capture_output=True, text=True, timeout=60)
+            r = subprocess.run(cmd, cwd=probe_dir, capture_output=True, text=True, timeout=600)
             stdout = r.stdout or ""
             passed = (canary_injected in stdout) and (canary_workspace not in stdout)
             return {
