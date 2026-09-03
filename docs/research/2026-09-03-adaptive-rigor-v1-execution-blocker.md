@@ -79,9 +79,14 @@ Conditions 1–5 require live executor attempts; none can be recorded while
 every CLI request is rejected upstream. Per spec §Error handling, provider
 failures are reruns, not task failures — but an executor that cannot complete
 any request yields no attempts at all, so the run is incomplete, not a
-candidate verdict. Condition 6 (policy bytes) and 7 (harness checks) are
-measurable now: bytes baseline 5295a47f… bundle vs candidate 6cac2e89… (see
-runner dry-run output); harness checks recorded below.
+candidate verdict. Conditions 6–7 measured now:
+
+- cond-6 PASS: candidate policy bundle 26444 UTF-8 bytes <= baseline 26449
+  (candidate commit 1386ca4; baseline bundle hash 5295a47f6c2a… reproduced
+  from git on every dry run).
+- cond-7 PASS: 645 passed / 1 skipped / 76 subtests (full pytest), doctor
+  14/14 GREEN, file-size gate rc=0 (hard 0), integrity manifest 141 files,
+  skills-sync green — all re-run after the cond-6 compression commit.
 
 ## Delivered despite the blocker
 
@@ -90,9 +95,9 @@ runner dry-run output); harness checks recorded below.
   retry), gate evaluator, isolation/canary probes, policy bundle hashing.
 - Corpus: 5 microtasks with mutation-tested verifiers, 10 route cases,
   10 named legacy traps wired.
-- Candidate policy bundle (commit 274fdbc): superpowers/AGENTS/OPS tiers
-  FAST/STANDARD/HIGH_ASSURANCE; OPS.md 149 lines; doctor 14 GREEN; full
-  pytest green at authoring time.
+- Candidate policy bundle (commit 1386ca4): superpowers/AGENTS/OPS tiers
+  FAST/STANDARD/HIGH_ASSURANCE; OPS.md 140 lines; doctor 14 GREEN; full
+  pytest green (645 passed) after the cond-6 compression.
 - Baseline pin `b2b495a4` bundle hash 5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7
   reproduced from git on every dry run.
 
