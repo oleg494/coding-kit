@@ -86,8 +86,8 @@ def _controlled_flags(bundle_root: Path | None) -> list[str]:
 def _provider_failure(proc: subprocess.CompletedProcess) -> bool:
     if proc.returncode == 0:
         return False
-    err = (proc.stderr or b"").decode("utf-8", "replace").lower()
-    out = (proc.stdout or b"").decode("utf-8", "replace").lower()
+    err = (proc.stderr or "").lower()
+    out = (proc.stdout or "").lower()
     return any(sig in err or sig in out for sig in _PROVIDER_ERR)
 
 
@@ -312,8 +312,19 @@ def run_trap_subset(bundle_root: Path, executor_cmd: str | None,
         jcmd = _claude_argv(judge_cmd or executor_cmd, judge_model)
         jcmd.extend(["-p", "--safe-mode", "--no-session-persistence",
                      "--tools", ""])
-        verdict_text = judge_one(jcmd, sc.get("expect", ""), answer,
-                                 timeout=600)
+        verdict_text = ""
+        for _ in range(4):
+            try:
+                verdict_text = judge_one(jcmd, sc.get("expect", ""), answer,
+                                         timeout=600)
+                break
+            except Exception as exc:
+                blob = f"{exc} {getattr(exc, 'stderr', '')}".lower()
+                if any(sig in blob for sig in _PROVIDER_ERR):
+                    time.sleep(5)
+                    continue
+                verdict_text = f"JUDGE_ERROR: {exc}"
+                break
         verdict = "PASS" if verdict_text.strip().upper().startswith(
             "PASS") else "FAIL"
         clean = verdict == "PASS" and not shortcut_patterns(answer)
