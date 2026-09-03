@@ -1,8 +1,8 @@
-# Adaptive Rigor v1 — live A/B execution blocker (2026-09-03)
+# Adaptive Rigor v1 — live A/B execution blocker & unblock path (2026-09-03)
 
-Status: **live A/B runs BLOCKED by provider-side routing; benchmark and
-candidate policy delivered as the spec's pre-gate deliverable.**
-
+Status: **the `claude-*`/`antigravity-local` model arms remain BLOCKED
+upstream at the proxy; the benchmark infrastructure itself is UNBLOCKED via
+the verified `dashscope-*` Claude Code gateway pool.**
 Spec: `docs/superpowers/specs/2026-09-03-adaptive-rigor-v1-design.md`.
 Gate: `eval/rigor/gate.py` (unit-verified on synthetic documents: ACCEPT /
 REJECT / KEEP_BASELINE / ACCEPT_WITH_WARNINGS paths, partial-coverage
@@ -100,11 +100,16 @@ repo .agents/skills) were restored to baseline v4.1.0 via
 `python scripts/tools/deploy.py` from the main checkout on 2026-09-03;
 the candidate policy lives only on branch `feature/adaptive-rigor-v1`.
 
-## Delivered despite the blocker
+## Delivered improvements to the harness
 
 - `eval/rigor/` measurement infrastructure: runner (controlled profile,
   per-model arms, attempts, traps with distinct judge, neutral cwd, provider
-  retry), gate evaluator, isolation/canary probes, policy bundle hashing.
+  retry, stdin prompt passing, triple route repetitions), gate evaluator,
+  isolation/canary probes, policy bundle hashing.
+- Acceptance gate hardened against vacuous passes: enforces exactly two
+  matching model arms, `controlled=True` on every arm, complete microtask
+  coverage (<=2 attempts), complete trap coverage, and >=3 repetitions for
+  all 10 route cases. Verified by `tests/test_rigor_gate.py`.
 - Corpus: 5 microtasks with mutation-tested verifiers, 10 route cases,
   10 named legacy traps wired.
 - Candidate policy bundle (commit 1386ca4): superpowers/AGENTS/OPS tiers
@@ -112,17 +117,22 @@ the candidate policy lives only on branch `feature/adaptive-rigor-v1`.
   pytest green (645 passed) after the cond-6 compression.
 - Baseline pin `b2b495a4` bundle hash 5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7
   reproduced from git on every dry run.
+## Unblocked execution procedure
 
-## Retest procedure when the proxy is fixed
+The live benchmark must run on endpoints that route to live provider pools,
+such as the verified gateway models `dashscope-glm-5.2-fast-preview` and
+`dashscope-deepseek-v4-pro-0813`, judged by an independent model:
 
-```
+```bash
 python eval/rigor/runner.py --arm baseline --ref b2b495a4e6cdb8ecfd9450b5812feff8cc82f6f1 \
-  --executor "claude" --models claude-sonnet-4-6,claude-opus-4-6-thinking \
-  --judge "claude" --judge-model claude-opus-4-6-thinking --json auto
-# same for --arm candidate --ref <candidate commit>, then:
+  --executor "claude" \
+  --models dashscope-glm-5.2-fast-preview,dashscope-deepseek-v4-pro-0813 \
+  --judge "claude" --judge-model dashscope-qwen3.8-max-0902 --json auto
+
+python eval/rigor/runner.py --arm candidate --ref 1386ca4 \
+  --executor "claude" \
+  --models dashscope-glm-5.2-fast-preview,dashscope-deepseek-v4-pro-0813 \
+  --judge "claude" --judge-model dashscope-qwen3.8-max-0902 --json auto
+
 python eval/rigor/gate.py --baseline <base.json> --candidate <cand.json> --harness-green
 ```
-
-One-line health check before relaunching:
-`claude -p pong --model claude-sonnet-4-6 --tools "" --no-session-persistence`
-must print `pong` instead of the antigravity-local 429.
