@@ -96,7 +96,7 @@ candidate verdict. Conditions 6–7 measured now:
 - Corpus: 5 microtasks with mutation-tested verifiers, 10 route cases,
   10 named legacy traps wired.
 - Candidate policy bundle (commit 1386ca4): superpowers/AGENTS/OPS tiers
-  FAST/STANDARD/HIGH_ASSURANCE; OPS.md 140 lines; doctor 14 GREEN; full
+  FAST/STANDARD/HIGH_ASSURANCE; OPS.md 138 lines; doctor 14 GREEN; full
   pytest green (645 passed) after the cond-6 compression.
 - Baseline pin `b2b495a4` bundle hash 5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7
   reproduced from git on every dry run.
