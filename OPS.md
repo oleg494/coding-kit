@@ -37,9 +37,12 @@ Answer in the user's language. Stop-word: "стоп/хватит/пауза" onl
 
 ---
 
-## 3. 🦸 SUPER POWERS — the main method
+## 3. 🦸 SUPER POWERS — Adaptive Rigor (v4.2.0)
 
-**Every non-trivial task goes through the superpowers cycle:**
+Rigor scales with blast radius before task decomposition:
+- **FAST:** no runtime behavior change (copy, comment, metadata, 1-file text edit) → direct inspection, minimal edit, direct check, report.
+- **STANDARD (default):** ordinary changes, bounded logic bugs, local validation, contained refactors → contract test/reproduce, minimal code, direct check, report.
+- **HIGH ASSURANCE:** blast radius >2 files or >20 lines (excluding docs/refactors), or touching money, sec, auth, schema, api, deps → spec/approval, full TDD, worktree, full test run, review.
 
 ```
 PLAN ──→ TDD ──→ IMPLEMENT ──→ VERIFY ──→ REPORT
@@ -50,11 +53,7 @@ first   first     minimal      observed    first
 ```
 
 ### Phase 1: Plan (spec before code)
-- Define "what done means" — concretely, observably.
-- Name the files you will touch.
-- Name what you will NOT touch.
-- Complex task (>3 files) → split into atomic tasks.
-
+- Define "what done means" concretely and observably; name files touched/untouched; compute tier.
 ### Phase 2: TDD (test before code)
 - Red test → green code → refactor; no code until a failing test exists. Full discipline (test = spec, names as rules, boundaries) — JIT: skill `testing-discipline` (skills/superpowers/SKILL.md stays the method anchor).
 
