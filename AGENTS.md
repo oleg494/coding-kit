@@ -46,13 +46,15 @@ REQUEST
 │     python ~/.memory/db-tools/search_all.py "X"
 │     found → answer with a link to the file; not found → "not in base" + web
 │
-├─ TASK: ADAPTIVE RIGOR (compute tier before acting):
-│  ├─ FAST (no runtime behavior change: copy, comment, metadata, 1-file text edit):
-│  │     direct inspection → minimal edit → direct check → report (no TDD/todo overhead)
-│  ├─ STANDARD (default: bounded bugs, local validation, contained refactors):
-│  │     contract test / reproduce → minimal implementation → direct verification → report
-│  └─ HIGH ASSURANCE (blast radius >2 files / >20 lines, money/sec/auth/schema/api):
-│        spec / approval → red test → implementation → full suite + review → report
+├─ TASK (code/architecture, >1 file or >10 lines) ──→ SUPERPOWERS:
+│     PLAN:   what does "done" mean (observably)? scope? assumptions?
+│             design work → brainstorming skill; execution plan → writing-plans
+│     TDD:    red test first (test-driven-development). Bug → Prove-It
+│     IMPLEMENT: minimal diff. Parallel → dispatching-parallel-agents,
+│             per written plan → implement with checkpoints
+│     VERIFY:  verification-before-completion (fresh run, not memory),
+│             second opinion → requesting-code-review
+│     REPORT:  result first line
 │
 ├─ "write down/save/remember/запиши/в память" ──→ MEMORY HIERARCHY (dev-wiki):
 │     portable → ~/.memory/Wiki/<type>/ → build.py
@@ -62,8 +64,10 @@ REQUEST
 ├─ "verify what was done/is it ready" ──→ fable-judge: re-run claimed
 │     checks, verdict VERIFIED / REFUTED
 │
-└─ "learn this / /learn X / make a skill" ──→ learn: distill the
-      repeatable procedure into a new SKILL.md (format: skill-authoring)
+├─ "learn this / /learn X / make a skill" ──→ learn: distill the
+│     repeatable procedure into a new SKILL.md (format: skill-authoring)
+│
+└─ SMALL THING (<10 lines, no code logic) ──→ do it now, verify after
 ```
 
 Rule zero: a skill exists for the task and you decided to wing it = failure. Find it: `python scripts/tools/skills_search.py "<symptom words>"`; check `skills/`, load SKILL.md, mark `📚 skill-name`.

@@ -37,17 +37,24 @@ Answer in the user's language. Stop-word: "стоп/хватит/пауза" onl
 
 ---
 
-## 3. 🦸 SUPER POWERS — Adaptive Rigor (v4.2.0)
+## 3. 🦸 SUPER POWERS — the main method
 
-Rigor scales with blast radius before decomposition:
-- **FAST:** no runtime behavior change (copy, comment, metadata, 1-file text edit) → inspect, edit, direct check, report.
-- **STANDARD (default):** bounded bugs, local validation, contained refactors → contract test/reproduce, minimal code, direct check, report.
-- **HIGH ASSURANCE:** >2 files or >20 lines (excl. docs/refactors), or money, sec, auth, schema, api, deps → spec, full TDD, worktree, full suite, review.
+**Every non-trivial task goes through the superpowers cycle:**
 
-Cycle: PLAN → TDD → IMPLEMENT → VERIFY → REPORT (spec/red-test/green-code/evidence/outcome first).
+```
+PLAN ──→ TDD ──→ IMPLEMENT ──→ VERIFY ──→ REPORT
+  │        │         │            │          │
+  ▼        ▼         ▼            ▼          ▼
+Spec    Red test  Green code   Evidence    Outcome
+first   first     minimal      observed    first
+```
 
 ### Phase 1: Plan (spec before code)
-- Define "what done means" concretely and observably; name files touched/untouched; compute tier.
+- Define "what done means" — concretely, observably.
+- Name the files you will touch.
+- Name what you will NOT touch.
+- Complex task (>3 files) → split into atomic tasks.
+
 ### Phase 2: TDD (test before code)
 - Red test → green code → refactor; no code until a failing test exists. Full discipline (test = spec, names as rules, boundaries) — JIT: skill `testing-discipline` (skills/superpowers/SKILL.md stays the method anchor).
 
@@ -57,10 +64,15 @@ Cycle: PLAN → TDD → IMPLEMENT → VERIFY → REPORT (spec/red-test/green-cod
 - Match surrounding style. Don't refactor others' code unasked.
 
 ### Phase 4: Verify (evidence, not inference)
-- Test green, build intact, existing suite green — all observed; bug fix → TWINS pattern search.
+- Test green? → observed.
+- Build intact? → checked.
+- Existing tests still green? → ran them.
+- Bug fix → TWINS: searched for the same pattern across the codebase.
 
 ### Phase 5: Report (outcome first)
-- What was done (first line), files touched, what was verified.
+- What was done — first line.
+- Files touched.
+- What was verified.
 
 **SDD contract gates (v3.9.0):** clarify before plan (≤5 targeted
 questions folded into the spec before any plan exists) · checklist

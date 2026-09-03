@@ -1,7 +1,7 @@
 {
  "files": {
-  "AGENTS.md": "0c82e5221a135d7d7d7ac2a1c325c9e19f173b9fd09af5731e3ca683e93bc589",
-  "OPS.md": "eae534a498ebd5ba987a84f762bd8e8b266d0a4183dead8bcacc2ce0fed82899",
+  "AGENTS.md": "351294d57bf1f16ba85b8799b8162b1edd453f50a038d04be6c4792518786206",
+  "OPS.md": "a537b80b4429339c8e1896c6526df973d4a817f706a70f31ef5d48d7014cf2be",
   "SKILL_RUNTIME.md": "3411d2856a53f92c7dc6bb1dc91748f08474dcd52413c2f7b6b2b7b23dfd0a8c",
   "adapters/UNIVERSAL.md": "4620cc956606cc64a5f3c761e6ff46bc8068919878261e3276d45c62d0cda1cc",
   "adapters/antigravity.md": "aba535c2796a96a48aa89b6b7c93e8c00987084a536a8a0da66f08e1ccbb6570",
@@ -131,7 +131,7 @@
   "skills/shipping-and-launch/SKILL.md": "ea0ef9ec440744f22a49c30deb2695574cc4e42df449989ea248a630d05d231b",
   "skills/skill-authoring/SKILL.md": "4b7995a29c41e0b038cfe65f46522a23588df7dba7050d428d85430663cd525c",
   "skills/spec-driven-development/SKILL.md": "8b7064dfb0c889f8a71f0457e5f92407c648ad5d61b6254e90b3864968737b4d",
-  "skills/superpowers/SKILL.md": "f01fcdc510e94b43d34da7ad56f18546f02e4de82d7ce0f80eb918cf1399ae1d",
+  "skills/superpowers/SKILL.md": "5b33943826568784fa15eb50b018b925d1c2e7beae91ae9868b44b1824dc5252",
   "skills/systematic-debugging/SKILL.md": "45a3345cd8bf1be389159efcc77a265f345c6744436d3affebb39e0ec1974f8e",
   "skills/test-driven-development/SKILL.md": "3e494f23c623e404ca9754e963a027b087c63cb0b006a6bd9d9c88cd072d59ba",
   "skills/testing-discipline/SKILL.md": "32ba8e60c51ca34bec018b17d3a8f1a45dfe9a16797211720acc975d24a7973e",
