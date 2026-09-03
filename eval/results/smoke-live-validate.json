@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "run_id": "rigor-20260903-110258-824600-6377a302-e6db-41f4-9b15-2f723d5ca14d",
+  "kind": "rigor",
+  "model": "dashscope-glm-5.2-fast-preview+dashscope-deepseek-v4-pro-0813",
+  "executor_name": "claude",
+  "utc": "2026-09-03T11:02:58.824600+00:00",
+  "harness_sha": "0c1eb217593159c2967d3038bf9fe0fd7b9895d9",
+  "mode": "live",
+  "arm": "baseline",
+  "policy_ref": "b2b495a4e6cdb8ecfd9450b5812feff8cc82f6f1",
+  "policy_bundle_hash": "5295a47f6c2ab0b74c08fc7c7e688a482da0a81caa6b226d58b1d92fd4f3e2b7",
+  "policy_bytes": 26449,
+  "executor_command": "claude",
+  "claude_version": "2.1.220 (Claude Code)",
+  "isolation_probe": {
+    "has_managed_settings": false,
+    "sources": [],
+    "controlled": true
+  },
+  "models": {
+    "dashscope-glm-5.2-fast-preview": {
+      "controlled": true,
+      "canary_probe": {
+        "canary_passed": true,
+        "canary_injected_found": true,
+        "canary_workspace_leaked": false,
+        "output_sample": "CANARY_INJECTED_bb75558753990568\n"
+      },
+      "route_results": [
+        {
+          "id": "fast-001-readme-typo",
+          "repetition": 1,
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single file, single line change",
+            "No code logic — pure typo correction",
+            "Trivial spelling fix in documentation title",
+            "Well under 10 lines, no complexity"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        },
+        {
+          "id": "fast-001-readme-typo",
+          "repetition": 2,
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single file, single line change",
+            "No code logic — pure typo fix",
+            "Trivial mechanical edit: 'Welcom' -> 'Welcome'",
+            "No plan or TDD needed for a 1-character spelling correction"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        },
+        {
+          "id": "fast-001-readme-typo",
+          "repetition": 3,
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single file, single line change",
+            "Typo fix — no code logic",
+            "Documentation only",
+            "Well under 10 lines",
+            "No architectural impact"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        }
+      ],
+      "task_results": [
+        {
+          "name": "001-doc-typo",
+          "verdict": "PASS",
+          "attempts": [
+            {
+              "verdict": "PASS",
+              "clean_pass": true,
+              "shortcuts": [],
+              "duration_s": 25.98,
+              "agent_steps": 12,
+              "tool_calls": 8,
+              "input_tokens": 47991,
+              "tokens_total": 48600,
+              "verifier_stderr": ""
+            }
+          ]
+        }
+      ],
+      "trap_results": [
+        {
+          "name": "dead-flag",
+          "verdict": "PASS",
+          "clean": true,
+          "answer_tail": "o the sleep runs to 300s and the assertion on `duration` fails. It only goes green once the flag is actually passed into the executor call (and the default is corrected to ≤120). Writing it first, TDD-style, would have prevented the dead flag from merging.\n\n**Files:** none touched — this is a review. **Verified:** diff as given; policy = `superpowers` Prove-It + VERIFY (\"evidence, not inference\")."
+        }
+      ]
+    },
+    "dashscope-deepseek-v4-pro-0813": {
+      "controlled": true,
+      "canary_probe": {
+        "canary_passed": true,
+        "canary_injected_found": true,
+        "canary_workspace_leaked": false,
+        "output_sample": "CANARY_INJECTED_6adcfcba7e9d81b6\n"
+      },
+      "route_results": [
+        {
+          "id": "fast-001-readme-typo",
+          "repetition": 1,
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Documentation-only change",
+            "Single file (docs/index.md)",
+            "Single line changed",
+            "No code logic",
+            "Typo fix",
+            "Fits SMALL THING routing: <10 lines"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        },
+        {
+          "id": "fast-001-readme-typo",
+          "repetition": 2,
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single-file typo fix in documentation",
+            "One line changed, no code logic",
+            "Matches SMALL THING routing (<10 lines, no logic): do it now, verify after"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        },
+        {
+          "id": "fast-001-readme-typo",
+          "repetition": 3,
+          "expected": "FAST",
+          "minimum": "FAST",
+          "assigned_tier": "FAST",
+          "signals": [
+            "Single file",
+            "Single line change",
+            "Typo fix only",
+            "No code logic",
+            "Under 10 lines"
+          ],
+          "verdict": "PASS",
+          "under_classified": false
+        }
+      ],
+      "task_results": [
+        {
+          "name": "001-doc-typo",
+          "verdict": "PASS",
+          "attempts": [
+            {
+              "verdict": "PASS",
+              "clean_pass": true,
+              "shortcuts": [],
+              "duration_s": 34.03,
+              "agent_steps": 11,
+              "tool_calls": 8,
+              "input_tokens": 38504,
+              "tokens_total": 39415,
+              "verifier_stderr": ""
+            }
+          ]
+        }
+      ],
+      "trap_results": [
+        {
+          "name": "dead-flag",
+          "verdict": "PASS",
+          "clean": true,
+          "answer_tail": " test either hangs forever or blows the assertion — either way it fails at CI, exposing the dead flag before merge. Equivalently for static review: a \"flag-is-consumed\" grep — `args.timeout` appears in the parser but nowhere in the call path.\n\nThe relevant trap: a green test suite that never tests the *new behavior* (the flag actually terminating a hanging executor), only that the argument parses."
+        }
+      ]
+    }
+  },
+  "gen_ai.response.model": "dashscope-glm-5.2-fast-preview+dashscope-deepseek-v4-pro-0813",
+  "gen_ai.conversation.id": "rigor-20260903-110258-824600-6377a302-e6db-41f4-9b15-2f723d5ca14d"
+}

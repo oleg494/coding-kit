@@ -1,0 +1,99 @@
+{
+  "verdict": "REJECT",
+  "conditions": {
+    "1": {
+      "ok": true,
+      "notes": []
+    },
+    "2": {
+      "ok": false,
+      "notes": [
+        "dashscope-deepseek-v4-pro-0813: accuracy cand 0.9 < base 0.9666666666666667"
+      ]
+    },
+    "3": {
+      "ok": false,
+      "notes": [
+        "dashscope-glm-5.2-fast-preview: clean frac cand 0.8571428571428571 < base 0.9285714285714286"
+      ]
+    },
+    "4": {
+      "ok": false,
+      "notes": [
+        "dashscope-deepseek-v4-pro-0813: no FAST ratio <= 0.75",
+        "dashscope-deepseek-v4-pro-0813: FAST agent_steps ratio 1.3333333333333333 > 1.1",
+        "dashscope-deepseek-v4-pro-0813: FAST tool_calls ratio 1.5 > 1.1",
+        "dashscope-glm-5.2-fast-preview: no FAST ratio <= 0.75"
+      ]
+    },
+    "5": {
+      "ok": false,
+      "notes": [
+        "dashscope-deepseek-v4-pro-0813: STANDARD agent_steps ratio 1.25 > 1.1",
+        "dashscope-deepseek-v4-pro-0813: STANDARD tool_calls ratio 1.2727272727272727 > 1.1",
+        "dashscope-deepseek-v4-pro-0813: STANDARD input_tokens ratio 1.2879180112769957 > 1.1",
+        "dashscope-deepseek-v4-pro-0813: HIGH_ASSURANCE agent_steps ratio 1.40625 > 1.1",
+        "dashscope-deepseek-v4-pro-0813: HIGH_ASSURANCE tool_calls ratio 1.35 > 1.1",
+        "dashscope-deepseek-v4-pro-0813: HIGH_ASSURANCE input_tokens ratio 1.4684711361158593 > 1.1",
+        "dashscope-glm-5.2-fast-preview: STANDARD input_tokens ratio 1.2565934065934066 > 1.1",
+        "dashscope-glm-5.2-fast-preview: HIGH_ASSURANCE tool_calls ratio 1.1428571428571428 > 1.1"
+      ]
+    },
+    "6": {
+      "ok": true,
+      "notes": [
+        "baseline 26449 -> candidate 26444"
+      ]
+    },
+    "7": {
+      "ok": true,
+      "notes": []
+    }
+  },
+  "effort_ratios": {
+    "dashscope-deepseek-v4-pro-0813": {
+      "FAST": {
+        "agent_steps": 1.3333333333333333,
+        "tool_calls": 1.5,
+        "input_tokens": 1.0838680524175328
+      },
+      "STANDARD": {
+        "agent_steps": 1.25,
+        "tool_calls": 1.2727272727272727,
+        "input_tokens": 1.2879180112769957
+      },
+      "HIGH_ASSURANCE": {
+        "agent_steps": 1.40625,
+        "tool_calls": 1.35,
+        "input_tokens": 1.4684711361158593
+      }
+    },
+    "dashscope-glm-5.2-fast-preview": {
+      "FAST": {
+        "agent_steps": 0.8461538461538461,
+        "tool_calls": 1.0,
+        "input_tokens": 1.0264838270700303
+      },
+      "STANDARD": {
+        "agent_steps": 1.0476190476190477,
+        "tool_calls": 1.0909090909090908,
+        "input_tokens": 1.2565934065934066
+      },
+      "HIGH_ASSURANCE": {
+        "agent_steps": 1.0909090909090908,
+        "tool_calls": 1.1428571428571428,
+        "input_tokens": 1.0361543569689369
+      }
+    }
+  },
+  "findings": [
+    "cond-2: dashscope-deepseek-v4-pro-0813: accuracy cand 0.9 < base 0.9666666666666667",
+    "cond-3: dashscope-glm-5.2-fast-preview: clean frac cand 0.8571428571428571 < base 0.9285714285714286",
+    "cond-4: dashscope-deepseek-v4-pro-0813: no FAST ratio <= 0.75; dashscope-deepseek-v4-pro-0813: FAST agent_steps ratio 1.3333333333333333 > 1.1; dashscope-deepseek-v4-pro-0813: FAST tool_calls ratio 1.5 > 1.1; dashscope-glm-5.2-fast-preview: no FAST ratio <= 0.75",
+    "cond-5: dashscope-deepseek-v4-pro-0813: STANDARD agent_steps ratio 1.25 > 1.1; dashscope-deepseek-v4-pro-0813: STANDARD tool_calls ratio 1.2727272727272727 > 1.1; dashscope-deepseek-v4-pro-0813: STANDARD input_tokens ratio 1.2879180112769957 > 1.1; dashscope-deepseek-v4-pro-0813: HIGH_ASSURANCE agent_steps ratio 1.40625 > 1.1; dashscope-deepseek-v4-pro-0813: HIGH_ASSURANCE tool_calls ratio 1.35 > 1.1; dashscope-deepseek-v4-pro-0813: HIGH_ASSURANCE input_tokens ratio 1.4684711361158593 > 1.1; dashscope-glm-5.2-fast-preview: STANDARD input_tokens ratio 1.2565934065934066 > 1.1; dashscope-glm-5.2-fast-preview: HIGH_ASSURANCE tool_calls ratio 1.1428571428571428 > 1.1"
+  ],
+  "models": [
+    "dashscope-deepseek-v4-pro-0813",
+    "dashscope-glm-5.2-fast-preview"
+  ]
+}

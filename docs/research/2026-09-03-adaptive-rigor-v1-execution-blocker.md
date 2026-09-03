@@ -1,8 +1,9 @@
 # Adaptive Rigor v1 — live A/B execution blocker & unblock path (2026-09-03)
 
-Status: **the `claude-*`/`antigravity-local` model arms remain BLOCKED
-upstream at the proxy; the benchmark infrastructure itself is UNBLOCKED via
-the verified `dashscope-*` Claude Code gateway pool.**
+Status: **live A/B EXECUTED on 2026-09-03 via the verified `dashscope-*`
+gateway pool; acceptance gate verdict REJECT — candidate policy 1386ca4
+does not ship; baseline `b2b495a4` behavior retained.** The `claude-*`/
+`antigravity-local` proxy pool remains blocked upstream (historical).
 Spec: `docs/superpowers/specs/2026-09-03-adaptive-rigor-v1-design.md`.
 Gate: `eval/rigor/gate.py` (unit-verified on synthetic documents: ACCEPT /
 REJECT / KEEP_BASELINE / ACCEPT_WITH_WARNINGS paths, partial-coverage
@@ -136,3 +137,40 @@ python eval/rigor/runner.py --arm candidate --ref 1386ca4 \
 
 python eval/rigor/gate.py --baseline <base.json> --candidate <cand.json> --harness-green
 ```
+
+## Live A/B results (2026-09-03)
+
+Arms: baseline `b2b495a4` (bundle 5295a47f…, 26449 bytes) vs candidate
+`1386ca4` (bundle a885ecc7…, 26444 bytes); models
+`dashscope-glm-5.2-fast-preview` + `dashscope-deepseek-v4-pro-0813`;
+judge `dashscope-qwen3.8-max-0902`; both arms controlled (canary clean);
+30 route rows (10 cases x 3), 5 microtasks, 10 traps per model.
+Results: `eval/results/rigor-20260903-120617-*.json` (baseline),
+`eval/results/rigor-20260903-120837-*.json` (candidate);
+gate report `eval/results/gate-2026-09-03-live.json`.
+
+Verdict **REJECT** (conditions 1-3 failing => reject per spec):
+- cond-1 PASS: candidate cleanly solves all microtasks <=2 attempts on
+  both models; HIGH clean@1; pass@1 >= baseline.
+- cond-2 FAIL: deepseek route accuracy cand 0.900 < base 0.967
+  (glm equal 1.000).
+- cond-3 FAIL: glm clean-pass fraction cand 0.857 < base 0.929
+  (`silent-cross-write` FAIL in both arms; candidate additionally lost
+  `shell-injection` on glm while deepseek regained it — judge-level
+  variance, but the fraction rule is per-model and monotone).
+- cond-4 FAIL: no complete FAST ratio <= 0.75 on either model (glm best
+  agent_steps 0.846; deepseek FAST steps 1.333 / tools 1.500).
+- cond-5 FAIL: deepseek STANDARD/HIGH ratios 1.25-1.47 > 1.10; glm
+  STANDARD tokens 1.257 and HIGH tools 1.143 > 1.10.
+- cond-6 PASS: 26449 -> 26444 bytes.
+- cond-7 PASS: full pytest 659 passed / 1 skipped / 79 subtests; doctor
+  14/14 GREEN (skills-sync WARN via --expect-skills-drift by design);
+  integrity 141 files; file-size gate green.
+
+Interpretation: the three-tier candidate policy does not reduce FAST-task
+effort on these models (it increases steps/tool calls on deepseek) and
+slightly degrades route accuracy and legacy-trap cleanliness on one model
+each. Per spec §Acceptance gate the policy is rejected; no cutover, no
+mirror deployment. The benchmark harness, corpus, and gate are the durable
+deliverable; a future candidate must beat these numbers on the same
+corpus and models to be comparable.
