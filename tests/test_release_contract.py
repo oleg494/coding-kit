@@ -145,6 +145,17 @@ class VersionContractTest(unittest.TestCase):
         self.assertIsNotNone(m, "profile.yml must declare version")
         self.assertEqual(m.group(1), EXPECTED_VERSION)
 
+    def test_latest_changelog_entry_matches_current_version(self):
+        lines = (ROOT / "docs" / "CHANGELOG.md").read_text(
+            encoding="utf-8").splitlines()
+        latest = next((line for line in lines if line.startswith("- **")), "")
+        allowed = (f"- **v{EXPECTED_VERSION} ",
+                   f"- **Post-v{EXPECTED_VERSION} ")
+        self.assertTrue(
+            latest.startswith(allowed),
+            "latest changelog block must describe the current release or "
+            f"post-release work for v{EXPECTED_VERSION}, found {latest!r}")
+
 
 class NoIdentityDeclarationTest(unittest.TestCase):
     def test_no_identity_declarations_in_public_release_text(self):

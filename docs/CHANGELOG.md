@@ -4,13 +4,14 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
-- **v4.1.1 (skills licensing & warmup hardening)**:
+- **Post-v4.1.0 hardening (skills licensing & memory warmup)**:
   - **Skills supply chain license compliance**: standardized `license: MIT`
     frontmatter across 34 skills (all 36 skills licensed now: 35 MIT, 1
     Proprietary). Doctor check `supply chain` is now `OK: 36 skills, all licensed`
-    (0 warnings). Verified by `scripts/doctor.py` and
-    `tests/test_skill_spec_conformance.py`. Deployed canonical copies synced
-    to `.agents/skills`, `~/.agents/skills`, and `~/.claude/skills`.
+    (0 warnings). Verified on the real 36-skill tree by `scripts/doctor.py`;
+    checker behavior is covered by `tests/test_security_map.py`. Deployed
+    canonical copies synced to `.agents/skills`, `~/.agents/skills`, and
+    `~/.claude/skills`.
   - **Memory warmup unsure contradiction hardening**: added filter to exclude
     superseded contradiction links (`NOT EXISTS s.kind='supersedes'`) so past
     resolved regressions don't surface in warmup. Regression test:

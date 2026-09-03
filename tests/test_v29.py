@@ -439,36 +439,48 @@ class WarmupUnsureFeedTest(unittest.TestCase):
             fx.close()
 
     def test_superseded_contradiction_is_excluded_from_unsure_feed(self):
-        fx = _FakeRoot()
-        try:
-            self._seed(fx)
-            # Before superseding: links (5,6) and (3,4) are the newest 2
-            r1 = _run(WARMUP, ["--json"], fx.env)
-            self.assertEqual(r1.returncode, 0, r1.stdout + r1.stderr)
-            feed1 = json.loads(r1.stdout)["findings"]
-            self.assertTrue(any("contradiction: #5 vs #6" in s for s in feed1))
-            self.assertTrue(any("contradiction: #3 vs #4" in s for s in feed1))
+        for superseded_id in (5, 6):
+            with self.subTest(superseded_id=superseded_id):
+                fx = _FakeRoot()
+                try:
+                    self._seed(fx)
+                    # Before superseding: links (5,6) and (3,4) are newest.
+                    r1 = _run(WARMUP, ["--json"], fx.env)
+                    self.assertEqual(r1.returncode, 0, r1.stdout + r1.stderr)
+                    feed1 = json.loads(r1.stdout)["findings"]
+                    self.assertTrue(any(
+                        "contradiction: #5 vs #6" in s for s in feed1))
+                    self.assertTrue(any(
+                        "contradiction: #3 vs #4" in s for s in feed1))
 
-            # Supersede finding #5 by finding #13
-            con = sqlite3.connect(fx.root / "db" / "research.db")
-            now = datetime.now().strftime("%Y-%m-%d %H:%M")
-            con.execute("INSERT INTO findings (id, created, topic, text, source) "
-                        "VALUES (13, ?, 'superseding topic', 'text', 'src')", (now,))
-            con.execute("INSERT INTO links (from_id, to_id, kind, note, created) "
-                        "VALUES (13, 5, 'supersedes', '', ?)", (now,))
-            con.commit()
-            con.close()
+                    # Superseding either endpoint closes the contradiction.
+                    con = sqlite3.connect(fx.root / "db" / "research.db")
+                    now = "2099-01-01 00:00"
+                    con.execute(
+                        "INSERT INTO findings "
+                        "(id, created, topic, text, source) "
+                        "VALUES (13, ?, 'superseding topic', 'text', 'src')",
+                        (now,))
+                    con.execute(
+                        "INSERT INTO links "
+                        "(from_id, to_id, kind, note, created) "
+                        "VALUES (13, ?, 'supersedes', '', ?)",
+                        (superseded_id, now))
+                    con.commit()
+                    con.close()
 
-            # After superseding #5: contradiction #5 vs #6 must be excluded;
-            # the next active contradiction down the line (#1 vs #2) takes its place
-            r2 = _run(WARMUP, ["--json"], fx.env)
-            self.assertEqual(r2.returncode, 0, r2.stdout + r2.stderr)
-            feed2 = json.loads(r2.stdout)["findings"]
-            self.assertFalse(any("contradiction: #5 vs #6" in s for s in feed2))
-            self.assertTrue(any("contradiction: #3 vs #4" in s for s in feed2))
-            self.assertTrue(any("contradiction: #1 vs #2" in s for s in feed2))
-        finally:
-            fx.close()
+                    # The next active contradiction (#1 vs #2) takes its place.
+                    r2 = _run(WARMUP, ["--json"], fx.env)
+                    self.assertEqual(r2.returncode, 0, r2.stdout + r2.stderr)
+                    feed2 = json.loads(r2.stdout)["findings"]
+                    self.assertFalse(any(
+                        "contradiction: #5 vs #6" in s for s in feed2))
+                    self.assertTrue(any(
+                        "contradiction: #3 vs #4" in s for s in feed2))
+                    self.assertTrue(any(
+                        "contradiction: #1 vs #2" in s for s in feed2))
+                finally:
+                    fx.close()
 
 if __name__ == "__main__":
     unittest.main()
