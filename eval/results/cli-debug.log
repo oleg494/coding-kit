@@ -1,0 +1,299 @@
+2026-09-03T06:39:11.678Z [DEBUG] MDM settings load completed in 43ms
+2026-09-03T06:39:11.715Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Program Files\ClaudeCode\managed-settings.json
+2026-09-03T06:39:11.716Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\oleg2\Desktop\coding-kit\.worktrees\adaptive-rigor-v1\.claude\settings.json
+2026-09-03T06:39:11.720Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.722Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\oleg2\Desktop\coding-kit\.worktrees\adaptive-rigor-v1\.claude\settings.local.json
+2026-09-03T06:39:11.722Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.722Z [DEBUG] Cleared CA certificates cache
+2026-09-03T06:39:11.724Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.724Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.728Z [DEBUG] [init] configureGlobalMTLS starting
+2026-09-03T06:39:11.728Z [DEBUG] [init] configureGlobalMTLS complete
+2026-09-03T06:39:11.728Z [DEBUG] [init] configureGlobalAgents starting
+2026-09-03T06:39:11.729Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=C:\Users\oleg2\.certs\russian_trusted_root.pem
+2026-09-03T06:39:11.729Z [DEBUG] CA certs: Loaded 120 bundled root certificates
+2026-09-03T06:39:11.745Z [DEBUG] CA certs: Dropped 8 expired certificate(s) from system store
+2026-09-03T06:39:11.745Z [DEBUG] CA certs: Loaded 107 system CA certificates
+2026-09-03T06:39:11.745Z [DEBUG] CA certs: Appended extra certificates from NODE_EXTRA_CA_CERTS (C:\Users\oleg2\.certs\russian_trusted_root.pem)
+2026-09-03T06:39:11.745Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-09-03T06:39:11.746Z [DEBUG] [init] configureGlobalAgents complete
+2026-09-03T06:39:11.746Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-09-03T06:39:11.749Z [DEBUG] Error log sink initialized
+2026-09-03T06:39:11.752Z [DEBUG] [Claude in Chrome] Disabled: OAuth token has no scope accepted by /api/oauth/validate (needs user:profile, user:office, or user:ccr_inference; env-var and setup-token sessions default to user:inference only)
+2026-09-03T06:39:11.754Z [DEBUG] [ToolSearch:optimistic] disabled: ANTHROPIC_BASE_URL=https://mproxy.online is not a first-party Anthropic host. Set ENABLE_TOOL_SEARCH=true (or auto / auto:N) if your proxy forwards tool_reference blocks.
+2026-09-03T06:39:11.754Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.845Z [DEBUG] Applying permission update: Adding 1 allow rule(s) to destination 'userSettings': ["mcp__codegraph__*"]
+2026-09-03T06:39:11.846Z [DEBUG] [claudeai-mcp] Disabled: API-key auth precedence active
+2026-09-03T06:39:11.846Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-09-03T06:39:11.890Z [DEBUG] Loaded 16 installed plugins from C:\Users\oleg2\.claude\plugins\installed_plugins.json
+2026-09-03T06:39:11.898Z [DEBUG] Read hooks.json for plugin superpowers (enabled=false; will NOT register, plugin is disabled): C:\Users\oleg2\.claude\plugins\cache\claude-plugins-official\superpowers\6.2.0\hooks\hooks.json
+2026-09-03T06:39:11.898Z [DEBUG] Read hooks.json for plugin remember (enabled=false; will NOT register, plugin is disabled): C:\Users\oleg2\.claude\plugins\cache\claude-plugins-official\remember\0.8.9\hooks\hooks.json
+2026-09-03T06:39:11.898Z [DEBUG] Read manifest hooks for plugin ponytail (enabled=false; will NOT register, plugin is disabled): ./hooks/claude-codex-hooks.json
+2026-09-03T06:39:11.901Z [DEBUG] [STARTUP] Running setup()...
+2026-09-03T06:39:11.903Z [DEBUG] Loading skills from: managed=C:\Program Files\ClaudeCode\.claude\skills, user=C:\Users\oleg2\.claude\skills, project=[]
+2026-09-03T06:39:11.905Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Program Files\ClaudeCode\managed-settings.json
+2026-09-03T06:39:11.907Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\oleg2\Desktop\coding-kit\.worktrees\adaptive-rigor-v1\.claude\settings.json
+2026-09-03T06:39:11.907Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.908Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.909Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\oleg2\Desktop\coding-kit\.worktrees\adaptive-rigor-v1\.claude\settings.local.json
+2026-09-03T06:39:11.909Z [DEBUG] Error log sink initialized
+2026-09-03T06:39:11.910Z [DEBUG] Git remote URL: https://github.com/oleg494/coding-kit.git
+2026-09-03T06:39:11.910Z [DEBUG] Parsed repository: github.com/oleg494/coding-kit from URL: https://github.com/oleg494/coding-kit.git
+2026-09-03T06:39:11.912Z [DEBUG] Failed to stat directory C:\Program Files\ClaudeCode\.claude\commands: ENOENT: no such file or directory, stat 'C:\Program Files\ClaudeCode\.claude\commands'
+2026-09-03T06:39:11.913Z [DEBUG] Failed to stat directory C:\Users\oleg2\.claude\commands: ENOENT: no such file or directory, stat 'C:\Users\oleg2\.claude\commands'
+2026-09-03T06:39:11.913Z [DEBUG] Failed to stat directory C:\Users\oleg2\Desktop\coding-kit\.claude\commands: ENOENT: no such file or directory, stat 'C:\Users\oleg2\Desktop\coding-kit\.claude\commands'
+2026-09-03T06:39:11.913Z [DEBUG] Failed to stat directory C:\Users\oleg2\.claude\agents: ENOENT: no such file or directory, stat 'C:\Users\oleg2\.claude\agents'
+2026-09-03T06:39:11.914Z [DEBUG] Failed to stat directory C:\Users\oleg2\Desktop\coding-kit\.claude\agents: ENOENT: no such file or directory, stat 'C:\Users\oleg2\Desktop\coding-kit\.claude\agents'
+2026-09-03T06:39:11.914Z [DEBUG] Failed to stat directory C:\Program Files\ClaudeCode\.claude\agents: ENOENT: no such file or directory, stat 'C:\Program Files\ClaudeCode\.claude\agents'
+2026-09-03T06:39:11.927Z [DEBUG] [STARTUP] setup() completed in 26ms
+2026-09-03T06:39:11.928Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.928Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:11.928Z [DEBUG] Cleared CA certificates cache
+2026-09-03T06:39:11.928Z [DEBUG] Cleared mTLS configuration cache
+2026-09-03T06:39:11.928Z [DEBUG] Cleared proxy agent cache
+2026-09-03T06:39:11.928Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=C:\Users\oleg2\.certs\russian_trusted_root.pem
+2026-09-03T06:39:11.928Z [DEBUG] CA certs: Loaded 120 bundled root certificates
+2026-09-03T06:39:11.931Z [DEBUG] CA certs: Dropped 8 expired certificate(s) from system store
+2026-09-03T06:39:11.931Z [DEBUG] CA certs: Loaded 107 system CA certificates
+2026-09-03T06:39:11.931Z [DEBUG] CA certs: Appended extra certificates from NODE_EXTRA_CA_CERTS (C:\Users\oleg2\.certs\russian_trusted_root.pem)
+2026-09-03T06:39:11.931Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-09-03T06:39:11.931Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-09-03T06:39:11.950Z [DEBUG] Found 15 plugins (9 enabled, 6 disabled)
+2026-09-03T06:39:11.951Z [DEBUG] getPluginSkills: Processing 9 enabled plugins
+2026-09-03T06:39:11.951Z [DEBUG] Checking plugin context7: skillsPath=none, skillsPaths=0 paths
+2026-09-03T06:39:11.951Z [DEBUG] Checking plugin code-review: skillsPath=none, skillsPaths=0 paths
+2026-09-03T06:39:11.951Z [DEBUG] Checking plugin commit-commands: skillsPath=none, skillsPaths=0 paths
+2026-09-03T06:39:11.951Z [DEBUG] Checking plugin feature-dev: skillsPath=none, skillsPaths=0 paths
+2026-09-03T06:39:11.951Z [DEBUG] Checking plugin frontend-design: skillsPath=exists, skillsPaths=0 paths
+2026-09-03T06:39:11.951Z [DEBUG] Attempting to load skills from plugin frontend-design default skillsPath: C:\Users\oleg2\.claude\plugins\cache\claude-plugins-official\frontend-design\unknown\skills
+2026-09-03T06:39:11.951Z [DEBUG] Checking plugin playground: skillsPath=exists, skillsPaths=0 paths
+2026-09-03T06:39:11.951Z [DEBUG] Attempting to load skills from plugin playground default skillsPath: C:\Users\oleg2\.claude\plugins\cache\claude-plugins-official\playground\unknown\skills
+2026-09-03T06:39:11.952Z [DEBUG] Checking plugin playwright: skillsPath=none, skillsPaths=0 paths
+2026-09-03T06:39:11.952Z [DEBUG] Checking plugin code-simplifier: skillsPath=none, skillsPaths=0 paths
+2026-09-03T06:39:11.952Z [DEBUG] Checking plugin claude-code-setup: skillsPath=exists, skillsPaths=0 paths
+2026-09-03T06:39:11.952Z [DEBUG] Attempting to load skills from plugin claude-code-setup default skillsPath: C:\Users\oleg2\.claude\plugins\cache\claude-plugins-official\claude-code-setup\1.0.0\skills
+2026-09-03T06:39:11.952Z [DEBUG] Total plugin workflows loaded: 0
+2026-09-03T06:39:11.952Z [DEBUG] Registered 0 hooks from 9 plugins
+2026-09-03T06:39:11.954Z [DEBUG] Loaded 42 unique skills (42 unconditional, 0 conditional, managed: 0, user: 42, project: 0, additional: 0, legacy commands: 0)
+2026-09-03T06:39:12.047Z [DEBUG] Loaded 1 commands from plugin code-review default directory
+2026-09-03T06:39:12.047Z [DEBUG] Loaded 1 commands from plugin feature-dev default directory
+2026-09-03T06:39:12.047Z [DEBUG] Loaded 3 commands from plugin commit-commands default directory
+2026-09-03T06:39:12.047Z [DEBUG] Total plugin commands loaded: 5
+2026-09-03T06:39:12.048Z [DEBUG] Loaded 3 agents from plugin feature-dev default directory
+2026-09-03T06:39:12.048Z [DEBUG] Loaded 1 agents from plugin code-simplifier default directory
+2026-09-03T06:39:12.048Z [DEBUG] Total plugin agents loaded: 4
+2026-09-03T06:39:12.050Z [DEBUG] Loaded 1 skills from plugin playground default directory
+2026-09-03T06:39:12.051Z [DEBUG] Loaded 1 skills from plugin frontend-design default directory
+2026-09-03T06:39:12.051Z [DEBUG] Loaded 1 skills from plugin claude-code-setup default directory
+2026-09-03T06:39:12.055Z [DEBUG] Total plugin skills loaded: 3 (0 duplicate/user-owned entries skipped)
+2026-09-03T06:39:12.055Z [DEBUG] getSkills returning: 42 skill dir commands, 3 plugin skills, 35 bundled skills, 0 builtin plugin skills
+2026-09-03T06:39:12.062Z [DEBUG] [STARTUP] Commands and agents loaded in 130ms
+2026-09-03T06:39:12.062Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-09-03T06:39:12.062Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-09-03T06:39:12.062Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-09-03T06:39:12.062Z [DEBUG] Starting background startup prefetches
+2026-09-03T06:39:12.063Z [DEBUG] [Bootstrap] Skipped: Nonessential traffic disabled
+2026-09-03T06:39:12.063Z [DEBUG] [STARTUP] MCP configs resolved in 184ms (awaited at +217ms)
+2026-09-03T06:39:12.064Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:12.065Z [DEBUG] All plugins already exist, skipping migration
+2026-09-03T06:39:12.065Z [DEBUG] Initialized versioned plugins system with 16 plugins
+2026-09-03T06:39:12.065Z [DEBUG] Cleared CA certificates cache
+2026-09-03T06:39:12.065Z [DEBUG] Cleared mTLS configuration cache
+2026-09-03T06:39:12.065Z [DEBUG] Cleared proxy agent cache
+2026-09-03T06:39:12.065Z [DEBUG] CA certs: stores=bundled,system, extraCertsPath=C:\Users\oleg2\.certs\russian_trusted_root.pem
+2026-09-03T06:39:12.066Z [DEBUG] CA certs: Loaded 120 bundled root certificates
+2026-09-03T06:39:12.070Z [DEBUG] CA certs: Dropped 8 expired certificate(s) from system store
+2026-09-03T06:39:12.070Z [DEBUG] CA certs: Loaded 107 system CA certificates
+2026-09-03T06:39:12.070Z [DEBUG] CA certs: Appended extra certificates from NODE_EXTRA_CA_CERTS (C:\Users\oleg2\.certs\russian_trusted_root.pem)
+2026-09-03T06:39:12.070Z [DEBUG] mTLS: Creating HTTPS agent with custom certificates
+2026-09-03T06:39:12.074Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:39:12.075Z [DEBUG] [MCP] --mcp-config servers running fully async (nonblocking)
+2026-09-03T06:39:12.075Z [DEBUG] [MCP] claude.ai connectors running fully async (nonblocking)
+2026-09-03T06:39:12.075Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-09-03T06:39:12.075Z [DEBUG] [3P telemetry] isTelemetryEnabled=false (CLAUDE_CODE_ENABLE_TELEMETRY=undefined)
+2026-09-03T06:39:12.082Z [DEBUG] [auto-mode] verifyAutoModeGateAccess: enabledState=enabled disabledBySettings=false model=claude-sonnet-4-6 modelSupported=true disableFastModeBreakerFires=false carouselAvailable=true canEnterAuto=true
+2026-09-03T06:39:12.090Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:12.090Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:12.098Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-09-03T06:39:12.111Z [DEBUG] [ScheduledTasks] scheduler start() — enabled=false, hasTasks=false
+2026-09-03T06:39:12.116Z [DEBUG] Total LSP servers loaded: 0
+2026-09-03T06:39:12.116Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-09-03T06:39:12.116Z [DEBUG] LSP manager initialized with 0 servers
+2026-09-03T06:39:12.116Z [DEBUG] LSP server manager initialized successfully
+2026-09-03T06:39:12.116Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-09-03T06:39:12.118Z [DEBUG] Failed to stat directory C:\Program Files\ClaudeCode\.claude\skills: ENOENT: no such file or directory, stat 'C:\Program Files\ClaudeCode\.claude\skills'
+2026-09-03T06:39:12.118Z [DEBUG] Failed to stat directory C:\Users\oleg2\Desktop\coding-kit\.claude\skills: ENOENT: no such file or directory, stat 'C:\Users\oleg2\Desktop\coding-kit\.claude\skills'
+2026-09-03T06:39:12.125Z [WARN] [3P telemetry] Event dropped (no event logger initialized): plugin_loaded
+2026-09-03T06:39:12.126Z [WARN] localSettings: not canonicalizing the consent store to C:\Users\oleg2\Desktop\coding-kit — this platform has no uid semantics to verify directory ownership with, so the store stays at the session cwd (canonicalization is POSIX-only)
+2026-09-03T06:39:12.127Z [DEBUG] installPluginsForHeadless: starting
+2026-09-03T06:39:12.131Z [DEBUG] Watching for changes in skill/command directories: C:\Users\oleg2\.claude\skills...
+2026-09-03T06:39:12.149Z [DEBUG] Watching for changes in setting files C:\Users\oleg2\.claude\settings.json...
+2026-09-03T06:39:12.195Z [DEBUG] mcp runtime arm: v1 (source: default)
+2026-09-03T06:39:12.218Z [DEBUG] MCP server "notebooklm": Starting connection with timeout of 30000ms
+2026-09-03T06:39:12.227Z [DEBUG] MCP server "plugin:context7:context7": Starting connection with timeout of 30000ms
+2026-09-03T06:39:12.237Z [DEBUG] MCP server "plugin:playwright:playwright": Starting connection with timeout of 30000ms
+2026-09-03T06:39:12.246Z [DEBUG] MCP server "t-invest": Initializing HTTP transport to https://invest-public-api.tbank.ru/mcp
+2026-09-03T06:39:12.246Z [DEBUG] MCP server "t-invest": Node version: v26.3.0, Platform: win32
+2026-09-03T06:39:12.247Z [DEBUG] MCP server "t-invest": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"localhost,127.0.0.1"}
+2026-09-03T06:39:12.247Z [DEBUG] MCP server "t-invest": HTTP transport options: {"url":"https://invest-public-api.tbank.ru/mcp","headers":{"User-Agent":"claude-code/2.1.220 (sdk-cli)","Accept-Encoding":"identity","Authorization":"[REDACTED]"},"hasAuthProvider":false,"timeoutMs":60000}
+2026-09-03T06:39:12.247Z [DEBUG] MCP server "t-invest": HTTP transport created successfully
+2026-09-03T06:39:12.250Z [DEBUG] MCP server "t-invest": Client created, setting up request handler
+2026-09-03T06:39:12.250Z [DEBUG] MCP server "t-invest": Starting connection with timeout of 30000ms
+2026-09-03T06:39:12.250Z [DEBUG] MCP server "t-invest": Testing basic HTTP connectivity to https://invest-public-api.tbank.ru/mcp
+2026-09-03T06:39:12.250Z [DEBUG] MCP server "t-invest": Parsed URL: host=invest-public-api.tbank.ru, port=default, protocol=https:
+2026-09-03T06:39:12.251Z [DEBUG] MCP server "omniroute": Initializing HTTP transport to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:12.252Z [DEBUG] MCP server "omniroute": Node version: v26.3.0, Platform: win32
+2026-09-03T06:39:12.252Z [DEBUG] MCP server "omniroute": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"localhost,127.0.0.1"}
+2026-09-03T06:39:12.252Z [DEBUG] MCP server "omniroute": HTTP transport options: {"url":"http://localhost:20128/api/mcp/stream","headers":{"User-Agent":"claude-code/2.1.220 (sdk-cli)","Accept-Encoding":"identity","Authorization":"[REDACTED]"},"hasAuthProvider":false,"timeoutMs":60000}
+2026-09-03T06:39:12.252Z [DEBUG] MCP server "omniroute": HTTP transport created successfully
+2026-09-03T06:39:12.253Z [DEBUG] MCP server "omniroute": Client created, setting up request handler
+2026-09-03T06:39:12.253Z [DEBUG] MCP server "omniroute": Starting connection with timeout of 30000ms
+2026-09-03T06:39:12.253Z [DEBUG] MCP server "omniroute": Testing basic HTTP connectivity to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:12.253Z [DEBUG] MCP server "omniroute": Parsed URL: host=localhost, port=20128, protocol=http:
+2026-09-03T06:39:12.253Z [DEBUG] MCP server "omniroute": Using loopback address: localhost
+2026-09-03T06:39:12.277Z [DEBUG] MCP server "omniroute": HTTP Connection failed after 26ms: Unable to connect. Is the computer able to access the url? (code: ConnectionRefused, errno: none)
+2026-09-03T06:39:12.277Z [ERROR] MCP server "omniroute" Error: Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:12.278Z [DEBUG] MCP server "omniroute": Connection failed after 26ms (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:12.278Z [ERROR] MCP server "omniroute" Connection failed (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:12.308Z [DEBUG] Ripgrep first use test: PASSED (mode=embedded, path=C:\Users\oleg2\AppData\Roaming\npm\node_modules\@anthropic-ai\claude-code\bin\claude.exe)
+2026-09-03T06:39:13.629Z [ERROR] MCP server "notebooklm" Server stderr: Traceback (most recent call last):
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastmcp\server\__init__.py", line 6, in <module>
+    from .context import Context
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastmcp\server\context.py", line 15, in <module>
+    from mcp.server.lowlevel.server import request_ctx
+ImportError: cannot import name 'request_ctx' from 'mcp.server.lowlevel.server' (C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\mcp\server\lowlevel\server.py)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastmcp\__init__.py", line 64, in __getattr__
+    from fastmcp.server.server import FastMCP
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastmcp\server\__init__.py", line 9, in <module>
+    raise ImportError(_install_hints.SERVER_SUPPORT) from exc
+ImportError: FastMCP server support is not installed. Install `fastmcp` or `fastmcp-slim[server]`.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Scripts\notebooklm-mcp.exe\__main__.py", line 2, in <module>
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\notebooklm_tools\mcp\server.py", line 24, in <module>
+    from fastmcp import FastMCP
+  File "C:\Users\oleg2\AppData\Local\hermes\hermes-agent\venv\Lib\site-packages\fastmcp\__init__.py", line 66, in __getattr__
+    raise ImportError(_install_hints.SERVER_SUPPORT) from exc
+ImportError: FastMCP server support is not installed. Install `fastmcp` or `fastmcp-slim[server]`.
+2026-09-03T06:39:13.629Z [DEBUG] MCP server "notebooklm": Connection failed after 1415ms (-32000): MCP error -32000: Connection closed
+2026-09-03T06:39:13.629Z [ERROR] MCP server "notebooklm" Connection failed (-32000): MCP error -32000: Connection closed
+2026-09-03T06:39:13.631Z [DEBUG] MCP server "codegraph": Starting connection with timeout of 30000ms
+2026-09-03T06:39:13.917Z [DEBUG] MCP server "codegraph": Successfully connected (transport: stdio) in 288ms
+2026-09-03T06:39:13.917Z [DEBUG] MCP server "codegraph": Connection established with capabilities: {"hasTools":true,"hasPrompts":false,"hasResources":false,"hasResourceSubscribe":false,"serverVersion":{"name":"codegraph","version":"1.6.0"}}
+2026-09-03T06:39:13.917Z [DEBUG] [MCP] Server "codegraph" connected with subscribe=false
+2026-09-03T06:39:13.919Z [DEBUG] MCP server "screenpipe": Starting connection with timeout of 30000ms
+2026-09-03T06:39:13.923Z [DEBUG] MCP server "codegraph": Received ListRoots request from server
+2026-09-03T06:39:13.940Z [ERROR] MCP server "screenpipe" Server stderr: 'C:\Users\oleg2\AppData\Local\screenpipe\bun.exe' is not recognized as an internal or external command,
+operable program or batch file.
+2026-09-03T06:39:13.940Z [DEBUG] MCP server "screenpipe": Connection failed after 22ms (-32000): MCP error -32000: Connection closed
+2026-09-03T06:39:13.940Z [ERROR] MCP server "screenpipe" Connection failed (-32000): MCP error -32000: Connection closed
+2026-09-03T06:39:14.128Z [DEBUG] Failed to stat directory C:\Program Files\ClaudeCode\.claude\output-styles: ENOENT: no such file or directory, stat 'C:\Program Files\ClaudeCode\.claude\output-styles'
+2026-09-03T06:39:14.128Z [DEBUG] Failed to stat directory C:\Users\oleg2\.claude\output-styles: ENOENT: no such file or directory, stat 'C:\Users\oleg2\.claude\output-styles'
+2026-09-03T06:39:14.128Z [DEBUG] Failed to stat directory C:\Users\oleg2\Desktop\coding-kit\.claude\output-styles: ENOENT: no such file or directory, stat 'C:\Users\oleg2\Desktop\coding-kit\.claude\output-styles'
+2026-09-03T06:39:14.128Z [DEBUG] Total plugin output styles loaded: 0
+2026-09-03T06:39:14.129Z [DEBUG] act_dont_rederive_arm_active source=growthbook
+2026-09-03T06:39:14.132Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-09-03T06:39:14.132Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-09-03T06:39:14.426Z [DEBUG] Hook output does not start with {, treating as plain text
+2026-09-03T06:39:14.428Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:39:14.431Z [DEBUG] autocompact: tokens=[REDACTED] level=ok effectiveWindow=180000
+2026-09-03T06:39:14.457Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-09-03T06:39:14.459Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.220.4aa; cc_entrypoint=sdk-cli;
+2026-09-03T06:39:14.459Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:39:14.459Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:39:14.462Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:39:14.462Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:39:14.463Z [DEBUG] [API REQUEST] /v1/messages source=sdk
+2026-09-03T06:39:22.629Z [ERROR] API error (attempt 1/11): 429 429 {"type":"error","error":{"type":"api_error","message":"All 1 attempted keys for provider 'antigravity-local' failed to process the request."}}
+2026-09-03T06:39:23.581Z [DEBUG] MCP server "t-invest": Successfully connected (transport: http) in 11335ms
+2026-09-03T06:39:23.581Z [DEBUG] MCP server "t-invest": Connection established with capabilities: {"hasTools":true,"hasPrompts":false,"hasResources":false,"hasResourceSubscribe":false,"serverVersion":{"name":"t-invest-mcp-server","version":"1.0.9"}}
+2026-09-03T06:39:23.581Z [DEBUG] [MCP] Server "t-invest" connected with subscribe=false
+2026-09-03T06:39:24.640Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:39:24.640Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:39:24.641Z [DEBUG] [API REQUEST] /v1/messages source=sdk
+2026-09-03T06:39:25.895Z [DEBUG] MCP server "plugin:playwright:playwright": Successfully connected (transport: stdio) in 13660ms
+2026-09-03T06:39:25.895Z [DEBUG] MCP server "plugin:playwright:playwright": Connection established with capabilities: {"hasTools":true,"hasPrompts":false,"hasResources":false,"hasResourceSubscribe":false,"serverVersion":{"name":"Playwright","version":"1.63.0-alpha-2026-08-31"}}
+2026-09-03T06:39:25.895Z [DEBUG] [MCP] Server "plugin:playwright:playwright" connected with subscribe=false
+2026-09-03T06:39:26.122Z [ERROR] MCP server "plugin:context7:context7" Server stderr: Context7 Documentation MCP Server v4.0.4 running on stdio
+2026-09-03T06:39:26.122Z [DEBUG] MCP server "plugin:context7:context7": Successfully connected (transport: stdio) in 13897ms
+2026-09-03T06:39:26.122Z [DEBUG] MCP server "plugin:context7:context7": Connection established with capabilities: {"hasTools":true,"hasPrompts":true,"hasResources":true,"hasResourceSubscribe":false,"serverVersion":{"name":"Context7","icons":[{"src":"https://context7.com/context7-icon-green.png","mimeType":"image/png"}],"version":"4.0.4","websiteUrl":"https://context7.com","description":"Context7 provides up-to-date documentation and code examples for libraries and frameworks."}}
+2026-09-03T06:39:26.122Z [DEBUG] [MCP] Server "plugin:context7:context7" connected with subscribe=false
+2026-09-03T06:39:26.628Z [DEBUG] [MCP] Retry: 1 transiently-failed remote server(s) after 500ms backoff
+2026-09-03T06:39:26.629Z [DEBUG] MCP server "omniroute": Initializing HTTP transport to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:26.629Z [DEBUG] MCP server "omniroute": Node version: v26.3.0, Platform: win32
+2026-09-03T06:39:26.629Z [DEBUG] MCP server "omniroute": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"localhost,127.0.0.1"}
+2026-09-03T06:39:26.629Z [DEBUG] MCP server "omniroute": HTTP transport options: {"url":"http://localhost:20128/api/mcp/stream","headers":{"User-Agent":"claude-code/2.1.220 (sdk-cli)","Accept-Encoding":"identity","Authorization":"[REDACTED]"},"hasAuthProvider":false,"timeoutMs":60000}
+2026-09-03T06:39:26.629Z [DEBUG] MCP server "omniroute": HTTP transport created successfully
+2026-09-03T06:39:26.630Z [DEBUG] MCP server "omniroute": Client created, setting up request handler
+2026-09-03T06:39:26.630Z [DEBUG] MCP server "omniroute": Starting connection with timeout of 30000ms
+2026-09-03T06:39:26.630Z [DEBUG] MCP server "omniroute": Testing basic HTTP connectivity to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:26.630Z [DEBUG] MCP server "omniroute": Parsed URL: host=localhost, port=20128, protocol=http:
+2026-09-03T06:39:26.630Z [DEBUG] MCP server "omniroute": Using loopback address: localhost
+2026-09-03T06:39:26.631Z [DEBUG] MCP server "omniroute": HTTP Connection failed after 2ms: Unable to connect. Is the computer able to access the url? (code: ConnectionRefused, errno: none)
+2026-09-03T06:39:26.631Z [ERROR] MCP server "omniroute" Error: Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:26.632Z [DEBUG] MCP server "omniroute": Connection failed after 3ms (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:26.632Z [ERROR] MCP server "omniroute" Connection failed (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:28.145Z [DEBUG] [MCP] Retry: 1 transiently-failed remote server(s) after 1500ms backoff
+2026-09-03T06:39:28.145Z [DEBUG] MCP server "omniroute": Initializing HTTP transport to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:28.145Z [DEBUG] MCP server "omniroute": Node version: v26.3.0, Platform: win32
+2026-09-03T06:39:28.145Z [DEBUG] MCP server "omniroute": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"localhost,127.0.0.1"}
+2026-09-03T06:39:28.146Z [DEBUG] MCP server "omniroute": HTTP transport options: {"url":"http://localhost:20128/api/mcp/stream","headers":{"User-Agent":"claude-code/2.1.220 (sdk-cli)","Accept-Encoding":"identity","Authorization":"[REDACTED]"},"hasAuthProvider":false,"timeoutMs":60000}
+2026-09-03T06:39:28.146Z [DEBUG] MCP server "omniroute": HTTP transport created successfully
+2026-09-03T06:39:28.147Z [DEBUG] MCP server "omniroute": Client created, setting up request handler
+2026-09-03T06:39:28.147Z [DEBUG] MCP server "omniroute": Starting connection with timeout of 30000ms
+2026-09-03T06:39:28.147Z [DEBUG] MCP server "omniroute": Testing basic HTTP connectivity to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:28.147Z [DEBUG] MCP server "omniroute": Parsed URL: host=localhost, port=20128, protocol=http:
+2026-09-03T06:39:28.147Z [DEBUG] MCP server "omniroute": Using loopback address: localhost
+2026-09-03T06:39:28.148Z [DEBUG] MCP server "omniroute": HTTP Connection failed after 3ms: Unable to connect. Is the computer able to access the url? (code: ConnectionRefused, errno: none)
+2026-09-03T06:39:28.148Z [ERROR] MCP server "omniroute" Error: Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:28.148Z [DEBUG] MCP server "omniroute": Connection failed after 3ms (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:28.148Z [ERROR] MCP server "omniroute" Connection failed (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:32.154Z [DEBUG] [MCP] Retry: 1 transiently-failed remote server(s) after 4000ms backoff
+2026-09-03T06:39:32.155Z [DEBUG] MCP server "omniroute": Initializing HTTP transport to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:32.155Z [DEBUG] MCP server "omniroute": Node version: v26.3.0, Platform: win32
+2026-09-03T06:39:32.155Z [DEBUG] MCP server "omniroute": Environment: {"NODE_OPTIONS":"not set","UV_THREADPOOL_SIZE":"default","HTTP_PROXY":"not set","HTTPS_PROXY":"not set","NO_PROXY":"localhost,127.0.0.1"}
+2026-09-03T06:39:32.155Z [DEBUG] MCP server "omniroute": HTTP transport options: {"url":"http://localhost:20128/api/mcp/stream","headers":{"User-Agent":"claude-code/2.1.220 (sdk-cli)","Accept-Encoding":"identity","Authorization":"[REDACTED]"},"hasAuthProvider":false,"timeoutMs":60000}
+2026-09-03T06:39:32.155Z [DEBUG] MCP server "omniroute": HTTP transport created successfully
+2026-09-03T06:39:32.157Z [DEBUG] MCP server "omniroute": Client created, setting up request handler
+2026-09-03T06:39:32.157Z [DEBUG] MCP server "omniroute": Starting connection with timeout of 30000ms
+2026-09-03T06:39:32.157Z [DEBUG] MCP server "omniroute": Testing basic HTTP connectivity to http://localhost:20128/api/mcp/stream
+2026-09-03T06:39:32.157Z [DEBUG] MCP server "omniroute": Parsed URL: host=localhost, port=20128, protocol=http:
+2026-09-03T06:39:32.157Z [DEBUG] MCP server "omniroute": Using loopback address: localhost
+2026-09-03T06:39:32.158Z [DEBUG] MCP server "omniroute": HTTP Connection failed after 3ms: Unable to connect. Is the computer able to access the url? (code: ConnectionRefused, errno: none)
+2026-09-03T06:39:32.158Z [ERROR] MCP server "omniroute" Error: Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:32.159Z [DEBUG] MCP server "omniroute": Connection failed after 3ms (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:32.159Z [ERROR] MCP server "omniroute" Connection failed (ConnectionRefused): Unable to connect. Is the computer able to access the url?
+2026-09-03T06:39:32.159Z [DEBUG] [MCP] Retry: 1 remote server(s) still failed after all retries: omniroute
+2026-09-03T06:39:54.647Z [WARN] Slow first byte: no stream chunk 30.0s after request sent (attempt 2)
+2026-09-03T06:40:12.254Z [DEBUG] [skills] idle — switching poll interval to 30000ms
+2026-09-03T06:40:24.747Z [ERROR] API error (attempt 2/11): 502 502 {"type":"error","error":{"type":"api_error","message":"All 1 attempted keys for provider 'antigravity-local' failed to process the request."}}
+2026-09-03T06:40:25.920Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:40:25.920Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:40:25.921Z [DEBUG] [API REQUEST] /v1/messages source=sdk
+2026-09-03T06:40:55.922Z [WARN] Slow first byte: no stream chunk 30.0s after request sent (attempt 3)
+2026-09-03T06:41:26.032Z [ERROR] API error (attempt 3/11): 502 502 {"type":"error","error":{"type":"api_error","message":"All 1 attempted keys for provider 'antigravity-local' failed to process the request."}}
+2026-09-03T06:41:28.090Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:41:28.090Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:41:28.090Z [DEBUG] [API REQUEST] /v1/messages source=sdk
+2026-09-03T06:41:33.998Z [ERROR] API error (attempt 4/11): 429 429 {"type":"error","error":{"type":"api_error","message":"All 1 attempted keys for provider 'antigravity-local' failed to process the request."}}
+2026-09-03T06:41:38.248Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:41:38.248Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:41:38.249Z [DEBUG] [API REQUEST] /v1/messages source=sdk
+2026-09-03T06:42:08.255Z [WARN] Slow first byte: no stream chunk 30.0s after request sent (attempt 5)
+2026-09-03T06:42:38.386Z [ERROR] API error (attempt 5/11): 502 502 {"type":"error","error":{"type":"api_error","message":"All 1 attempted keys for provider 'antigravity-local' failed to process the request."}}
+2026-09-03T06:42:48.063Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:42:48.063Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:42:48.064Z [DEBUG] [API REQUEST] /v1/messages source=sdk
+2026-09-03T06:43:18.064Z [WARN] Slow first byte: no stream chunk 30.0s after request sent (attempt 6)
+2026-09-03T06:43:43.055Z [ERROR] API error (attempt 6/11): 429 429 {"type":"error","error":{"type":"api_error","message":"All 1 attempted keys for provider 'antigravity-local' failed to process the request."}}
+2026-09-03T06:44:02.422Z [DEBUG] Fast mode unavailable: Fast mode is not available in the Agent SDK
+2026-09-03T06:44:02.423Z [DEBUG] [API:timing] dispatching to firstParty model=claude-sonnet-4-6
+2026-09-03T06:44:02.423Z [DEBUG] [API REQUEST] /v1/messages source=sdk
