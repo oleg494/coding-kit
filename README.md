@@ -1,6 +1,6 @@
 # coding-kit — Coding Agent OS
 
-A portable agent-brain kit: methodology (superpowers), minimalism (YAGNI), cross-chat memory (SQLite FTS5), adversarial evals (trap-suite). 43 Hermes-compatible skills, English instructions, one command install.
+A portable agent-brain kit: methodology (superpowers), minimalism (YAGNI), cross-chat memory (SQLite FTS5), adversarial evals (trap-suite). 36 Hermes-compatible skills, English instructions, one command install.
 
 Works in any environment that reads an agent rules file and SKILL.md skills: Claude Code, OMP, Antigravity, Hermes, ZCode.
 
@@ -12,9 +12,9 @@ Works in any environment that reads an agent rules file and SKILL.md skills: Cla
 | Contract | `OPS.md` | phases, memory hierarchy, gates, changelog |
 | Runtime | `SKILL_RUNTIME.md` | context-size modes |
 | Manifest | `profile.yml` | single source of truth: paths, skills |
-| Skills | `skills/` | 43: always-on core + obra phase skills + domain + dashboard/UX |
+| Skills | `skills/` | 36: always-on core + obra phase skills + domain + dashboard/UX |
 | Memory engine | `memory/db-tools/` | build, search_all, findings, repomap (FTS5) |
-| Evals | `eval/` | trap-suite (21 scenarios), task smoke (4 oracle-verified tasks), trigger-eval (80 queries), ablation, schema-v1 store + trend + telemetry |
+| Evals | `eval/` | trap-suite (23 scenarios), task smoke (6 oracle-verified tasks incl. 2 canaries), trigger-eval (80 central + 6 co-located queries), ablation, rigor A/B, schema-v1 store + trend + telemetry |
 | Adapters | `adapters/` | per-environment setup guides |
 
 ## Install (one command)
@@ -43,7 +43,7 @@ python ~/.memory/db-tools/search_all.py "X"    # before "what do we know about X
 ```
 
 Gates and checks (the kit's own lifecycle, run directly):
-- `python scripts/doctor.py` — 9 self-diagnostic health checks.
+- `python scripts/doctor.py` — 14 self-diagnostic health checks.
 - `python -m pytest tests -q` — unit test suite.
 - `python scripts/tools/check_file_sizes.py --ci` — file-size gate (hard limits).
 - `python memory/scripts/memory-warmup.py` — cross-chat memory warmup.
