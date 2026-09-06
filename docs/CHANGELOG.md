@@ -4,6 +4,27 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.2.0 (2026-09-06)**:
+  - **Instruction precedence & authorization gate**: clarified hierarchy
+    (host system/developer > user instructions > kit skills) in AGENTS.md and
+    OPS.md; replaced brainstorming hard gate with authorization gate to allow
+    proceeding on authorized reversible local work without false halts.
+  - **Verification scope calibration**: calibrated testing discipline to run
+    checks appropriate to the scope of change without redundant whole-suite
+    ceremony on untouched components or claiming unrun suites.
+  - **Deploy CLI safety boundary**: added argparse CLI interface to
+    `scripts/tools/deploy.py` so `--help` and invalid flags exit safely without
+    triggering unintentional deployment sequences.
+  - **Runner & tooling resilience**: restored stdlib fallback in `lint_wiki.py`
+    and `scripts/doctor.py` for environments lacking PyYAML; handled Windows
+    cross-drive execution in findings tests; fixed backup CLI exit code on
+    skipped databases; byte-level integrity manifest hashing.
+  - **Trap-suite & eval expansion**: expanded trap-suite from 24 to 26
+    scenarios (`authorized-work-proceeds`, `calibrated-testing`).
+  - **Licensing & attribution**: preserved `license: Proprietary` on
+    `skills/windows-encoding-fixes` with explicit README disclosure without
+    unsubstantiated claims of an all-MIT bundle.
+
 - **Post-v4.1.0 deploy CLI boundary fix (2026-09-06)**:
   - `scripts/tools/deploy.py` now parses CLI flags via argparse; `--help`
     no longer executes a full rollout (previously `main()` ran the deploy
