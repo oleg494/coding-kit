@@ -14,7 +14,7 @@ You delegate tasks to specialized agents with isolated context. By precisely cra
 
 When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.
 
-**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.
+**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently. If you can parallelize work by delegating — whether you are the root agent or a subagent — do so when it saves time or improves quality; under-delegating sequential work that was independent is its own failure mode.
 
 ## When to Use
 
@@ -84,7 +84,7 @@ Multiple dispatch calls in one response = parallel execution. One per response =
 When agents return:
 - Read each summary
 - Verify fixes don't conflict
-- Run full test suite
+- Run the tests appropriate to the integrated change
 - Integrate all changes
 
 ## Agent Prompt Structure
@@ -154,19 +154,18 @@ Agent 2 → Fix batch-completion-behavior.test.ts
 Agent 3 → Fix tool-approval-race-conditions.test.ts
 ```
 
-**Results:**
-- Agent 1: Replaced timeouts with event-based waiting
-- Agent 2: Fixed event structure bug (threadId in wrong place)
-- Agent 3: Added wait for async tool execution to complete
-
-**Integration:** All fixes independent, no conflicts, full suite green
+**Results:** three independent fixes, no conflicts; that session ran the
+full suite because all three agents touched shared async-wait code —
+scope followed the change, as the Verification section below requires.
 
 ## Verification
 
 After agents return:
 1. **Review each summary** - Understand what changed
 2. **Check for conflicts** - Did agents edit same code?
-3. **Run full suite** - Verify all fixes work together
+3. **Run the tests appropriate to the integrated change** - the suites the
+   touched code belongs to; go suite-wide when the agents touched shared
+   code or a targeted run fails
 4. **Spot check** - Agents can make systematic errors
 
 ---

@@ -139,3 +139,88 @@ def test_parse_stream_uses_result_usage_without_double_counting():
     assert parsed["tool_calls"] == 0
     assert parsed["input_tokens"] == 1039
     assert parsed["tokens_total"] == 1078
+
+
+def test_parse_stream_counts_cached_input_and_prefers_final_totals():
+    usage = {"input_tokens": 50, "cache_read_input_tokens": 100000,
+             "cache_creation_input_tokens": 1000, "output_tokens": 20}
+    stream = "\n".join([
+        json.dumps({"type": "assistant", "message": {"usage": usage}}),
+        json.dumps({"type": "result", "usage": usage}),
+    ])
+
+    parsed = runner._parse_stream(stream)
+
+    assert parsed["input_tokens"] == 101050
+    assert parsed["tokens_total"] == 101070
+
+
+def test_parse_stream_counts_cache_when_only_model_usage_is_available():
+    stream = json.dumps({"type": "result", "modelUsage": {
+        "primary": {"inputTokens": 10, "cacheReadInputTokens": 100,
+                    "cacheCreationInputTokens": 20, "outputTokens": 5},
+        "secondary": {"inputTokens": 2, "cacheReadInputTokens": 30,
+                      "cacheCreationInputTokens": 4, "outputTokens": 1},
+    }})
+
+    parsed = runner._parse_stream(stream)
+
+    assert parsed["input_tokens"] == 166
+    assert parsed["tokens_total"] == 172
+
+
+def test_parse_stream_counts_cache_without_final_result():
+    stream = json.dumps({"type": "assistant", "message": {"usage": {
+        "input_tokens": 0, "cache_read_input_tokens": 100,
+        "cache_creation_input_tokens": 20, "output_tokens": 5,
+    }}})
+
+    parsed = runner._parse_stream(stream)
+
+    assert parsed["input_tokens"] == 120
+    assert parsed["tokens_total"] == 125
+
+
+def test_parse_stream_empty_result_usage_falls_back_to_model_usage():
+    stream = "\n".join([
+        json.dumps({"type": "assistant", "message": {
+            "usage": {"input_tokens": 7, "output_tokens": 3},
+        }}),
+        json.dumps({"type": "result", "usage": {},
+                    "modelUsage": {"primary": {
+                        "inputTokens": 40, "outputTokens": 6}}}),
+    ])
+
+    parsed = runner._parse_stream(stream)
+
+    assert parsed["input_tokens"] == 40
+    assert parsed["tokens_total"] == 46
+
+
+def test_parse_stream_empty_result_usage_falls_back_to_assistant_usage():
+    stream = "\n".join([
+        json.dumps({"type": "assistant", "message": {
+            "usage": {"input_tokens": 7, "output_tokens": 3},
+        }}),
+        json.dumps({"type": "result", "usage": {}}),
+    ])
+
+    parsed = runner._parse_stream(stream)
+
+    assert parsed["input_tokens"] == 7
+    assert parsed["tokens_total"] == 10
+
+
+def test_parse_stream_zero_result_totals_take_precedence_over_assistant():
+    stream = "\n".join([
+        json.dumps({"type": "assistant", "message": {
+            "usage": {"input_tokens": 7, "output_tokens": 3},
+        }}),
+        json.dumps({"type": "result", "usage": {
+            "input_tokens": 0, "output_tokens": 0}}),
+    ])
+
+    parsed = runner._parse_stream(stream)
+
+    assert parsed["input_tokens"] == 0
+    assert parsed["tokens_total"] == 0

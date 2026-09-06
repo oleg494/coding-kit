@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_VERSION = "4.1.0"
 EXPECTED_SKILL_COUNT = 36
-EXPECTED_SCENARIO_COUNT = 24
+EXPECTED_SCENARIO_COUNT = 26
 EXPECTED_TRIGGER_QUERY_COUNT = 80
 EXPECTED_TASK_COUNT = 6
 
@@ -327,7 +327,11 @@ class DeployReleaseMechTest(unittest.TestCase):
     """The release mechanism itself: a VERSION bump must propagate to
     the machine CLAUDE.md (deploy docstring promise). The call was
     missing from main() for at least one release — verify() then failed
-    on every bump (observed 2026-09-03, v4.1.0)."""
+    on every bump (observed 2026-09-03, v4.1.0).
+    The main() call-sequence contract (gate -> sync -> routers -> bump ->
+    verify) is asserted behaviorally in tests/test_deploy_cli.py
+    (DeployDryRunBoundaryTest.test_no_args_still_runs_full_deploy_sequence),
+    which catches a missing call instead of pinning source text."""
 
     def _deploy(self):
         import importlib.util
@@ -360,14 +364,5 @@ class DeployReleaseMechTest(unittest.TestCase):
                 self.assertIn("# local trigger line",
                               f.read_text(encoding="utf-8"))
                 self.assertEqual(dep.bump_claude_md(), "unchanged")
-
-    def test_main_calls_bump_claude_md(self):
-        src = (ROOT / "scripts" / "tools" / "deploy.py").read_text(
-            encoding="utf-8")
-        main_src = src[src.index("def main():"):]
-        self.assertIn("bump_claude_md()", main_src,
-                      "main() must bump the machine CLAUDE.md or "
-                      "verify() fails on every VERSION bump")
-
 if __name__ == "__main__":
     unittest.main()

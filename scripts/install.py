@@ -34,6 +34,24 @@ ENGINE = KIT / "memory" / "db-tools"
 WIKI_TYPES = ("reference", "howto", "errors", "decisions", "ideas")
 ENGINE_VERSION = "2.9"
 
+# Cycle files the dev-wiki contract (AGENTS.md Session End, warmup
+# integrity_check) assumes exist. Seeded ONLY when absent — a re-run
+# never overwrites a user's index/log (install philosophy: never
+# destroy what may be data).
+_WIKI_SEEDS = {
+    "index.md": (
+        "# Index — Wiki catalogue\n"
+        "\n"
+        "| Entry | Topic | Tags | Date | Folder |\n"
+        "|-------|-------|------|------|--------|\n"
+    ),
+    "log.md": (
+        "# Log — Wiki changelog\n"
+        "\n"
+        "Format: `YYYY-MM-DD HH:MM — action — file(s) — what was done`\n"
+    ),
+}
+
 
 def memory_root() -> Path:
     env = os.environ.get("MEMORY_ROOT")
@@ -204,6 +222,11 @@ def main(argv: list = None) -> int:
     for d in [root / "db", root / "scripts"] + [
             root / "Wiki" / t for t in WIKI_TYPES]:
         d.mkdir(parents=True, exist_ok=True)
+    for name, text in _WIKI_SEEDS.items():
+        target = root / "Wiki" / name
+        if not target.exists():
+            target.write_text(text, encoding="utf-8", newline="\n")
+            print(f"  seeded Wiki/{name}")
     (root / "VERSION").write_text(
         ENGINE_VERSION + "\n", encoding="utf-8", newline="\n")
 

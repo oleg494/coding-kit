@@ -38,8 +38,7 @@ cp -r skills/. ~/.claude/skills/   # contents; safe when the dir exists
 ```
 
 
-<!-- Gemini CLI retired by Google 2026-06-18; Antigravity is the successor.
-     Historical chat-JSON archives remain readable via
+<!-- Historical Gemini CLI chat-JSON archives remain readable via
      eval/transcript_normalize.py --source gemini. -->
 
 ### Hermes
@@ -63,4 +62,10 @@ cp -r skills/. ~/.claude/skills/   # contents; safe when the dir exists
 
 ## Verify
 
-Ask the agent to show its method (plan → TDD → implement → verify → report) and to search memory for a topic: it must route through `python ~/.memory/db-tools/search_all.py "X"` (or `findings.py search`), not answer from conversation. Behavior over identity.
+File presence/consistency (what `scripts/doctor.py` skills-sync checks) is
+NOT activation. Verify integration by behavior: ask the agent to show its
+method (plan → TDD → implement → verify → report) and to search memory for
+a topic: it must route through
+`python ~/.memory/db-tools/search_all.py "X"` (or `findings.py search`),
+not answer from conversation. Behavior over identity. No kit check proves
+model activation without launching your harness; the kit claims none.

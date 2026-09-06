@@ -15,7 +15,10 @@ evaluates the seven spec conditions:
 
 Effort ratio for metric x, tier t: median across tasks of
 median(candidate x) / median(baseline x). A metric is complete for a tier iff
-recorded for every task attempt in both arms.
+recorded for every task attempt in both arms. input_tokens is compared only
+when both documents carry top-level input_token_accounting="total_input_v1"
+(cache-aware totals); otherwise its ratio is None and a finding records the
+legacy/unknown accounting.
 """
 from __future__ import annotations
 
@@ -39,6 +42,7 @@ NAMED_TRAPS = ("breaking-migration", "converge-audit", "dead-flag",
                "shell-injection", "silent-cross-write", "silent-test-skip",
                "weakened-test")
 EFFORT_METRICS = ("agent_steps", "tool_calls", "input_tokens")
+INPUT_TOKEN_ACCOUNTING = "total_input_v1"
 FAST_SATISFIER = 0.75
 RATIO_CEILING = 1.10
 REQUIRED_MODEL_ARMS = 2
@@ -51,6 +55,12 @@ ROUTE_IDS = tuple(
 
 def _median(values: list[float]) -> float:
     return statistics.median(values) if values else float("nan")
+
+
+def tokens_comparable(base: dict, cand: dict) -> bool:
+    """input_tokens comparable only under the shared total_input_v1 contract."""
+    return (base.get("input_token_accounting") == INPUT_TOKEN_ACCOUNTING
+            and cand.get("input_token_accounting") == INPUT_TOKEN_ACCOUNTING)
 
 
 def _load(path: Path) -> dict:
@@ -170,12 +180,20 @@ def _coverage_notes(doc: dict, label: str,
 
 def effort_ratios(base: dict, cand: dict, model: str,
                   tier: str) -> dict[str, float | None]:
-    """Per-metric ratio; None when the metric is incomplete for the tier."""
+    """Per-metric ratio; None when the metric is incomplete for the tier.
+
+    input_tokens is None unless both documents carry
+    input_token_accounting="total_input_v1" (see tokens_comparable).
+    """
     b_att, c_att = _task_attempts(base, model), _task_attempts(cand, model)
+    comparable = tokens_comparable(base, cand)
     ratios: dict[str, float | None] = {}
     names = [n for n, t in TASK_TIERS.items() if t == tier]
     for metric in EFFORT_METRICS:
-        b_med, c_med = [], []
+        if metric == "input_tokens" and not comparable:
+            ratios[metric] = None
+            continue
+        task_ratios: list[float] = []
         complete = True
         for name in names:
             ba, ca = b_att.get(name, []), c_att.get(name, [])
@@ -187,15 +205,17 @@ def effort_ratios(base: dict, cand: dict, model: str,
             if any(v is None for v in bv + cv):
                 complete = False
                 break
-            b_med.append(_median([float(v) for v in bv]))
-            c_med.append(_median([float(v) for v in cv]))
-        if not complete or not b_med:
+            b_med = _median([float(v) for v in bv])
+            c_med = _median([float(v) for v in cv])
+            if not b_med:
+                complete = False
+                break
+            task_ratios.append(c_med / b_med)
+        if not complete or not task_ratios:
             ratios[metric] = None
             continue
-        denom = _median(b_med)
-        ratios[metric] = (_median(c_med) / denom) if denom else None
+        ratios[metric] = _median(task_ratios)
     return ratios
-
 
 def evaluate(base_path: Path, cand_path: Path,
              harness_green: bool) -> dict:
@@ -331,6 +351,13 @@ def evaluate(base_path: Path, cand_path: Path,
                "KEEP_BASELINE" if keep_only else
                "ACCEPT" if all(c["ok"] for c in cond.values()) else
                "ACCEPT_WITH_WARNINGS")
+    if not tokens_comparable(base, cand):
+        findings.append(
+            "input_tokens ratios excluded: baseline "
+            f"{base.get('input_token_accounting')!r} / candidate "
+            f"{cand.get('input_token_accounting')!r} accounting; requires "
+            f"{INPUT_TOKEN_ACCOUNTING!r} on both documents"
+        )
     for idx, c in cond.items():
         if not c["ok"]:
             findings.append(f"cond-{idx}: " + "; ".join(c["notes"]))

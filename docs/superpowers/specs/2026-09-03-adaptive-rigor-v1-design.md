@@ -146,6 +146,14 @@ Two model IDs under this controlled profile satisfy the two-configuration requir
 Trajectories record `agent_steps` and `tool_calls`. Schema-v1 `kind="rigor"` result
 stores attempts, verdicts, metrics, traces, and ambient control state.
 
+Accounting correction (2026-09-05): new results carry top-level
+`input_token_accounting="total_input_v1"`. Input volume is uncached input +
+cache-read input + cache-creation input, not billed cost or quota usage.
+The gate compares `input_tokens` only when both arms carry this marker;
+otherwise it reports that metric unavailable and evaluates the remaining
+complete effort metrics. Unmarked historical snapshots stay immutable:
+their stored totals lack the raw cache fields needed for reconstruction.
+
 ## Acceptance gate
 
 For metric `x`, tier ratio is median across tasks of `median(candidate x) / median(baseline x)`.

@@ -501,6 +501,34 @@ class BackupDrillTest(unittest.TestCase):
             finally:
                 os.environ.pop("MEMORY_ROOT", None)
 
+    def test_backup_cli_fails_when_database_is_skipped(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = _seed_memory_root(Path(tmp))
+            env = dict(os.environ, MEMORY_ROOT=str(root),
+                       MEMORY_ROOT_BACKUP_DEST="", PYTHONIOENCODING="utf-8")
+            command = [sys.executable, str(KIT / "scripts" / "tools" /
+                                         "backup_memory.py")]
+            healthy = subprocess.run(command + ["--dest", str(Path(tmp) / "good")],
+                                     env=env, capture_output=True, text=True,
+                                     encoding="utf-8", timeout=30)
+            self.assertEqual(healthy.returncode, 0, healthy.stderr)
+            live = root / "db" / "research.db"
+            live.write_bytes(b"not a sqlite database")
+            damaged = subprocess.run(command + ["--dest", str(Path(tmp) / "bad")],
+                                     env=env, capture_output=True, text=True,
+                                     encoding="utf-8", timeout=30)
+            result = json.loads(damaged.stdout)
+            self.assertTrue(result["skipped"])
+            self.assertEqual(damaged.returncode, 1, damaged.stdout)
+            snapshot = Path(result["path"])
+            self.assertTrue((snapshot / ".degraded").is_file())
+            self.assertFalse((snapshot / ".complete").exists())
+            self.assertEqual(live.read_bytes(), b"not a sqlite database")
+
     def test_cli_fails_when_integrity_check_fails(self):
         from unittest import mock
         with mock.patch.object(

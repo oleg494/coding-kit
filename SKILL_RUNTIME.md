@@ -31,7 +31,8 @@ PLAN → TDD → IMPLEMENT → VERIFY → REPORT
 
 ### 5. VERIFY
 - Test green? → observed.
-- All existing tests green? → ran them.
+- Tests appropriate to the change green? → ran them; broaden when scope
+  warrants (shared code touched, or a failure the targeted check exposed).
 - Build intact? → checked.
 - Bug fix → TWINS: searched for the same pattern in the codebase.
 

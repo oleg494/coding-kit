@@ -28,7 +28,9 @@ If you haven't run the verification command in this message, you cannot claim it
 BEFORE claiming any status or expressing satisfaction:
 
 1. IDENTIFY: What command proves this claim?
-2. RUN: Execute the FULL command (fresh, complete)
+2. RUN: Execute that command fresh and completely — "FULL" means no
+   truncated or partial run of the check that proves THIS claim, not every
+   check the repo happens to have
 3. READ: Full output, check exit code, count failures
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
@@ -37,6 +39,12 @@ BEFORE claiming any status or expressing satisfaction:
 
 Skip any step = lying, not verifying
 ```
+
+**Scope is part of honesty, in both directions.** Claiming a suite-wide
+green you did not run is a lie; re-running an unchanged check with no new
+changes, failures, or unresolved concerns is ceremony, not verification.
+Broaden when scope warrants: shared code touched, or a failure the targeted
+check exposed.
 
 ## Common Failures
 

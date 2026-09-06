@@ -22,8 +22,8 @@ committed baselines. Mutable eval/results artifacts stay unpinned):
     eval/baselines/*.json,
     memory/db-tools/*.py, memory/scripts/*.py, skills/*/SKILL.md
 
-Hashes are computed over utf-8 text with newlines normalized to \n, so a
-CRLF checkout of the same content never flags false drift.
+Hashes cover raw bytes with CRLF/CR normalized to LF; invalid UTF-8 bytes
+remain distinct. Newline-only checkout differences never flag false drift.
 
 Run:
     python scripts/tools/integrity_manifest.py            # check (exit 1 on drift)
@@ -86,17 +86,13 @@ def scope_files(root: Path) -> list[Path]:
         (p.relative_to(root).as_posix(), p) for p in out)]
 
 
-def _sha256_text(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
 def _hash_file(p: Path) -> str:
-    text = p.read_text(encoding="utf-8", errors="replace")
-    return _sha256_text(text.replace("\r\n", "\n").replace("\r", "\n"))
+    content = p.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(content).hexdigest()
 
 
 def build_manifest(root: Path) -> dict[str, str]:
-    """{relpath (posix, sorted): sha256 of \\n-normalized utf-8 content}."""
+    """{relpath (posix, sorted): sha256 of newline-normalized bytes}."""
     return {p.relative_to(root).as_posix(): _hash_file(p)
             for p in scope_files(root)}
 

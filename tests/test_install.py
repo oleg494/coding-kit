@@ -82,6 +82,48 @@ class InstallTest(unittest.TestCase):
         self.assertEqual(install.main(), 0)
         self.assertEqual(install.main(), 0)
 
+    def test_fresh_install_seeds_wiki_cycle_files(self):
+        """R1 (2026-09-05): a fresh root must satisfy the warmup
+        integrity contract, not just the layout contract. Pre-fix this
+        failed: install was green but memory-warmup reported
+        'Wiki/index.md missing, Wiki/log.md missing' on first boot."""
+        self.assertEqual(install.main(), 0)
+        for name in ("index.md", "log.md"):
+            seeded = self.root / "Wiki" / name
+            self.assertTrue(seeded.is_file(), f"Wiki/{name} must be seeded")
+
+    def test_seeded_root_is_warmup_clean(self):
+        """Observable warmup integrity on a fresh install (real CLI,
+        isolated root, separate process)."""
+        self.assertEqual(install.main(), 0)
+        warmup = self.root / "scripts" / "memory-warmup.py"
+        r = subprocess.run(
+            [sys.executable, str(warmup)],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120,
+            env={**os.environ, "MEMORY_ROOT": str(self.root)},
+        )
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        self.assertIn("Integrity: OK", r.stdout,
+                      "fresh install must pass warmup integrity: "
+                      + r.stdout[-400:])
+        self.assertNotIn("missing", r.stdout,
+                         "fresh install must not report missing cycle files")
+
+    def test_rerun_preserves_existing_wiki_cycle_files(self):
+        """Seed is absent-only: a re-run never overwrites a user's
+        index/log (never destroy what may be data)."""
+        self.assertEqual(install.main(), 0)
+        idx = self.root / "Wiki" / "index.md"
+        log = self.root / "Wiki" / "log.md"
+        idx.write_text("# my precious index\n| custom |\n", encoding="utf-8")
+        log.write_text("# my precious log\n", encoding="utf-8")
+        self.assertEqual(install.main(), 0)
+        self.assertEqual(idx.read_text(encoding="utf-8"),
+                         "# my precious index\n| custom |\n")
+        self.assertEqual(log.read_text(encoding="utf-8"),
+                         "# my precious log\n")
+
     def test_foreign_link_is_repointed(self):
         foreign = self.tmp / "other-engine"
         foreign.mkdir()

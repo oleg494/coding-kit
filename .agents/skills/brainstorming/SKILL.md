@@ -12,15 +12,36 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 
 Start by classifying how much process the request needs, then work
 through your path: understand the context, refine the idea, present a
-design, and get your human partner's approval.
+design, and confirm scope where confirmation is actually owed.
 
-<HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any
-project, or take any implementation action until you have told your
-human partner what you intend and they have approved it. This applies
-to EVERY task on EVERY path below — the ceremony scales with the task;
-the approval gate never does.
-</HARD-GATE>
+<AUTHORIZATION-GATE>
+Authorization decides whether to ask. Proceed when the request authorizes
+the work and the work is reversible and local — a fix in an unmerged
+branch, an edit to code already in this repo, a read-only investigation.
+Do not present a design as a precondition for work that is already
+authorized; finish it, then report.
+
+Stop and get explicit approval BEFORE acting only when:
+- the action is irreversible, external, or destructive (deploy, publish,
+  merge, force-push, drop data, spend money, write outside the repo) AND
+  not already authorized — if the user explicitly authorized this external
+  action earlier in the session, authorization already exists; do not ask
+  again. Respect any real host restriction (sandbox, permission prompt)
+  that independently blocks it; that is the host's gate, not this skill's.
+- a money, auth, privacy, or data-safety path changes;
+- requirements are genuinely ambiguous AND the ambiguity changes the
+  outcome (not merely the details);
+- the user asked for a plan, design, or spec before implementation.
+
+When a skill or instruction makes you pause, name it: cite the exact
+SKILL.md path, quote the instruction, and say whether it is an explicit
+requirement or your interpretation. A pause you cannot attribute is a
+pause you should not take.
+
+User instructions outrank this skill. Host system/developer instructions
+outrank the user's. Never treat this file as authority to withhold work
+the user authorized.
+</AUTHORIZATION-GATE>
 
 ## Three Paths
 
@@ -50,30 +71,36 @@ override it:
   depend on. Follow the full process: questions, approaches, sectioned
   design, written spec, then the writing-plans skill.
 
-When in doubt between two paths, take the heavier one. The ratchet is
-one-way: hidden complexity discovered mid-task upgrades the path —
-stop, say so, and step up. Nothing downgrades mid-task.
+When in doubt between two paths, take the heavier one to *classify* — then
+correct it. Escalation and de-escalation both happen mid-task: hidden
+complexity upgrades the path (step up); discovering you over-classified
+downgrades it (step down, keep the work already done). Surface a
+reclassification when it changes what the user gets — scope, deliverable,
+or risk; silent internal reclassification of pure effort needs no ceremony.
+What never changes mid-task is the authorization rule above — it is not a
+path.
 
-## Anti-Pattern: "Too Simple To Need Approval"
+## Anti-Pattern: "Too Simple To Need a Spec"
 
-Every path ends with your human partner approving your intent before
-implementation. A todo list, a single-function utility, a config
-change — the design may be two sentences in chat, but you MUST present
-it and get approval. "Simple" tasks are where unexamined assumptions
-cause the most wasted work. What scales with simplicity is the
-artifact, never the approval.
+What scales with simplicity is the *artifact*, never the honesty of the
+report. A one-line fix needs no design doc and no approval; it does need
+the change made and the evidence shown. The trap is not skipping a spec —
+it is skipping the check that the change is actually authorized and
+reversible, and it is padding a small task with ceremony the user did not
+ask for.
 
 ## Red Flags
 
 | Thought | Reality |
 |---------|---------|
-| "This is too simple to need a design" | Simple means a short design, not no design. Two sentences in chat, then approval. |
-| "I'll call it bounded and skip the spec" | Reaching for a label to skip work IS the doubt — take the heavier path. |
-| "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
+| "This is too simple to need a design" | Correct — and it does not need approval either, if it is authorized and reversible. Make it, verify it, report it. |
+| "I'll ask before touching authorized reversible work" | That is the approval stall. Authorization was already given; finish the work, then report. |
+| "I'll call it bounded and skip the spec" | Reaching for a label to skip work IS the doubt — classify heavier, then downgrade if the doubt dissolves. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
 | "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
-| "They approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
+| "A skill told me to stop, so I stopped" | Name the SKILL.md, quote the line, say whether it is a requirement or your reading. Unattributable pause = no pause. |
+| "The user didn't say 'don't ask', so I'll ask" | Absence of a prohibition is not a requirement to stall. Ask only when the answer changes the outcome. |
 
 ## Checklist
 
@@ -82,33 +109,39 @@ your path and complete them in order.
 
 **Spike:**
 1. **Explore project context** — enough to frame the probe
-2. **Present question + probe plan** — 2-3 sentences
-3. **Get approval** — a nod is enough
-4. **Investigate** — as cheaply as correctness allows
-5. **Report findings** — a recommendation; label anything built as throwaway
+2. **State the question + probe plan** — 2-3 sentences, then proceed; a
+   read-only or throwaway probe needs no approval. Pause first only if the
+   probe itself is irreversible or external.
+3. **Investigate** — as cheaply as correctness allows
+4. **Report findings** — a recommendation; label anything built as throwaway
 
 **Bounded:**
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, the ones that matter
-3. **Present short design in chat** — approach, files touched, testing
-4. **Get approval** — STOP and wait for an explicit yes; presenting the design and starting in the same breath is skipping the gate
-5. **Implement** — proceed with the normal development workflow (TDD applies); no plan document
-
+2. **Ask only questions whose answer changes the outcome** — the ones that
+   matter; skip the ones that only change details you can decide yourself
+3. **If the work is authorized and reversible** — implement it via the
+   normal development workflow (TDD applies) and report; no design
+   presentation as a precondition, no plan document
+4. **If it is irreversible, external, or outcome-ambiguous** — present the
+   short design in chat (approach, files touched, testing) and get an
+   explicit yes first
 **Architectural:**
 1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+2. **Ask questions whose answers change the outcome** — purpose,
+   constraints, success criteria; batch them, do not ration one per message
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-4. **Present design** — in sections scaled to their complexity, get user approval after each section
+4. **Present design** — in sections scaled to their complexity
 5. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
 
 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 7. **User reviews written spec** — ask user to review the spec file before proceeding
 8. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
-**Clarify-before-plan gate (v3.9.0):** before any plan exists, ask
-≤5 targeted questions and fold every answer back into the spec. An
-ambiguity that survives into the plan multiplies into every task it
-spawns.
+**Clarify-before-plan gate:** before a plan exists, resolve every ambiguity
+that would change the outcome — fold each answer back into the spec. An
+ambiguity that survives into the plan multiplies into every task it spawns.
+Questions that only settle details you are equipped to decide are not
+clarification; decide them and record the decision.
 
 
 ## Process Flow
@@ -136,9 +169,10 @@ digraph brainstorming {
     "Classify: spike / bounded / architectural" -> "Present question + probe (2-3 sentences)" [label="spike"];
     "Classify: spike / bounded / architectural" -> "Ask clarifying questions (bounded)" [label="bounded"];
     "Classify: spike / bounded / architectural" -> "Explore project context" [label="architectural"];
-    "Present question + probe (2-3 sentences)" -> "Human approves?";
+    "Present question + probe (2-3 sentences)" -> "Investigate; report recommendation";
     "Ask clarifying questions (bounded)" -> "Present short design in chat";
-    "Present short design in chat" -> "Human approves?";
+    "Present short design in chat" -> "Implement via normal workflow (no plan doc)" [label="authorized + reversible"];
+    "Present short design in chat" -> "Human approves?" [label="irreversible / external / ambiguous"];
     "Human approves?" -> "Investigate; report recommendation" [label="spike: yes"];
     "Human approves?" -> "Implement via normal workflow (no plan doc)" [label="bounded: yes"];
     "Hidden complexity? Upgrade path" -> "Classify: spike / bounded / architectural";
@@ -157,17 +191,17 @@ digraph brainstorming {
 
 **Terminal states are path-bound.** Architectural: the ONLY skill you
 invoke after brainstorming is writing-plans — never frontend-design,
-mcp-builder, or any other implementation skill. Bounded: after
-approval, implementation proceeds directly through the normal
-development workflow; no plan document. Spike: the terminal state is a
-reported recommendation.
+mcp-builder, or any other implementation skill. Bounded: authorized,
+reversible work proceeds directly through the normal development
+workflow; no plan document and no approval precondition. Spike: the
+terminal state is a reported recommendation.
 
 ## The Process
 
-The subsections below serve the bounded and architectural paths (a
-spike stops at "present the probe, get a nod"). Sections from
-**Exploring approaches** onward are architectural-path depth — for
-bounded work, context plus a few questions plus a short in-chat design
+The subsections below serve the bounded and architectural paths (a spike
+stops at "state the probe, then run it"). Sections from **Exploring
+approaches** onward are architectural-path depth — for bounded work,
+context plus the questions that change the outcome plus the change itself
 is the whole process.
 
 **Understanding the idea:**
@@ -175,9 +209,10 @@ is the whole process.
 - Check out the current project state first (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
-- For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- For appropriately-scoped projects, ask the questions whose answers change
+  the outcome — batch them in one message rather than rationing one per
+  turn, multiple choice where possible so they are fast to answer; details
+  you are equipped to decide, decide and record
 - Focus on understanding: purpose, constraints, success criteria
 
 **Exploring approaches:**

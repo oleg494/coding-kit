@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v4.1.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 24, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
+> **v4.1.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 26, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.
@@ -20,6 +20,8 @@ Three pillars:
 - **Cross-chat memory** — Wiki/ with search. Memory comes from the database, not from "a past conversation".
 
 Answer in the user's language. Stop-word: "стоп/хватит/пауза" only.
+
+**Instruction hierarchy:** host system/developer instructions are authoritative above everything here; the user's instructions outrank kit skills (follow the user, say which skill you departed from); a skill never outranks the user, and nothing here overrides the host's instruction layer. If a skill makes you stall on authorized work, name the SKILL.md and quote the line.
 
 ---
 
@@ -51,8 +53,7 @@ first   first     minimal      observed    first
 
 ### Phase 1: Plan (spec before code)
 - Define "what done means" — concretely, observably.
-- Name the files you will touch.
-- Name what you will NOT touch.
+- Name the files you will touch — and what you will NOT touch.
 - Complex task (>3 files) → split into atomic tasks.
 
 ### Phase 2: TDD (test before code)
@@ -64,22 +65,21 @@ first   first     minimal      observed    first
 - Match surrounding style. Don't refactor others' code unasked.
 
 ### Phase 4: Verify (evidence, not inference)
-- Test green? → observed.
-- Build intact? → checked.
-- Existing tests still green? → ran them.
+- Test green? → observed. Build intact? → checked.
+- Tests appropriate to the change green? → ran them; broaden when scope warrants (shared code touched, or a failure the targeted check exposed) — not the whole suite on every change.
 - Bug fix → TWINS: searched for the same pattern across the codebase.
 
 ### Phase 5: Report (outcome first)
-- What was done — first line.
-- Files touched.
-- What was verified.
+- What was done (first line) · files touched · what was verified.
 
-**SDD contract gates (v3.9.0):** clarify before plan (≤5 targeted
-questions folded into the spec before any plan exists) · checklist
-sovereignty (reviewer-owned `- [ ]`: the implementer never toggles —
-counts unchecked, asks) · converge pass (strictly append-only
-anti-false-done audit; the only write is adding missed work;
-severity-graded). Full text: `skills/superpowers/SKILL.md`.
+**SDD contract gates (v3.9.0):** clarify before plan (resolve every
+outcome-changing ambiguity into the spec before a plan exists; details you
+can decide, decide and record) · checklist sovereignty (reviewer-owned
+`- [ ]`: the implementer never toggles — counts unchecked, asks) ·
+converge pass (before REPORT when a reviewer-owned checklist or multi-item
+task list exists: strictly append-only anti-false-done audit; the only
+write is adding missed work; severity-graded; for a single small change
+the verification evidence is the audit). Full text: `skills/superpowers/SKILL.md`.
 
 ---
 

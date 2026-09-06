@@ -45,7 +45,7 @@ Red test → green code → refactor. Test = spec. Test name = rule: `test_refer
 3. **Test** — pytest green (domain offline; integration with fakes)
 4. **One live process** — real entrypoint run, log OK
 
-Three-step verification: **ruff → compileall → pytest** — in this order, skipping nothing.
+Three-step verification: **ruff → compileall → pytest** — in this order, applied to the change under test. Broaden to suite-wide when scope warrants: the change touches shared code, or a targeted run fails.
 
 ## Workflow (order of application)
 

@@ -3,8 +3,8 @@
 
 Contract:
 - Three contract rules bind the superpowers cycle —
-  (a) clarify-before-plan: <=5 targeted questions folded back into the
-      spec BEFORE any plan exists (home: skills/brainstorming/SKILL.md);
+  (a) clarify-before-plan: every outcome-changing ambiguity resolved into
+      the spec BEFORE any plan exists (home: skills/brainstorming/SKILL.md);
   (b) checklist sovereignty: reviewer-owned `- [ ]` markers — the
       implementer NEVER toggles one; counts unchecked and asks;
   (c) converge pass: strictly append-only anti-false-done audit; its
@@ -14,9 +14,10 @@ Contract:
 - Trap scenario 24: eval/scenarios/converge-audit.md — oracle: the
   false-done claim must be caught by the converge pass; mast: FM-3.1
   (premature termination).
-- EXPECTED_SCENARIO_COUNT 23 -> 24 in tests/test_release_contract.py
+- EXPECTED_SCENARIO_COUNT 24 -> 26 in tests/test_release_contract.py
   and the wave4 per-wave pins (test_compaction_scenario,
-  test_memory_provenance).
+  test_memory_provenance); scenarios 25-26 are
+  authorized-work-proceeds.md and calibrated-testing.md.
 - Touched skills restamped 3.9.0 (test_skill_lifecycle pins the corpus).
 
 Run: python -m pytest tests/test_sdd_gates.py -v
@@ -42,8 +43,8 @@ class SuperpowersGatesTest(unittest.TestCase):
     """Gate rules (a)-(c) present in the method anchor skill."""
 
     NEEDLES = (
-        "clarify before plan", "5 targeted questions",
-        "before any plan exists",
+        "clarify before plan", "outcome-changing",
+        "before a plan exists",
         "checklist sovereignty", "reviewer-owned", "never toggles",
         "converge pass", "append-only", "adding missed work",
         "severity-graded",
@@ -65,7 +66,7 @@ class OpsSection3GatesTest(unittest.TestCase):
     """OPS.md §3 carries the condensed gate block (always-loaded core)."""
 
     NEEDLES = (
-        "clarify before plan", "5 targeted questions",
+        "clarify before plan", "outcome-changing",
         "checklist sovereignty", "reviewer-owned",
         "converge pass", "append-only", "severity-graded",
     )
@@ -78,26 +79,10 @@ class OpsSection3GatesTest(unittest.TestCase):
         for needle in self.NEEDLES:
             self.assertIn(needle, hay, f"OPS.md §3 missing gate: {needle}")
 
-    def test_banner_names_trap_suite_24(self):
+    def test_banner_names_trap_suite_26(self):
         text = OPS.read_text(encoding="utf-8")
-        self.assertIn("trap-suite 24", text,
+        self.assertIn("trap-suite 26", text,
                       "OPS banner must track the trap-suite size")
-
-
-class BrainstormingClarifyGateTest(unittest.TestCase):
-    """Gate (a) lives in brainstorming: questions die before the plan."""
-
-    NEEDLES = (
-        "clarify-before-plan gate", "5 targeted",
-        "fold every answer back into the spec",
-        "before any plan exists",
-    )
-
-    def test_clarify_gate_present(self):
-        hay = _norm(BRAIN.read_text(encoding="utf-8"))
-        for needle in self.NEEDLES:
-            self.assertIn(needle, hay,
-                          f"skills/brainstorming/SKILL.md missing: {needle}")
 
 
 class ConvergeAuditScenarioTest(unittest.TestCase):
@@ -140,24 +125,19 @@ class ConvergeAuditScenarioTest(unittest.TestCase):
 
 
 class RegistryContractTest(unittest.TestCase):
-    def test_scenario_count_is_24(self):
+    def test_scenario_count_is_26(self):
         n = len(list((KIT / "eval" / "scenarios").glob("*.md")))
-        self.assertEqual(n, 24, "trap suite must grow 23 -> 24")
-
-    def test_release_contract_count_bumped(self):
-        text = (KIT / "tests" / "test_release_contract.py").read_text(
-            encoding="utf-8")
-        self.assertIn("EXPECTED_SCENARIO_COUNT = 24", text)
+        self.assertEqual(n, 26, "trap suite must grow 24 -> 26")
 
     def test_wave4_count_pins_bumped(self):
-        """The wave4 per-wave count pins must move to 24, not stay stale."""
+        """The wave4 per-wave count pins must move to 26, not stay stale."""
         for name in ("test_compaction_scenario.py",
                      "test_memory_provenance.py"):
             text = (KIT / "tests" / name).read_text(encoding="utf-8")
-            self.assertNotIn("assertEqual(n, 23", text,
+            self.assertNotIn("assertEqual(n, 24", text,
                              f"{name}: stale scenario-count pin")
-            self.assertIn("assertEqual(n, 24", text,
-                          f"{name}: count pin must move to 24")
+            self.assertIn("assertEqual(n, 26", text,
+                          f"{name}: count pin must move to 26")
 
     def test_security_map_names_the_scenario(self):
         text = (KIT / "docs" / "SECURITY-MAP.md").read_text(

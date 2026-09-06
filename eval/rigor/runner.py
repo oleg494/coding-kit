@@ -122,10 +122,37 @@ def _sandbox_diff(pristine_fixture: Path, sandbox: Path) -> str:
     return "\n".join(lines)
 
 
+# Usage keys _parse_stream understands. A usage dict carrying at least one
+# of these reports token accounting (zero values are valid); a dict with
+# none of them (e.g. {}) does not and must not override other sources.
+_TOKEN_FIELDS = ("input_tokens", "inputTokens", "output_tokens",
+                 "outputTokens", "cache_read_input_tokens",
+                 "cacheReadInputTokens", "cache_creation_input_tokens",
+                 "cacheCreationInputTokens")
+
+
 def _parse_stream(text: str) -> dict:
-    """Aggregate stream-json; final result usage overrides assistant usage."""
+    """Aggregate stream-json; usable result usage beats modelUsage beats
+    per-assistant accumulation (never summed together)."""
     steps = tools = assistant_in = assistant_out = 0
     result_usage: tuple[int, int] | None = None
+
+    def _reports_tokens(usage: dict) -> bool:
+        return any(field in usage for field in _TOKEN_FIELDS)
+
+    def _input_from_dict(usage: dict) -> int:
+        base = usage.get("input_tokens", usage.get("inputTokens", 0)) or 0
+        cache_read = usage.get(
+            "cache_read_input_tokens", usage.get("cacheReadInputTokens", 0)
+        ) or 0
+        cache_write = usage.get(
+            "cache_creation_input_tokens", usage.get("cacheCreationInputTokens", 0)
+        ) or 0
+        return base + cache_read + cache_write
+
+    def _output_from_dict(usage: dict) -> int:
+        return (usage.get("output_tokens", usage.get("outputTokens", 0)) or 0)
+
     for line in text.splitlines():
         line = line.strip()
         if not line:
@@ -135,16 +162,18 @@ def _parse_stream(text: str) -> dict:
         except ValueError:
             continue
         if ev.get("type") == "result":
-            usage = ev.get("usage") or {}
-            if "input_tokens" in usage or "output_tokens" in usage:
-                result_usage = (usage.get("input_tokens") or 0,
-                                usage.get("output_tokens") or 0)
+            usage = ev.get("usage")
+            if isinstance(usage, dict) and _reports_tokens(usage):
+                result_usage = (_input_from_dict(usage),
+                                _output_from_dict(usage))
             elif isinstance(ev.get("modelUsage"), dict):
-                values = ev["modelUsage"].values()
-                result_usage = (
-                    sum(v.get("inputTokens") or 0 for v in values),
-                    sum(v.get("outputTokens") or 0 for v in values),
-                )
+                values = [v for v in ev["modelUsage"].values()
+                          if isinstance(v, dict) and _reports_tokens(v)]
+                if values:
+                    result_usage = (
+                        sum(_input_from_dict(v) for v in values),
+                        sum(_output_from_dict(v) for v in values),
+                    )
             continue
         if ev.get("type") != "assistant":
             continue
@@ -152,14 +181,17 @@ def _parse_stream(text: str) -> dict:
         content = msg.get("content")
         if content:
             steps += 1
-        usage = msg.get("usage") or {}
-        assistant_in += usage.get("input_tokens") or 0
-        assistant_out += usage.get("output_tokens") or 0
+        usage = msg.get("usage")
+        if isinstance(usage, dict):
+            assistant_in += _input_from_dict(usage)
+            assistant_out += _output_from_dict(usage)
         if isinstance(content, list):
             tools += sum(1 for block in content
                          if isinstance(block, dict)
                          and block.get("type") == "tool_use")
-    tokens_in, tokens_out = result_usage or (assistant_in, assistant_out)
+    tokens = result_usage if result_usage is not None else (assistant_in,
+                                                            assistant_out)
+    tokens_in, tokens_out = tokens
     return {"agent_steps": steps, "tool_calls": tools,
             "input_tokens": tokens_in,
             "tokens_total": tokens_in + tokens_out}
@@ -414,6 +446,7 @@ def run_rigor_suite(arm_name: str, ref: str, executor_cmd: str | None = None,
                    "policy_bytes": policy_bytes(bundle_root),
                    "executor_command": executor_cmd or "none",
                    "claude_version": claude_ver,
+                   "input_token_accounting": "total_input_v1",
                    "isolation_probe": isolation_state,
                    "models": per_model}
         if json_out:

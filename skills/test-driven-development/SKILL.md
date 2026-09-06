@@ -35,7 +35,7 @@ With tests green, improve the code without changing behavior. Extract shared log
 ## The Prove-It Pattern (Bug Fixes)
 
 ```
-Bug report → test that reproduces bug → test FAILS → fix → test PASSES → full suite
+Bug report → test that reproduces bug → test FAILS → fix → test PASSES → checks appropriate to the change
 ```
 
 ## The Test Pyramid
@@ -84,5 +84,5 @@ it('is idempotent — completing already-completed task is a no-op', ...);
 ## Verification
 - [ ] Test was RED before code was written
 - [ ] Test is GREEN after minimal implementation
-- [ ] Full test suite still passes
+- [ ] Tests appropriate to the change pass — broaden when scope warrants (shared code touched, or a failure the targeted check exposed)
 - [ ] Test names read like a specification

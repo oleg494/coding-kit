@@ -14,8 +14,8 @@ Control planes (verified 2026-09-01):
 - **integrity manifest** — `scripts/tools/integrity_manifest.py` +
   `integrity-manifest.json` (wave1 Task 2): SHA-256 over every kit file
   that executes or steers automatically; deploy refuses to copy on drift.
-- **trap scenarios** — `eval/scenarios/*.md`, 23 + converge-audit
-  (24 after wave5 Task 15); scored by `eval/runner.py` with a judge prompt.
+- **trap scenarios** — `eval/scenarios/*.md`, 26; scored by
+  `eval/runner.py` with a judge prompt.
 - **OPS.md** — the always-loaded contract every harness reads first.
 
 ## ASI — Top 10 for Agentic Applications

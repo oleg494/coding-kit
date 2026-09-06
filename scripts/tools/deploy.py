@@ -19,6 +19,7 @@ Idempotent. Steps:
   3. Verify: byte-compare every deployed skill against the master, check
      every router header, exit non-zero on any mismatch.
 """
+import argparse
 import json
 import re
 import shutil
@@ -324,8 +325,24 @@ def canonical_mode(argv=None):
 
 def main():
     argv = sys.argv[1:]
-    if "--canonical" in argv:
+    parser = argparse.ArgumentParser(
+        description=f"Deploy coding-kit v{VERSION} to local agent harnesses."
+    )
+    parser.add_argument(
+        "--canonical", action="store_true",
+        help="Sync master skills to the repo's .agents/skills/ directory."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="List actions without writing changes (used with --canonical)."
+    )
+    args = parser.parse_args(argv)
+
+    if args.canonical:
         return canonical_mode(argv)
+    if args.dry_run:
+        parser.error("--dry-run is only meaningful with --canonical; "
+                     "a full-deploy dry-run is not implemented")
     integrity_gate()
     print(f"coding-kit v{VERSION} -> all harnesses ({TODAY})")
     print("\n=== SKILLS ===")

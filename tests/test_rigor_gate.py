@@ -2,6 +2,8 @@ import json
 import sys
 from copy import deepcopy
 from pathlib import Path
+import pytest
+
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -60,6 +62,7 @@ def _model_result(candidate: bool) -> dict:
 def _document(candidate: bool, models: tuple[str, ...] = ("model-a", "model-b")) -> dict:
     return {
         "policy_bytes": 100,
+        "input_token_accounting": gate.INPUT_TOKEN_ACCOUNTING,
         "models": {name: _model_result(candidate) for name in models},
     }
 
@@ -187,3 +190,66 @@ def test_gate_rejects_more_than_two_task_attempts(tmp_path):
     assert "candidate/model-a/001-doc-typo: 3 attempts; maximum 2" in _findings(
         report
     )
+
+
+def test_effort_ratios_pairs_per_task_medians_not_ratio_of_medians(tmp_path):
+    """FAST tool_calls per task (base -> cand): 100->100, 10->19, 10->1.
+
+    Paired median of per-task ratios: median(1.0, 1.9, 0.1) = 1.0. The
+    discarded ratio-of-medians reading gives median(cand)/median(base) =
+    19/10 = 1.9, breaching the 1.10 ceiling and flipping ACCEPT to
+    KEEP_BASELINE.
+    """
+    base, cand = _document(False), _document(True)
+    tool_calls = {"001-doc-typo": (100, 100),
+                  "002-meta-scalar": (10, 19),
+                  "003-text-rename": (10, 1)}
+    for doc, arm in ((base, 0), (cand, 1)):
+        for row in doc["models"]["model-a"]["task_results"]:
+            if row["name"] in tool_calls:
+                row["attempts"][0]["tool_calls"] = tool_calls[row["name"]][arm]
+
+    ratios = gate.effort_ratios(base, cand, "model-a", "FAST")
+
+    assert ratios["tool_calls"] == 1.0
+    assert ratios["input_tokens"] == 1.0
+    assert ratios["agent_steps"] == 0.5
+    assert _evaluate(tmp_path, base, cand)["verdict"] == "ACCEPT"
+
+
+@pytest.mark.parametrize(
+    "base_marker,cand_marker",
+    [(None, gate.INPUT_TOKEN_ACCOUNTING),
+     (gate.INPUT_TOKEN_ACCOUNTING, None),
+     (None, None),
+     ("cache-unaware-legacy", "cache-unaware-legacy")],
+)
+def test_legacy_input_tokens_cannot_satisfy_fast_savings(
+        tmp_path, base_marker, cand_marker):
+    """FAST input_tokens 100 -> 25 (naive ratio 0.25 <= 0.75) must not
+    satisfy the token saver unless both arms carry
+    input_token_accounting="total_input_v1"; other metrics still gate."""
+    base, cand = _document(False), _document(True)
+    for doc, marker in ((base, base_marker), (cand, cand_marker)):
+        if marker is None:
+            doc.pop("input_token_accounting", None)
+        else:
+            doc["input_token_accounting"] = marker
+    for row in cand["models"]["model-a"]["task_results"]:
+        if gate.TASK_TIERS[row["name"]] == "FAST":
+            row["attempts"][0]["input_tokens"] = 25
+
+    ratios = gate.effort_ratios(base, cand, "model-a", "FAST")
+
+    assert ratios["input_tokens"] is None
+    assert ratios["agent_steps"] == 0.5
+    report = _evaluate(tmp_path, base, cand)
+    assert report["verdict"] == "ACCEPT"
+    assert "input_tokens ratios excluded" in _findings(report)
+
+    for row in cand["models"]["model-a"]["task_results"]:
+        if gate.TASK_TIERS[row["name"]] == "FAST":
+            row["attempts"][0]["agent_steps"] = 4
+    report = _evaluate(tmp_path, base, cand)
+    assert report["verdict"] == "KEEP_BASELINE"
+    assert not report["conditions"]["4"]["ok"]

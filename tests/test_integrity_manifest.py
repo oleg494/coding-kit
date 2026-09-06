@@ -14,6 +14,7 @@ loudly on drift. Contract:
 - doctor check_integrity() FAILs on tamper (monkeypatched KIT).
 - deploy refuses to copy a drifted tree (exit 3).
 """
+import hashlib
 import importlib.util
 import json
 import os
@@ -97,7 +98,7 @@ class BuildManifestTest(unittest.TestCase):
                                           newline="")
         m = integrity.build_manifest(self.root)
         self.assertEqual(m["OPS.md"],
-                         integrity._sha256_text("# ops\n"))
+                         hashlib.sha256(b"# ops\n").hexdigest())
 
     def test_manifest_json_has_kit_version_stamp(self):
         integrity.update_or_create(self.root, version="9.9.9")
@@ -137,6 +138,21 @@ class CheckTest(unittest.TestCase):
         _write(self.root / "OPS.md", "# ops TAMPERED\n")
         self.assertEqual(integrity.check(self.root, self.manifest),
                          ["drifted: OPS.md"])
+
+    def test_invalid_utf8_byte_changes_are_reported(self):
+        path = self.root / "OPS.md"
+        path.write_bytes(b"# ops \xff\n")
+        manifest = integrity.build_manifest(self.root)
+        path.write_bytes(b"# ops \xfe\n")
+        self.assertEqual(integrity.check(self.root, manifest),
+                         ["drifted: OPS.md"])
+
+    def test_newline_styles_remain_equivalent(self):
+        path = self.root / "OPS.md"
+        for content in (b"# ops\r\n", b"# ops\r"):
+            with self.subTest(content=content):
+                path.write_bytes(content)
+                self.assertEqual(integrity.check(self.root, self.manifest), [])
 
     def test_added_unlisted_py_flagged(self):
         _write(self.root / "scripts" / "evil.py", "x = 9\n")

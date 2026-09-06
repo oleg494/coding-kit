@@ -14,6 +14,9 @@ Usage:
     python scripts/tools/backup_memory.py --restore DIR [--yes]  # LIVE restore
     python scripts/tools/backup_memory.py --full               # old whole-root scope
     python scripts/tools/backup_memory.py --list
+
+Backup exits 1 if any database was skipped; JSON and the degraded snapshot
+retain the failure details. A complete backup exits 0.
 """
 import argparse
 import json
@@ -539,7 +542,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if (result["verify"] or {}).get("ok", False) else 1
     result = backup(args.dest, full=args.full)
     print(json.dumps(result, ensure_ascii=False))
-    return 0
+    return 1 if result["skipped"] else 0
 
 
 if __name__ == "__main__":

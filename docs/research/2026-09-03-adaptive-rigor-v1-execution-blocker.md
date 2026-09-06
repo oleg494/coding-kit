@@ -149,6 +149,16 @@ Results: `eval/results/rigor-20260903-120617-*.json` (baseline),
 `eval/results/rigor-20260903-120837-*.json` (candidate);
 gate report `eval/results/gate-2026-09-03-live.json`.
 
+Measurement caveat (2026-09-05): the archived token ratios below describe
+the original cache-unaware counter, not total input volume. Raw cache
+usage was not persisted, so these snapshots cannot be repaired in place.
+The corrected gate excludes their unmarked `input_tokens`; steps, tools,
+route accuracy, and clean-pass evidence remain usable. New token A/B
+comparisons require both arms tagged `input_token_accounting=total_input_v1`.
+The original ratio aggregation also differed from the specification;
+current comparisons use the median of per-task ratios. The archived
+report is preserved as historical output, not relabeled as corrected.
+
 Verdict **REJECT** (conditions 1-3 failing => reject per spec):
 - cond-1 PASS: candidate cleanly solves all microtasks <=2 attempts on
   both models; HIGH clean@1; pass@1 >= baseline.

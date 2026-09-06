@@ -68,26 +68,31 @@ Bug report → test reproducing the bug → test FAILS → fix → test GREEN
 **Evidence, not inference.**
 
 - [ ] Test green? → observed.
-- [ ] All existing tests green? → ran.
-- [ ] Build not broken? → checked.
-- [ ] Linter clean? → ran.
+- [ ] Tests appropriate to the change green? → ran; broaden when scope
+  warrants (shared code touched, or a failure the targeted check exposed).
+  Re-running an unchanged check with no new changes, failures, or
+  unresolved concerns is ceremony, not verification.
+- [ ] No test that merely mirrors a reversible low-impact change? → skipped it.
+- [ ] Build not broken? → checked. Linter clean on what changed? → ran.
 - [ ] Bug fix → TWINS: searched for the same pattern in the codebase.
 
 ### SDD contract gates (v3.9.0)
 
 Three contract rules — not advice. Violating one invalidates the phase.
 
-1. **Clarify before plan.** Spec ambiguous? Ask ≤5 targeted questions
-   and fold every answer back into the spec — BEFORE any plan exists.
-   A plan built on an unclarified spec is waste.
+1. **Clarify before plan.** Outcome-changing ambiguity? Resolve it into
+   the spec BEFORE a plan exists; details you can decide, decide and
+   record. A plan built on an unclarified spec is waste.
 2. **Checklist sovereignty.** Reviewer-owned `- [ ]` markers in a plan
    or task list: the implementer NEVER toggles one. Counts unchecked,
    reports the number, asks the owner.
-3. **Converge pass.** Before REPORT: a strictly append-only
-   anti-false-done audit. Its ONLY write is ADDING missed work to the
-   task list; findings are severity-graded (critical/warning/
-   suggestion). Re-checking a box, editing done work, or declaring
-   "converged, nothing to add" without the audit is a false done.
+3. **Converge pass.** Before REPORT, when a reviewer-owned checklist or
+   multi-item task list exists: a strictly append-only anti-false-done
+   audit. Its ONLY write is ADDING missed work to the task list; findings
+   are severity-graded (critical/warning/suggestion). Re-checking a box,
+   editing done work, or declaring "converged, nothing to add" without the
+   audit is a false done. For a single small change, the verification
+   evidence is the audit.
 
 ## Phase 5: REPORT
 

@@ -1,0 +1,35 @@
+# Final verification raw log (2026-09-06)
+
+## focused suites (105)
+................................................. [ 46%]
+........................................................               [100%]
+105 passed, 25 subtests passed in 0.63s
+
+## doctor
+CHECK            RESULT DETAIL
+manifest         OK     36 skills in sync
+versions         OK     VERSION 4.1.0 == profile 4.1.0
+frontmatter      OK     all present
+file-size gate   OK     total: hard 0, soft 31 — gate green
+memory+db        OK     ~/.memory ok, 5 db healthy
+adapters         OK     all targets exist
+override         OK     no .override.md
+engine sync      OK     _compat copies identical
+integrity        OK     143 control-plane files verified
+supply chain     OK     36 skills, all licensed
+frontmatter-spec OK     36 skills, spec OK
+skills-sync      FAIL   .agents/brainstorming/SKILL.md: diff; .agents/dispatching-parallel-agents/SKILL.md: diff; .agents/superpowers/SKILL.md: diff; .agents/test-driven-development/SKILL.md: diff; .agents/testing-discipline/SKILL.md: diff (+9 more)
+backup freshness OK     newest backup 3d old
+encoding discipline OK     no bare text=True
+
+== 1 FAILURES (14 checks) ==
+
+## integrity
+integrity OK: 143 control-plane files verified
+
+## budgets
+  150 OPS.md
+  106 AGENTS.md
+   68 SKILL_RUNTIME.md
+  232 skills/brainstorming/SKILL.md
+  556 total

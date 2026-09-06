@@ -4,6 +4,90 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **Post-v4.1.0 deploy CLI boundary fix (2026-09-06)**:
+  - `scripts/tools/deploy.py` now parses CLI flags via argparse; `--help`
+    no longer executes a full rollout (previously `main()` ran the deploy
+    path on any invocation, regenerating host routers and bumping
+    `~/.claude/CLAUDE.md`). `def main()` signature and `bump_claude_md()`
+    behavior preserved. Regressions: `tests/test_deploy_cli.py`
+    (`test_help_flag_exits_zero_and_causes_zero_mutations`,
+    `test_unknown_argument_exits_2_and_causes_zero_mutations`,
+    `test_standalone_dry_run_rejected_before_any_deploy_step`,
+    `test_no_args_still_runs_full_deploy_sequence`);
+    `tests/test_release_contract.py::test_bump_claude_md_rewrites_version_line`
+    unchanged and green. Incident record:
+    `docs/research/2026-09-06-deploy-help-incident.md`. Skill-source
+    inventory produced alongside:
+    `docs/research/2026-09-06-priority-skill-sources.md` (+ `-inventory`
+    companion).
+- **Post-v4.1.0 instruction-precedence & verification-scope calibration (2026-09-06)**:
+  - Instruction hierarchy added to AGENTS.md and OPS.md (host
+    system/developer above user, user above kit skills) plus a
+    skill-stall diagnosis reflex: a pause must name the exact SKILL.md and
+    quote the line. Brainstorming HARD-GATE replaced by an
+    AUTHORIZATION-GATE — proceed on authorized reversible local work; stop
+    only for irreversible/external/destructive actions not already
+    authorized, money/auth/privacy/data-safety paths, outcome-changing
+    ambiguity, or a plan-first request; prior explicit authorization is not
+    re-asked and host restrictions stay the host's gate.
+  - Verification scope calibrated across superpowers, SKILL_RUNTIME,
+    test-driven-development, dispatching-parallel-agents,
+    verification-before-completion, testing-discipline: checks appropriate
+    to the change by default, broadened when scope warrants (shared code
+    touched, or a failure the targeted check exposed); re-running an
+    unchanged check with no new changes is ceremony, claiming an unrun
+    suite is a lie.
+  - Retired prose pins deleted (BrainstormingClarifyGateTest; the
+    "5 targeted questions"/"before any plan exists" needles); trap suite
+    24 -> 26 with two behavior scenarios (authorized-work-proceeds,
+    calibrated-testing); brainstorming dot graph deleted (prose is the
+    single process description). Evidence: tests/test_sdd_gates.py
+    (revised needles + counts), tests/test_release_contract.py
+    EXPECTED_SCENARIO_COUNT=26, tests/test_ops_diet.py (OPS <=150 lines),
+    focused suites 105 passed / 25 subtests (incl. test_deploy_cli,
+    test_skills_sync), doctor integrity 143 files OK,
+    eval/runner.py dry-run ALL GREEN 26 scenarios, trigger-eval 86 queries
+    OK. Design: docs/superpowers/specs/2026-09-06-instruction-precedence-calibration-design.md.
+- **Post-v4.1.0 onboarding corrections + R1 (2026-09-05)**:
+  - Fresh memory root is warmup-clean: `install.py` now seeds
+    `Wiki/index.md` and `Wiki/log.md` (absent-only; never overwrites user
+    data). Regressions: `test_fresh_install_seeds_wiki_cycle_files`,
+    `test_seeded_root_is_warmup_clean`,
+    `test_rerun_preserves_existing_wiki_cycle_files` (2 red pre-fix via
+    `git stash` of install.py, green post-fix). Verified: doctor 14/14
+    GREEN, full suite 673 passed / 1 skipped.
+  - Public docs corrected to runner-derived counts (24 scenarios, 6 tasks
+    incl. 2 canaries, 36 skills; trigger-eval 86 co-located across 12
+    skills via `--queries auto`, 80-query central fallback across 10
+    skills); Gemini-CLI retirement claim removed (repo verified active);
+    install split into memory-bootstrap vs agent-integration phases with a
+    runnable save/search demo; root-MIT vs `windows-encoding-fixes`
+    `license: Proprietary` conflict disclosed as unresolved (no rights
+    adjudication, no deletion workaround). Evidence:
+    `docs/research/2026-09-05-public-onboarding-check.md`.
+- **Post-v4.1.0 reliability checks (2026-09-05)**:
+  - Backup CLI exits 1 when a database is skipped rather than reporting
+    success for a degraded snapshot. JSON diagnostics and snapshot evidence
+    remain available. Regression:
+    `test_backup_cli_fails_when_database_is_skipped`.
+  - Integrity hashes preserve invalid UTF-8 bytes instead of merging them
+    through replacement decoding; CRLF/CR/LF equivalence remains intact.
+    Regressions: `test_invalid_utf8_byte_changes_are_reported` and
+    `test_newline_styles_remain_equivalent`.
+- **Post-v4.1.0 rigor measurement corrections (2026-09-05)**:
+  - Count uncached + cache-read + cache-creation input in stream usage;
+    prefer reported final totals, then model totals, then assistant totals.
+    Empty final usage no longer hides usable fallback data; explicit zero
+    remains authoritative. Regressions: `tests/test_rigor_runner.py`.
+  - Compare median per-task effort ratios, not a ratio of medians. The
+    replacement regression changes the verdict under the old formula:
+    `test_effort_ratios_pairs_per_task_medians_not_ratio_of_medians`.
+  - Persist `input_token_accounting=total_input_v1`; exclude token ratios
+    unless both arms carry this marker, with an explicit finding. Other
+    effort metrics remain available. Regression:
+    `test_legacy_input_tokens_cannot_satisfy_fast_savings`.
+  - Historical results remain unchanged; old cache-unaware totals cannot
+    establish total-input savings. Input volume is not billed cost/quota.
 - **Post-v4.1.0 hardening (skills licensing & memory warmup)**:
   - **Skills supply chain license compliance**: standardized `license: MIT`
     frontmatter across 34 skills (all 36 skills licensed now: 35 MIT, 1
