@@ -116,7 +116,8 @@ class LifecycleTest(unittest.TestCase):
 
     def test_verify_cmd_runs_shell_line(self):
         marker = self.tmp / "verified.txt"
-        cmd = f"cd {self.tmp} && python -c \"open('verified.txt','w').write('ok')\""
+        cd_cmd = f"cd /d {self.tmp}" if sys.platform == "win32" else f"cd {self.tmp}"
+        cmd = f"{cd_cmd} && python -c \"open('verified.txt','w').write('ok')\""
         r = self._run("add", "shell verify row", "--text", "x",
                       "--verify-cmd", cmd)
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -196,8 +197,8 @@ class DeployedParityTest(unittest.TestCase):
         """P15's Verify column names the DEPLOYED command; pin it."""
         deployed = self.ROOT / "db-tools" / "findings.py"
         marker = self.tmp / "v.txt"
-        cmd = (f"cd {self.tmp} && python -c "
-               f"\"open('v.txt','w').write('ok')\"")
+        cd_cmd = f"cd /d {self.tmp}" if sys.platform == "win32" else f"cd {self.tmp}"
+        cmd = f"{cd_cmd} && python -c \"open('v.txt','w').write('ok')\""
         r = subprocess.run(
             [sys.executable, str(deployed), "add", "deployed verify",
              "--text", "x", "--verify-cmd", cmd],
