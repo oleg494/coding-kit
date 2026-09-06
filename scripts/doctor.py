@@ -176,6 +176,47 @@ def frontmatter_spec_problems(slug: str, fm_text: str,
         if len(raw) > 500:
             note(f"WARN compatibility length {len(raw)} > 500")
 
+    if fm_yaml is None:
+        m_meta = re.search(r"^[ \t]*metadata:[ \t]*(.*)$", fm_text, re.MULTILINE)
+        if not m_meta:
+            note("WARN metadata.version missing (skill lifecycle, wave3 Task 11)")
+        else:
+            meta_val = m_meta.group(1).strip()
+            if not meta_val or meta_val == "{}":
+                # Check for block under metadata:
+                after_meta = fm_text[m_meta.end():]
+                m_ver = re.search(r"^[ \t]+version:[ \t]*([^\r\n]+)", after_meta, re.MULTILINE)
+                if not m_ver:
+                    note("WARN metadata.version missing (skill lifecycle, wave3 Task 11)")
+                else:
+                    v_raw = m_ver.group(1).strip().strip("'\"")
+                    if not v_raw:
+                        note("WARN metadata.version missing (skill lifecycle, wave3 Task 11)")
+            elif meta_val.startswith("{"):
+                # inline dict check, e.g. metadata: {version: 3}
+                m_ver = re.search(r"version:\s*([^\s,}]+)", meta_val)
+                if not m_ver:
+                    note("WARN metadata.version missing (skill lifecycle, wave3 Task 11)")
+                else:
+                    v_raw = m_ver.group(1).strip().strip("'\"")
+                    if re.match(r"^[0-9]+$", m_ver.group(1).strip()):
+                        note("metadata must be a str->str map")
+                    elif not (v_raw.startswith(('"', "'")) or re.match(r"^[0-9]+(\.[0-9]+)*$", v_raw)):
+                        note("metadata must be a str->str map")
+            else:
+                # inline non-dict or unquoted scalar
+                note("metadata must be a str->str map")
+
+        m_tools = re.search(r"^[ \t]*allowed-tools:[ \t]*(.*)$", fm_text, re.MULTILINE)
+        if m_tools:
+            tools_val = m_tools.group(1).strip()
+            # if unquoted number or invalid type
+            if re.match(r"^[0-9]+$", tools_val) or not (
+                (tools_val.startswith(('"', "'")) and tools_val.endswith(('"', "'")))
+                or re.match(r"^[a-zA-Z0-9_-]+(\s+[a-zA-Z0-9_-]+)*$", tools_val)
+            ) or "  " in tools_val:
+                note("allowed-tools must be a space-separated string")
+
     if isinstance(fm_yaml, dict):
         compat = fm_yaml.get("compatibility")
         if compat is not None:

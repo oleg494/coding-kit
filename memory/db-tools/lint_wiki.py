@@ -64,7 +64,14 @@ def parse_frontmatter(text: str) -> dict | None:
     for line in block.splitlines():
         m = re.match(r"^([a-z_]+):\s*(.*)$", line)
         if m:
-            data[m.group(1)] = m.group(2)
+            k, val = m.group(1), m.group(2).strip()
+            if val.startswith("[") and val.endswith("]"):
+                inner = val[1:-1].strip()
+                data[k] = [p.strip().strip("'\"") for p in inner.split(",") if p.strip()] if inner else []
+            else:
+                if len(val) >= 2 and val[0] == val[-1] and val[0] in ("'", '"'):
+                    val = val[1:-1]
+                data[k] = val
     return data
 
 

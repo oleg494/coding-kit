@@ -38,10 +38,13 @@ def both_paths(fm_text: str, slug: str):
     hard_r, warn_r = doctor.frontmatter_spec_problems(slug, fm_text_inner, None)
     try:
         import yaml
+        if yaml is not None:
+            hard_y, warn_y = doctor.frontmatter_spec_problems(
+                slug, fm_text_inner, yaml.safe_load(fm_text_inner))
+        else:
+            hard_y, warn_y = hard_r, warn_r
     except ImportError:
-        return hard_r, warn_r, hard_r, warn_r
-    hard_y, warn_y = doctor.frontmatter_spec_problems(
-        slug, fm_text_inner, yaml.safe_load(fm_text_inner))
+        hard_y, warn_y = hard_r, warn_r
     return hard_r, warn_r, hard_y, warn_y
 
 
