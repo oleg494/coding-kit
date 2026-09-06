@@ -149,8 +149,9 @@ class StampedCorpusTest(unittest.TestCase):
                           r"\"?([0-9.]+)\"?", fm, re.MULTILINE)
             slug = md.parent.name
             self.assertIsNotNone(m, f"{slug}: no metadata.version")
-            self.assertEqual(m.group(1), "4.1.0",
-                             f"{slug}: expected 4.1.0")
+            expected = (KIT / "VERSION").read_text(encoding="utf-8").strip()
+            self.assertEqual(m.group(1), expected,
+                             f"{slug}: expected {expected}")
             stamped += 1
         self.assertEqual(stamped, 36)
 
