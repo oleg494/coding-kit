@@ -154,12 +154,9 @@ Agent 2 → Fix batch-completion-behavior.test.ts
 Agent 3 → Fix tool-approval-race-conditions.test.ts
 ```
 
-**Results:**
-- Agent 1: Replaced timeouts with event-based waiting
-- Agent 2: Fixed event structure bug (threadId in wrong place)
-- Agent 3: Added wait for async tool execution to complete
-
-**Integration:** All fixes independent, no conflicts, full suite green
+**Results:** three independent fixes, no conflicts; that session ran the
+full suite because all three agents touched shared async-wait code —
+scope followed the change, as the Verification section below requires.
 
 ## Verification
 
