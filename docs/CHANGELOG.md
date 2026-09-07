@@ -4,6 +4,13 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.3.1 (2026-09-07)** — second-round external audit remediation (audit of v4.3.0 delivered in chat; residual defects after the v4.3.0 pass):
+  - **Deploy write boundary (P1)**: `scan_skill_links()` preflight-scans existing target skill dirs for symlinks/junctions/escapes; nested links now refuse the whole destination with zero writes (previously `copy2` could write through a nested symlink to a file outside the destination). Integrated into adoption (`dirs_byte_identical`), `sync_skills` preflight, `sync_one_skill` write path and `verify()` (`tests/test_deploy_ownership.py::TestResidualDefects`).
+  - **Global preflight (P2)**: `sync_skills()` is two-phase — all destinations validated (manifest, ownership, links) before ANY mutation; any conflict → zero writes anywhere, all failures reported together (`TestResidualDefects::test_global_preflight_all_destinations_fail_before_any_write`).
+  - **Canonical preview parity (P2)**: `.kit-manifest.json` create/update is now part of the computed plan; `--dry-run` advertises exactly what execution applies (`TestResidualDefects::test_canonical_manifest_change_advertised_in_dry_run_and_executed`, `test_canonical_identical_manifest_dry_run_no_changes`).
+  - **Canonical verdict arithmetic (LR-03 completion)**: `verdict_from_counts(critical, warning, unverified=0)` — unverified>0 caps at VERIFIED WITH CAVEATS; matches skills/fable-judge examples, which tests extract and compare (`tests/test_review_protocol.py`).
+  - **JSON search lifecycle (LR-05 completion)**: `search_all.py --json` findings hits now carry `superseded_by`/`verified` additively; pinned db/path/snippet keys unchanged (`tests/test_search_all.py`).
+  - **Residual contradiction alignment (LR-01/02/04/07/09 completion)**: fable-method Step 2 rule 6 and Step 4.8 aligned with the single commit/intent policy; verification-before-completion Gate Function honors checked-state evidence reuse; OPS §4 YAGNI rule 1 matches skills/yagni; README n=9 takeaway made descriptive (no general reliability claim).
 - **v4.3.0 (2026-09-07)**:
   - **Deploy & install hardening (CR-01..05)**:
     - Remediated 5 deployment and installation defects identified in `docs/research/2026-09-07-independent-code-review.md`.
