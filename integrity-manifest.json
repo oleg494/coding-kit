@@ -1,6 +1,6 @@
 {
  "files": {
-  "AGENTS.md": "3057235737e07e741893857623c687e2662bf79a9fd928ff11855f488cded593",
+  "AGENTS.md": "9a829b95347ead77581054286b509e6ded0cc6fce8664cce00b240c7f33f12a3",
   "OPS.md": "c7a461be7cb41cba5b32344e4df720f4e1cf3a6f1dfd13420a431080810503c9",
   "SKILL_RUNTIME.md": "ed79c644213c01522566467bd1f075a545e624bc25935d9e80294a268f8af694",
   "adapters/UNIVERSAL.md": "16d9a27fd1d8a27f054f345ece4154dd07a37250a8f816fb4c9713a78429791c",
@@ -99,10 +99,11 @@
   "profile.yml": "1118871dde6b8cab03a05934d68b613b7db9ddb207ea674c80c256f92c195a27",
   "scripts/doctor.py": "925f97397154082183b78e90b44b022924c80e741b7f0e8dadf00ec21ea2efb5",
   "scripts/install.py": "600c99491ae048ebdca96f9546dfc96c4b94c78aa1bfe5933d8fd8aca4014af7",
+  "scripts/tools/_deploy_tx.py": "371f78569f96cdcc24040b3fccac6f4a0c106a8f1412500b2e3e6b1624ad7907",
   "scripts/tools/backup_memory.py": "15e8b14db0e30b7fcc90a024d6808099a6851abea73d6d137369b20c67b27d5b",
   "scripts/tools/check_file_sizes.py": "ab00eb1bf2597ebc33ae597f8e5fe78e62f7ba256dd2e0d25a00fe0282b95db2",
   "scripts/tools/contract_drift.py": "e00c5e7c8ffbde937a506666b87b105794c902832c1d9103dc153e9e92591ed2",
-  "scripts/tools/deploy.py": "67a9f830c88163e970208705678dd911c36c7fdb95983e41d0b384d634c04573",
+  "scripts/tools/deploy.py": "2035a7b1427adde35a009a2ae93549afe95e9fa783318a154e2b4efff9dbb4c4",
   "scripts/tools/integrity_manifest.py": "5c006c4e9e7a1327d3b002568f2d63fef50fad99b41d8a031a347ee653a16cd6",
   "scripts/tools/review_protocol.py": "cb2d617792a908a1fa125ee83abc1281147f4723dab11eb1dd8965705617dfb3",
   "scripts/tools/skills_search.py": "f84c90dd050e667b052f78c335061d2b4f275531098f64194d2de20820aa0856",
@@ -142,7 +143,7 @@
   "skills/web-research/SKILL.md": "6e674174b742f16c493e4a2264e12dc8133fa59e702f56fe5d2985138186d114",
   "skills/windows-encoding-fixes/SKILL.md": "ab898bcb767dd58031d691b844a6dc1152fa6b4f55c5902bc20caf21c5880038",
   "skills/writing-plans/SKILL.md": "7f7fd2adf3e8dd8e383876b852cb39d1bba60416f2603268330c394c8db45215",
-  "skills/yagni/SKILL.md": "9820aaa4e5538f536a0545ccab390d2f4f83c15bf5eef1842f416a82c332b487"
+  "skills/yagni/SKILL.md": "fc4adffeb7e55a3733217c5841dcfb28669b2b9ed0f9c58d733221640ee86d91"
  },
  "kit_version": "4.3.1"
 }

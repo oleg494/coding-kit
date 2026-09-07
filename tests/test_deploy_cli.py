@@ -114,13 +114,15 @@ class DeployDryRunBoundaryTest(unittest.TestCase):
         err_buf = io.StringIO()
 
         def rec(name, result=None):
-            def _fn():
+            def _fn(*args, **kwargs):
                 calls.append(name)
                 return result
             return _fn
 
         with mock.patch.object(deploy, "integrity_gate", rec("integrity_gate")), \
-             mock.patch.object(deploy, "sync_skills", rec("sync_skills", [])), \
+             mock.patch.object(deploy, "preflight_routers_and_claude", rec("preflight_routers_and_claude", (True, []))), \
+             mock.patch.object(deploy, "preflight_skills", rec("preflight_skills", (True, [], []))), \
+             mock.patch.object(deploy, "execute_skills", rec("execute_skills", [])), \
              mock.patch.object(deploy, "regen_routers", rec("regen_routers", [])), \
              mock.patch.object(deploy, "bump_claude_md",
                                rec("bump_claude_md", "unchanged")), \
@@ -150,8 +152,8 @@ class DeployDryRunBoundaryTest(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(
             calls,
-            ["integrity_gate", "sync_skills", "regen_routers",
-             "bump_claude_md", "verify"],
+            ["integrity_gate", "preflight_routers_and_claude", "preflight_skills",
+             "execute_skills", "regen_routers", "bump_claude_md", "verify"],
             "no-args deploy must run the documented sequence, including the "
             "CLAUDE.md bump (verify() fails on every VERSION bump without it)")
 

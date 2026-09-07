@@ -50,9 +50,9 @@ class TestCR01Ownership(unittest.TestCase):
                 # Custom file must still be there, unowned skill must not be deleted or overwritten
                 self.assertTrue((unowned / "custom.txt").exists())
                 self.assertEqual((unowned / "custom.txt").read_text(encoding="utf-8"), "user custom skill")
-                # Report must contain conflict
-                has_conflict = any("conflict" in str(action).lower() for _, actions, _ in report for action in actions)
+                has_conflict = any("conflict" in str(action).lower() for r in report for action in r.actions)
                 self.assertTrue(has_conflict, f"Expected conflict in report: {report}")
+                self.assertFalse(report[0].ok)
 
     def test_unowned_skill_conflict_causes_deploy_main_failure(self):
         deploy = load_deploy()
@@ -383,9 +383,9 @@ class TestResidualDefects(unittest.TestCase):
                 # Outside sentinel must still exist and be UNCHANGED
                 self.assertTrue(sentinel.exists())
                 self.assertEqual(sentinel.read_text(encoding="utf-8"), "original content")
-                # Report must indicate conflict / failure for dest
-                has_conflict = any("conflict" in str(a).lower() for _, acts, _ in report for a in acts)
+                has_conflict = any("conflict" in str(a).lower() for r in report for a in r.actions)
                 self.assertTrue(has_conflict, f"Expected conflict in report: {report}")
+                self.assertFalse(report[0].ok)
 
     def test_nested_symlink_write_through_attempt_refused_and_outside_file_intact(self):
         deploy = load_deploy()
@@ -414,8 +414,9 @@ class TestResidualDefects(unittest.TestCase):
             with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest)]):
                 report = deploy.sync_skills()
                 self.assertEqual(sentinel.read_text(encoding="utf-8"), "precious original")
-                has_conflict = any("conflict" in str(a).lower() for _, acts, _ in report for a in acts)
+                has_conflict = any("conflict" in str(a).lower() for r in report for a in r.actions)
                 self.assertTrue(has_conflict)
+                self.assertFalse(report[0].ok)
     def test_nested_link_inside_manifest_owned_skill_refuses_dest(self):
         deploy = load_deploy()
         with tempfile.TemporaryDirectory() as td:
@@ -452,8 +453,9 @@ class TestResidualDefects(unittest.TestCase):
                 # Outside sentinel must still exist and be intact
                 self.assertTrue(sentinel.exists())
                 self.assertEqual(sentinel.read_text(encoding="utf-8"), "original content")
-                has_conflict = any("conflict" in str(a).lower() for _, acts, _ in report for a in acts)
+                has_conflict = any("conflict" in str(a).lower() for r in report for a in r.actions)
                 self.assertTrue(has_conflict, f"Expected conflict in report: {report}")
+                self.assertFalse(report[0].ok)
     def test_global_preflight_all_destinations_fail_before_any_write(self):
         deploy = load_deploy()
         with tempfile.TemporaryDirectory() as td:
@@ -479,9 +481,9 @@ class TestResidualDefects(unittest.TestCase):
                 self.assertEqual(sentinel1.read_text(encoding="utf-8"), "dest1 original")
                 self.assertFalse((dest1 / deploy.MANIFEST_NAME).exists(), "dest1 manifest must NOT be written")
                 self.assertFalse((dest1 / master_name).exists(), "dest1 must NOT receive any synced skills")
-                # Both dests should report conflicts / zero writes
-                dest2_conflict = any("conflict" in str(a).lower() for d, acts, _ in report if d == str(dest2) for a in acts)
+                dest2_conflict = any("conflict" in str(a).lower() for r in report if r.target == str(dest2) for a in r.actions)
                 self.assertTrue(dest2_conflict)
+                self.assertTrue(any(not r.ok for r in report))
 
     def test_canonical_manifest_change_advertised_in_dry_run_and_executed(self):
         deploy = load_deploy()
@@ -574,3 +576,422 @@ class TestResidualDefects(unittest.TestCase):
                 self.assertEqual(rc, 0)
                 self.assertIn("no changes", out.getvalue())
                 self.assertNotIn("upd .kit-manifest.json", out.getvalue())
+
+
+def _try_create_dir_link(target: Path, link: Path) -> bool:
+    """Try creating junction on Windows or symlink on POSIX. Return True on success."""
+    if sys.platform == "win32":
+        try:
+            import _winapi
+            _winapi.CreateJunction(str(target), str(link))
+            return True
+        except Exception:
+            pass
+    try:
+        link.symlink_to(target, target_is_directory=True)
+        return True
+    except Exception:
+        return False
+
+
+class TestDeployWriteBoundariesRegression(unittest.TestCase):
+    """Regression tests for:
+    1. skills preflight conflict/error stops deploy BEFORE any router/Claude mutation.
+    2. canonical sync rejects nested symlinks/junctions (external sentinels byte-unchanged).
+    3. canonical sync rejects escaped/linked canon root or .agents ancestor.
+    4. scan_skill_links catches dangling root links.
+    5. safe_write_text rejects link targets and link ancestors.
+    6. routers and claude_md write paths reject links.
+    7. valid canonical operation works properly.
+    """
+
+    def test_skills_preflight_failure_aborts_whole_deploy_before_router_or_claude_mutations(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest1 = root / "dest1"
+            dest2 = root / "dest2"
+            dest1.mkdir()
+            dest2.mkdir()
+
+            # Destination 2 has unowned skill conflict
+            master_name = deploy.master_skill_names()[0]
+            unowned = dest2 / master_name
+            unowned.mkdir(parents=True)
+            (unowned / "custom.txt").write_text("user custom skill", encoding="utf-8")
+
+            # Existing kit-owned router that would otherwise be regenerated
+            router_file = root / "AGENTS.md"
+            original_router_content = "# Coding Agent Router (OMP) - coding-kit v0.0.1\n# Old router\n"
+            router_file.write_text(original_router_content, encoding="utf-8")
+
+            # Existing Claude config that would otherwise be bumped
+            claude_file = root / "CLAUDE.md"
+            original_claude_content = "coding-kit v0.0.1 (repo master; machine CLAUDE.md refreshed 2026-01-01) (1, English)\n"
+            claude_file.write_text(original_claude_content, encoding="utf-8")
+
+            harnesses = [{
+                "id": "test_omp",
+                "router": str(router_file),
+                "name": "OMP",
+                "skills_line": None,
+                "skills_dir": None,
+            }]
+
+            with mock.patch.object(sys, "argv", ["deploy.py"]), \
+                 mock.patch.object(deploy, "SYNC_TARGETS", [str(dest1), str(dest2)]), \
+                 mock.patch.object(deploy, "HARNESSES", harnesses), \
+                 mock.patch.object(deploy, "CLAUDE_MD", claude_file), \
+                 mock.patch.object(deploy, "integrity_gate"):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+
+                # Deploy MUST fail with non-zero exit code
+                self.assertNotEqual(rc, 0, "Deploy must fail when skills preflight fails")
+
+                # CRITICAL: Routers and Claude config must remain BYTE-UNCHANGED!
+                self.assertEqual(router_file.read_text(encoding="utf-8"), original_router_content,
+                                 "Router was mutated despite skills preflight failure!")
+                self.assertEqual(claude_file.read_text(encoding="utf-8"), original_claude_content,
+                                 "CLAUDE.md was mutated despite skills preflight failure!")
+
+                # No backup file created either
+                self.assertFalse(Path(str(router_file) + ".kit-bak").exists(),
+                                 "Router backup must not be created on aborted deploy")
+
+                # Destination 1 must have ZERO writes
+                self.assertFalse((dest1 / master_name).exists(), "dest1 skills must not be written")
+                self.assertFalse((dest1 / deploy.MANIFEST_NAME).exists(), "dest1 manifest must not be written")
+
+    def test_canonical_sync_rejects_nested_link_and_leaves_external_sentinel_byte_unchanged(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_dir = root / "skills"
+            (skills_dir / "my_skill").mkdir(parents=True)
+            (skills_dir / "my_skill" / "SKILL.md").write_text("evil kit content", encoding="utf-8")
+
+            canon = root / ".agents" / "skills"
+            canon.mkdir(parents=True)
+            target_skill = canon / "my_skill"
+
+            external = root / "external_victim"
+            external.mkdir(parents=True)
+            sentinel = external / "SKILL.md"
+            original_sentinel_content = "ORIGINAL VICTIM SENTINEL DO NOT OVERWRITE"
+            sentinel.write_text(original_sentinel_content, encoding="utf-8")
+
+            if not _try_create_dir_link(external, target_skill):
+                self.skipTest("Filesystem does not support directory links/junctions")
+
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+
+                # Must fail with non-zero exit code
+                self.assertNotEqual(rc, 0, "canonical_mode must return non-zero when link target encountered")
+                # Sentinel MUST remain byte-identical
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), original_sentinel_content,
+                                 "External victim sentinel was overwritten through junction!")
+
+    def test_canonical_sync_rejects_link_in_canon_or_ancestors(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_dir = root / "skills"
+            (skills_dir / "my_skill").mkdir(parents=True)
+            (skills_dir / "my_skill" / "SKILL.md").write_text("kit content", encoding="utf-8")
+
+            external = root / "external_tree"
+            external.mkdir(parents=True)
+            sentinel = external / "sentinel.txt"
+            original_sentinel = "ORIGINAL SENTINEL"
+            sentinel.write_text(original_sentinel, encoding="utf-8")
+
+            # Make .agents directory itself a junction/link to external_tree
+            agents_dir = root / ".agents"
+            if not _try_create_dir_link(external, agents_dir):
+                self.skipTest("Filesystem does not support directory links/junctions")
+
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+
+                self.assertNotEqual(rc, 0, "canonical_mode must fail when .agents is a link")
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), original_sentinel)
+
+    def test_scan_skill_links_detects_dangling_root_link(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest = root / "skills"
+            dest.mkdir()
+            dangling = dest / "dangling_skill"
+            to_delete = root / "to_delete"
+            to_delete.mkdir()
+            if not _try_create_dir_link(to_delete, dangling):
+                self.skipTest("Filesystem does not support directory links/junctions")
+            shutil.rmtree(to_delete)
+
+            # Must detect dangling link and report it as a problem
+            bad = deploy.scan_skill_links(dest, dangling)
+            self.assertTrue(len(bad) > 0, f"Expected scan_skill_links to detect dangling link, got: {bad}")
+            self.assertIn("root link", bad[0])
+
+    def test_canonical_mode_valid_operation_succeeds(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_dir = root / "skills"
+            (skills_dir / "clean_skill").mkdir(parents=True)
+            (skills_dir / "clean_skill" / "SKILL.md").write_text("clean content", encoding="utf-8")
+
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+
+                self.assertEqual(rc, 0, "Valid canonical sync should succeed")
+                canon_file = root / ".agents" / "skills" / "clean_skill" / "SKILL.md"
+                self.assertTrue(canon_file.exists())
+                self.assertEqual(canon_file.read_text(encoding="utf-8"), "clean content")
+                mani_file = root / ".agents" / "skills" / deploy.MANIFEST_NAME
+                self.assertTrue(mani_file.exists())
+
+    def test_routers_and_claude_reject_link_targets_and_nested_ancestors(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_home = root / "home"
+            fake_home.mkdir()
+
+            # Setup an external victim dir with sentinels
+            external = root / "ext_victim"
+            external.mkdir()
+            router_sentinel = external / "AGENTS.md"
+            claude_sentinel = external / "CLAUDE.md"
+            router_sentinel.write_text("ORIGINAL ROUTER SENTINEL", encoding="utf-8")
+            claude_sentinel.write_text("ORIGINAL CLAUDE SENTINEL", encoding="utf-8")
+
+            # Make nested router ancestor a junction: fake_home/.omp -> external
+            omp_dir = fake_home / ".omp"
+            if not _try_create_dir_link(external, omp_dir):
+                self.skipTest("Filesystem does not support junctions/links")
+
+            router_path = omp_dir / "agent" / "AGENTS.md"
+            harnesses = [{
+                "id": "test_omp",
+                "router": str(router_path),
+                "name": "OMP",
+                "skills_line": None,
+                "skills_dir": None,
+            }]
+
+            with mock.patch.object(deploy, "HARNESSES", harnesses), \
+                 mock.patch.object(Path, "home", lambda: fake_home):
+                # Preflight routers should report failure
+                ok, errs = deploy.preflight_routers_and_claude()
+                self.assertFalse(ok)
+                self.assertTrue(any("link" in e.lower() or "symlink" in e.lower() for e in errs))
+
+                actions = deploy.regen_routers()
+                self.assertTrue(any("link" in act.lower() for _, act in actions),
+                                f"Expected link conflict for router, got: {actions}")
+                self.assertEqual(router_sentinel.read_text(encoding="utf-8"), "ORIGINAL ROUTER SENTINEL")
+
+            # Make claude ancestor a junction: fake_home/.claude -> external
+            claude_dir = fake_home / ".claude"
+            if not _try_create_dir_link(external, claude_dir):
+                self.skipTest("Filesystem does not support junctions/links")
+
+            claude_md_path = claude_dir / "CLAUDE.md"
+            with mock.patch.object(deploy, "CLAUDE_MD", claude_md_path), \
+                 mock.patch.object(Path, "home", lambda: fake_home):
+                res = deploy.bump_claude_md()
+                self.assertIn("link", res.lower())
+    def test_sync_skills_supported_master_junction_skipped_with_zero_writes(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_master = root / "skills"
+            (skills_master / "master_skill").mkdir(parents=True)
+            sentinel = skills_master / "master_skill" / "SKILL.md"
+            original_sentinel = "ORIGINAL MASTER SKILL CONTENT"
+            sentinel.write_text(original_sentinel, encoding="utf-8")
+
+            # Target ~/.zcode/skills is a junction to skills_master
+            zcode_dir = root / ".zcode"
+            zcode_dir.mkdir()
+            zcode_skills = zcode_dir / "skills"
+            if not _try_create_dir_link(skills_master, zcode_skills):
+                self.skipTest("Filesystem does not support directory links/junctions")
+
+            with mock.patch.object(deploy, "SKILLS", skills_master), \
+                 mock.patch.object(deploy, "master_skill_names", lambda: ["master_skill"]), \
+                 mock.patch.object(deploy, "SYNC_TARGETS", [str(zcode_skills)]):
+                report = deploy.sync_skills()
+                self.assertTrue(report[0].ok, f"Supported master junction must pass preflight with ok=True: {report}")
+                self.assertIn("master junction", report[0].actions[0])
+                # Sentinel remains completely unchanged
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), original_sentinel)
+
+    def test_sync_skills_foreign_junction_refused_with_zero_writes(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_master = root / "skills"
+            skills_master.mkdir()
+
+            # Foreign external directory with sentinel
+            foreign = root / "foreign_victim"
+            foreign.mkdir()
+            sentinel = foreign / "victim.txt"
+            original_sentinel = "DO NOT WRITE TO FOREIGN VICTIM"
+            sentinel.write_text(original_sentinel, encoding="utf-8")
+
+            zcode_skills = root / "skills_target"
+            if not _try_create_dir_link(foreign, zcode_skills):
+                self.skipTest("Filesystem does not support directory links/junctions")
+
+            with mock.patch.object(deploy, "SKILLS", skills_master), \
+                 mock.patch.object(deploy, "SYNC_TARGETS", [str(zcode_skills)]):
+                report = deploy.sync_skills()
+                self.assertFalse(report[0].ok)
+                self.assertTrue(any("foreign" in a.lower() or "rejected" in a.lower() for a in report[0].actions))
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), original_sentinel)
+                self.assertFalse((foreign / "master_skill").exists())
+
+    def test_sync_skills_preflight_rejects_link_manifest(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest = root / "skills"
+            dest.mkdir()
+            ext = root / "ext_victim"
+            ext.mkdir()
+            sentinel = ext / "sentinel.txt"
+            sentinel.write_text("MANIFEST TARGET SENTINEL", encoding="utf-8")
+
+            mani_path = dest / deploy.MANIFEST_NAME
+            if sys.platform != "win32":
+                mani_path.symlink_to(sentinel)
+            else:
+                # On Windows without symlink privileges, create junction at manifest path
+                if not _try_create_dir_link(ext, mani_path):
+                    self.skipTest("Filesystem does not support directory links/junctions")
+
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest)]):
+                report = deploy.sync_skills()
+                self.assertFalse(report[0].ok)
+                self.assertTrue(any("manifest" in err.lower() and ("symlink" in err.lower() or "regular file" in err.lower() or "error" in err.lower()) for err in report[0].actions))
+                # Sentinel remains completely untouched
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "MANIFEST TARGET SENTINEL")
+
+    def test_canonical_sync_sorted_later_dangling_target_preserves_earlier_destination(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_dir = root / "skills"
+            # Create two skills: alpha and zulu
+            (skills_dir / "alpha").mkdir(parents=True)
+            (skills_dir / "alpha" / "SKILL.md").write_text("alpha master content", encoding="utf-8")
+            (skills_dir / "zulu").mkdir(parents=True)
+            (skills_dir / "zulu" / "SKILL.md").write_text("zulu master content", encoding="utf-8")
+
+            canon = root / ".agents" / "skills"
+            canon.mkdir(parents=True)
+            # zulu target is a dangling junction
+            zulu_target = canon / "zulu"
+            to_delete = root / "to_delete"
+            to_delete.mkdir()
+            if not _try_create_dir_link(to_delete, zulu_target):
+                self.skipTest("Filesystem does not support junctions/links")
+            shutil.rmtree(to_delete)
+
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+
+                self.assertNotEqual(rc, 0, "canonical_mode must fail when zulu is a dangling link")
+                # Earlier sorted skill alpha MUST NOT have been copied!
+                self.assertFalse((canon / "alpha").exists(), "alpha must not be copied when later zulu has conflict/link")
+
+            # Test dry-run also reports failure
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc_dry = deploy.main()
+                self.assertNotEqual(rc_dry, 0, "canonical dry-run must fail on dangling link")
+                self.assertIn("ERROR:", out.getvalue())
+
+    def test_sync_skills_rejects_destination_ancestor_link_and_avoids_mutation(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            fake_home = root / "home"
+            fake_home.mkdir()
+            ext = root / "ext_victim"
+            ext.mkdir()
+            sentinel = ext / "sentinel.txt"
+            sentinel.write_text("OUTSIDE DEST SENTINEL", encoding="utf-8")
+
+            # make ~/.agents a junction to ext
+            agents_dir = fake_home / ".agents"
+            if not _try_create_dir_link(ext, agents_dir):
+                self.skipTest("Filesystem does not support junctions/links")
+
+            target_dest = agents_dir / "skills"
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(target_dest)]), \
+                 mock.patch.object(Path, "home", lambda: fake_home):
+                report = deploy.sync_skills()
+                self.assertFalse(report[0].ok)
+                self.assertTrue(any("ancestor" in a.lower() for a in report[0].actions))
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "OUTSIDE DEST SENTINEL")
+                self.assertFalse((ext / "skills").exists())
+
+    def test_sync_skills_stale_removal_nested_link_refuses_preflight_before_writes(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest = root / "skills"
+            dest.mkdir()
+
+            # Stale skill in manifest that has nested junction
+            stale_dir = dest / "stale_old_skill"
+            (stale_dir / "sub").mkdir(parents=True)
+            ext = root / "ext_victim"
+            ext.mkdir()
+            sentinel = ext / "sentinel.txt"
+            sentinel.write_text("PRESERVE STALE SENTINEL", encoding="utf-8")
+            if not _try_create_dir_link(ext, stale_dir / "sub" / "junc"):
+                self.skipTest("Filesystem does not support junctions/links")
+
+            import json
+            # Manifest claims ownership of stale_old_skill and a master skill
+            master_name = deploy.master_skill_names()[0]
+            (dest / deploy.MANIFEST_NAME).write_text(
+                json.dumps({"kit_version": deploy.VERSION, "skills": [master_name, "stale_old_skill"]}),
+                encoding="utf-8"
+            )
+
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest)]):
+                report = deploy.sync_skills()
+                self.assertFalse(report[0].ok)
+                self.assertTrue(any("stale skill" in a.lower() and "conflict" in a.lower() for a in report[0].actions))
+                # Master skill must not have been synced
+                self.assertFalse((dest / master_name).exists(), "Zero writes on stale link conflict")
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "PRESERVE STALE SENTINEL")

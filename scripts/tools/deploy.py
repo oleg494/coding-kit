@@ -6,13 +6,13 @@ Usage:
 
 Idempotent. Steps:
   1. Skills: sync KIT/skills -> ~/.claude/skills, ~/.agents/skills,
-     ~/.zcode/skills (add / update / remove). Junctions on target dirs
-     are detected and skipped — they track the master live.
+     ~/.zcode/skills (add / update / remove). Destinations junctioned directly
+     to KIT/skills (e.g. ~/.zcode/skills) track master live and are skipped
+     with zero writes. Foreign or dangling linked destinations/ancestors
+     fail closed during preflight to prevent escapes.
      Local-only skill dirs are never touched: each target keeps a
      .kit-manifest.json naming the skills the kit owns; only manifest
      entries are eligible for removal.
-  2. Routers: regenerate the uniform routers (omp, antigravity,
-     zcode, codex, opencode) from the kit soul (AGENTS.md) — no drift.
      ~/.claude/CLAUDE.md keeps its machine-local triggers: only the
      version / date / skill-count line is bumped in place.
      An existing <!-- CODEGRAPH --> block is carried over verbatim.
@@ -21,16 +21,34 @@ Idempotent. Steps:
 """
 import argparse
 import json
+import os
 import re
 import shutil
+import stat
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
     pass
+
+try:
+    from ._deploy_tx import DeployTransaction
+except (ImportError, ValueError):
+    try:
+        from _deploy_tx import DeployTransaction
+    except ImportError:
+        # Fallback when running directly or dynamically loaded from other paths
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "_deploy_tx", Path(__file__).resolve().parent / "_deploy_tx.py"
+        )
+        _tx_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_tx_mod)
+        DeployTransaction = _tx_mod.DeployTransaction
 
 KIT = Path(__file__).resolve().parents[2]
 SKILLS = KIT / "skills"
@@ -95,8 +113,113 @@ def home(p):
 
 
 def is_link(p: Path) -> bool:
-    """True for symlinks and Windows junctions."""
-    return p.is_symlink() or (p.exists() and str(p.resolve()) != str(p.absolute()))
+    """True for symlinks and Windows junctions/reparse points, including dangling links."""
+    try:
+        st = p.lstat()
+        if bool(getattr(st, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)):
+            return True
+        return p.is_symlink()
+    except (FileNotFoundError, NotADirectoryError):
+        return False
+    except OSError:
+        return True
+
+
+def has_link_ancestor(p: Path, boundary: Path) -> bool:
+    """True if any path element from p up to (but excluding) boundary is a symlink/junction."""
+    curr = p
+    while True:
+        if is_link(curr):
+            return True
+        if curr == boundary or curr.parent == curr:
+            break
+        try:
+            if curr.resolve() == boundary.resolve():
+                break
+        except Exception:
+            pass
+        curr = curr.parent
+    return False
+
+
+def is_safe_under_boundary(p: Path, boundary: Path) -> bool:
+    """Check that p has no link in hierarchy up to boundary and resolves inside boundary."""
+    try:
+        boundary_res = boundary.resolve()
+    except Exception:
+        boundary_res = boundary
+    if has_link_ancestor(p, boundary):
+        return False
+    curr = p
+    while not curr.exists() and curr != boundary and curr.parent != curr:
+        curr = curr.parent
+    try:
+        if not curr.resolve().is_relative_to(boundary_res):
+            return False
+    except Exception:
+        return False
+    return True
+
+
+def safe_write_text(path: Path, content: str, boundary: Path | None = None, encoding: str = "utf-8") -> None:
+    """Write text failing closed if target or any parent up to boundary is a symlink/junction."""
+    if is_link(path):
+        raise RuntimeError(f"Refusing to write to link {path}")
+    if boundary is not None and not is_safe_under_boundary(path, boundary):
+        raise RuntimeError(f"Refusing to write to link/escape under {boundary}: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding=encoding, newline="\n")
+
+
+def safe_copytree(src: Path, target: Path, boundary: Path) -> None:
+    """Copy directory tree verifying neither source nor destination contains links/escapes."""
+    if is_link(target):
+        raise RuntimeError(f"Refusing to copytree to link {target}")
+    if not is_safe_under_boundary(target, boundary):
+        raise RuntimeError(f"Refusing to copytree outside boundary {boundary}: {target}")
+    target.mkdir(parents=True, exist_ok=True)
+    for root_dir, dirs, files in os.walk(src, topdown=True, followlinks=False):
+        rel = Path(root_dir).relative_to(src)
+        dest_dir = target / rel
+        if is_link(dest_dir):
+            raise RuntimeError(f"Refusing to copy into link directory {dest_dir}")
+        for d in dirs:
+            sd = Path(root_dir) / d
+            td = dest_dir / d
+            if is_link(sd):
+                raise RuntimeError(f"Refusing to copy from link source directory {sd}")
+            if is_link(td):
+                raise RuntimeError(f"Refusing to copy into link target directory {td}")
+            td.mkdir(parents=True, exist_ok=True)
+        for f in files:
+            sf = Path(root_dir) / f
+            tf = dest_dir / f
+            if is_link(sf):
+                raise RuntimeError(f"Refusing to copy from link source file {sf}")
+            if is_link(tf):
+                raise RuntimeError(f"Refusing to copy into link target file {tf}")
+            shutil.copy2(sf, tf)
+
+
+def safe_rmtree(target: Path) -> None:
+    """Remove directory tree failing closed without traversing any symlinks/junctions."""
+    if is_link(target):
+        raise RuntimeError(f"Refusing to rmtree link {target}")
+    for root_dir, dirs, files in os.walk(target, topdown=True, followlinks=False):
+        for d in list(dirs):
+            dp = Path(root_dir) / d
+            if is_link(dp):
+                raise RuntimeError(f"Refusing to recurse into link dir {dp}")
+        for f in files:
+            fp = Path(root_dir) / f
+            if is_link(fp):
+                raise RuntimeError(f"Refusing to delete link file {fp}")
+    for root_dir, dirs, files in os.walk(target, topdown=False, followlinks=False):
+        for f in files:
+            (Path(root_dir) / f).unlink()
+        for d in dirs:
+            (Path(root_dir) / d).rmdir()
+    target.rmdir()
 
 
 def scan_skill_links(dest: Path, skill_dir: Path) -> list[str]:
@@ -105,10 +228,10 @@ def scan_skill_links(dest: Path, skill_dir: Path) -> list[str]:
     Returns list of problem descriptions (empty if clean).
     """
     bad = []
-    if not skill_dir.exists():
-        return bad
     if is_link(skill_dir):
         bad.append(f"{skill_dir.name} (root link)")
+        return bad
+    if not skill_dir.exists():
         return bad
     dest_res = dest.resolve()
     try:
@@ -128,7 +251,6 @@ def scan_skill_links(dest: Path, skill_dir: Path) -> list[str]:
         except Exception as e:
             bad.append(f"{p.relative_to(dest)} (resolution error: {e})")
     return bad
-
 def master_skill_names():
     return sorted(x.name for x in SKILLS.iterdir() if x.is_dir())
 
@@ -190,11 +312,13 @@ def dirs_byte_identical(src: Path, target: Path) -> bool:
 
 def sync_one_skill(src: Path, target: Path, log, dest: Path | None = None):
     """File-level sync of one skill dir; returns nothing, appends actions."""
+    root_dest = dest or target.parent
+    if is_link(target):
+        raise RuntimeError(f"Refusing to sync to link {target}")
     if not target.exists():
-        shutil.copytree(src, target)
+        safe_copytree(src, target, boundary=root_dest)
         log.append("add " + src.name)
         return
-    root_dest = dest or target.parent
     dest_res = root_dest.resolve()
     for f in src.rglob("*"):
         if not f.is_file():
@@ -215,28 +339,72 @@ def sync_one_skill(src: Path, target: Path, log, dest: Path | None = None):
                 raise RuntimeError(f"Refusing to unlink link {f}")
             f.unlink()
             log.append("del " + src.name + "/" + str(f.relative_to(target)))
-def sync_skills():
+@dataclass
+class SkillsReport:
+    target: str
+    actions: list[str]
+    manifest: dict | None
+    ok: bool = True
+def preflight_skills() -> tuple[bool, list[dict], list[SkillsReport]]:
     names = master_skill_names()
-    # Phase 1: Preflight ALL destinations before performing any writes
     preflight = []
     any_failure = False
+    # Preflight master skills for links first
+    for name in names:
+        src = SKILLS / name
+        if is_link(src) or scan_skill_links(SKILLS, src):
+            err_report = [SkillsReport(str(SKILLS), [f"ERROR: master skill {name} contains links/escapes"], None, ok=False)]
+            return False, [], err_report
+
     for d in SYNC_TARGETS:
         dest = home(d)
+        # Supported master alias: exact destination resolves to SKILLS
         if is_link(dest):
-            preflight.append({"d": d, "dest": dest, "kind": "junction"})
+            try:
+                if dest.resolve() == SKILLS.resolve():
+                    preflight.append({"d": d, "dest": dest, "kind": "master_alias", "ok": True})
+                    continue
+            except Exception:
+                pass
+            preflight.append({
+                "d": d, "dest": dest, "kind": "error", "ok": False,
+                "errors": [f"ERROR: destination {dest} is a foreign or broken symlink/junction (rejected)"],
+            })
+            any_failure = True
+            continue
+        if has_link_ancestor(dest, Path.home()):
+            preflight.append({
+                "d": d, "dest": dest, "kind": "error", "ok": False,
+                "errors": [f"ERROR: destination {dest} ancestor is a symlink/junction (rejected)"],
+            })
+            any_failure = True
             continue
         mani_file = dest / MANIFEST_NAME
+        if is_link(mani_file):
+            preflight.append({
+                "d": d, "dest": dest, "kind": "error", "ok": False,
+                "errors": [f"ERROR: manifest {mani_file} is a symlink/junction (wrong type or escape)"],
+            })
+            any_failure = True
+            continue
         mani = None
         if mani_file.exists():
+            if not mani_file.is_file():
+                preflight.append({
+                    "d": d, "dest": dest, "kind": "error", "ok": False,
+                    "errors": [f"ERROR: manifest {mani_file} exists but is not a regular file"],
+                })
+                any_failure = True
+                continue
             try:
                 raw_mani = json.loads(mani_file.read_text(encoding="utf-8"))
             except Exception as e:
-                preflight.append({"d": d, "dest": dest, "kind": "error", "errors": [f"ERROR: malformed manifest JSON: {e}"]})
+                preflight.append({"d": d, "dest": dest, "kind": "error", "ok": False, "errors": [f"ERROR: malformed manifest JSON: {e}"]})
                 any_failure = True
                 continue
             valid, err = validate_manifest(dest, raw_mani)
             if not valid:
-                preflight.append({"d": d, "dest": dest, "kind": "error", "errors": [f"ERROR: malformed manifest ({err})"]})
+                preflight.append({"d": d, "dest": dest, "kind": "error", "ok": False, "errors": [f"ERROR: malformed manifest ({err})"]})
                 any_failure = True
                 continue
             mani = raw_mani
@@ -246,10 +414,12 @@ def sync_skills():
         owned_skills = []
         for name in names:
             target = dest / name
+            if is_link(target):
+                conflicts.append(f"skill {name} is a symlink/junction")
+                continue
             if not target.exists():
                 owned_skills.append(name)
                 continue
-            # Scan existing target dir for nested links/escapes
             bad_links = scan_skill_links(dest, target)
             if bad_links:
                 conflicts.append(f"skill {name} contains symlink/junction/escape: {', '.join(bad_links)}")
@@ -260,41 +430,54 @@ def sync_skills():
             else:
                 conflicts.append(f"unowned skill {name} exists with differing content")
 
+        # Preflight stale removal candidates for nested links BEFORE any writes
+        if mani:
+            for stale_name in mani.get("skills", []):
+                if stale_name not in names:
+                    stale_dir = dest / stale_name
+                    if is_link(stale_dir):
+                        conflicts.append(f"stale skill {stale_name} is a symlink/junction")
+                    elif stale_dir.exists():
+                        bad_stale_links = scan_skill_links(dest, stale_dir)
+                        if bad_stale_links:
+                            conflicts.append(f"stale skill {stale_name} contains symlink/junction/escape: {', '.join(bad_stale_links)}")
+
         if conflicts:
             preflight.append({
-                "d": d, "dest": dest, "kind": "conflict",
+                "d": d, "dest": dest, "kind": "conflict", "ok": False,
                 "mani": mani,
                 "conflicts": [f"CONFLICT: {c} (skipping)" for c in conflicts],
             })
             any_failure = True
         else:
             preflight.append({
-                "d": d, "dest": dest, "kind": "ok",
+                "d": d, "dest": dest, "kind": "ok", "ok": True,
                 "mani": mani,
                 "manifest_skills": manifest_skills,
                 "owned_skills": owned_skills,
             })
 
-    if any_failure:
-        report = []
-        for item in preflight:
-            kind = item["kind"]
-            if kind == "junction":
-                report.append((item["d"], ["skip (junction - always current)"], None))
-            elif kind == "error":
-                report.append((item["d"], item["errors"], None))
-            elif kind == "conflict":
-                report.append((item["d"], item["conflicts"], item["mani"]))
-            else:
-                report.append((item["d"], ["aborted (prior destination had conflicts/errors)"], item["mani"]))
-        return report
+    report = []
+    for item in preflight:
+        kind = item["kind"]
+        if kind == "master_alias":
+            report.append(SkillsReport(item["d"], ["skip (master junction - always current)"], None, ok=True))
+        elif kind == "error":
+            report.append(SkillsReport(item["d"], item["errors"], None, ok=False))
+        elif kind == "conflict":
+            report.append(SkillsReport(item["d"], item["conflicts"], item["mani"], ok=False))
+        elif any_failure:
+            report.append(SkillsReport(item["d"], ["aborted (prior destination had conflicts/errors)"], item["mani"], ok=False))
+    return (not any_failure), preflight, report
 
-    # Phase 2: Mutation (all destinations passed preflight)
+
+def execute_skills(preflight: list[dict]) -> list[SkillsReport]:
+    names = master_skill_names()
     report = []
     for item in preflight:
         d, dest, kind = item["d"], item["dest"], item["kind"]
-        if kind == "junction":
-            report.append((d, ["skip (junction - always current)"], None))
+        if kind == "master_alias":
+            report.append(SkillsReport(d, ["skip (master junction - always current)"], None, ok=True))
             continue
         if not dest.exists():
             dest.mkdir(parents=True)
@@ -309,15 +492,26 @@ def sync_skills():
         if mani:
             for name in mani.get("skills", []):
                 if name not in names and (dest / name).exists():
-                    shutil.rmtree(dest / name)
+                    safe_rmtree(dest / name)
                     removed.append("rm-dir " + name)
 
         persisted_skills = sorted(list((item["manifest_skills"] | set(owned_skills)) & set(names)))
-        (dest / MANIFEST_NAME).write_text(
+        safe_write_text(
+            dest / MANIFEST_NAME,
             json.dumps({"kit_version": VERSION, "skills": persisted_skills}, indent=1),
-            encoding="utf-8", newline="\n")
-        report.append((d, log + removed, mani))
+            boundary=dest,
+        )
+        report.append(SkillsReport(d, log + removed, mani, ok=True))
     return report
+
+
+def sync_skills() -> list[SkillsReport]:
+    """Convenience wrapper for callers running preflight + execute together."""
+    ok, plan, report = preflight_skills()
+    if not ok:
+        return report
+    return execute_skills(plan)
+
 
 def soul_text():
     text = (KIT / "AGENTS.md").read_text(encoding="utf-8")
@@ -337,12 +531,41 @@ def is_router_kit_owned(old_content: str) -> bool:
     return ("# Coding Agent Router" in old_content) or (SOUL_MARKER in old_content)
 
 
+def preflight_routers_and_claude() -> tuple[bool, list[str]]:
+    """Preflight all router targets and CLAUDE.md before any filesystem mutations."""
+    errors = []
+    for h in HARNESSES:
+        path = home(h["router"])
+        if has_link_ancestor(path, Path.home()):
+            errors.append(f"router {path} or ancestor up to home is a symlink/junction")
+            continue
+        if path.exists():
+            if not path.is_file():
+                errors.append(f"router {path} exists but is not a regular file")
+                continue
+            old = path.read_text(encoding="utf-8")
+            if not is_router_kit_owned(old):
+                errors.append(f"router {path} is foreign (missing kit marker)")
+                continue
+            backup_path = Path(str(path) + ".kit-bak")
+            if is_link(backup_path) or (backup_path.exists() and not backup_path.is_file()):
+                errors.append(f"router backup path {backup_path} is a symlink/junction or not a regular file")
+    if is_link(CLAUDE_MD) or has_link_ancestor(CLAUDE_MD, Path.home()):
+        errors.append(f"CLAUDE.md {CLAUDE_MD} or ancestor is a symlink/junction")
+    elif CLAUDE_MD.exists() and not CLAUDE_MD.is_file():
+        errors.append(f"CLAUDE.md {CLAUDE_MD} exists but is not a regular file")
+    return (len(errors) == 0), errors
+
+
 def regen_routers():
     soul = soul_text()
     kit = KIT.as_posix()
     actions = []
     for h in HARNESSES:
         path = home(h["router"])
+        if has_link_ancestor(path, Path.home()):
+            actions.append((str(path), "CONFLICT: router path or ancestor is a link (preserved)"))
+            continue
         if path.exists():
             old = path.read_text(encoding="utf-8")
             if not is_router_kit_owned(old):
@@ -374,13 +597,15 @@ def regen_routers():
             if path.exists():
                 # CR-01: Cheap one-file backup before replacing an owned router
                 backup_path = Path(str(path) + ".kit-bak")
-                backup_path.write_text(old, encoding="utf-8")
-            path.write_text(new, encoding="utf-8")
+                safe_write_text(backup_path, old)
+            safe_write_text(path, new)
             actions.append((str(path), "regenerated"))
     return actions
 
 
 def bump_claude_md():
+    if is_link(CLAUDE_MD) or has_link_ancestor(CLAUDE_MD, Path.home()):
+        return "skipped (link target or ancestor)"
     if not CLAUDE_MD.exists():
         return "skipped (not present)"
     n = len(master_skill_names())
@@ -393,9 +618,10 @@ def bump_claude_md():
         t, count=1)
     t2 = re.sub(r"\(\d+, English\)", f"({n}, English)", t2, count=1)
     if t2 != t:
-        CLAUDE_MD.write_text(t2, encoding="utf-8")
+        safe_write_text(CLAUDE_MD, t2)
         return "bumped"
     return "unchanged"
+
 
 def verify():
     ok = True
@@ -404,7 +630,18 @@ def verify():
     for d in SYNC_TARGETS:
         dest = home(d)
         if is_link(dest):
-            print(f"OK   {d} (junction)")
+            try:
+                if dest.resolve() == SKILLS.resolve():
+                    print(f"OK   {d} (master junction)")
+                    continue
+            except Exception:
+                pass
+            print(f"FAIL {d} (foreign or broken symlink/junction rejected)")
+            ok = False
+            continue
+        if has_link_ancestor(dest, Path.home()):
+            print(f"FAIL {d} (ancestor is symlink/junction)")
+            ok = False
             continue
         if not dest.exists():
             print(f"FAIL {d} (missing)")
@@ -478,6 +715,8 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
     """CR-04: Compute ONE unified change plan for canonical sync (including manifest)."""
     names = master_skill_names()
     plan = []
+    if is_link(canon) or has_link_ancestor(canon, KIT):
+        return [{"op": "error", "target": canon, "desc": f"ERROR: canonical target {canon} or ancestor is a link"}]
     if not canon.exists():
         for n in names:
             plan.append({"op": "add-skill", "skill": n, "src": SKILLS / n, "target": canon / n, "desc": f"add .agents/skills/{n}"})
@@ -486,8 +725,20 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
 
     for n in names:
         src, target = SKILLS / n, canon / n
+        if is_link(target):
+            try:
+                if target.resolve() == src.resolve():
+                    continue
+            except Exception:
+                pass
+            plan.append({"op": "error", "skill": n, "target": target, "desc": f"ERROR: skill {n} is a link: {target}"})
+            continue
         if not target.exists():
             plan.append({"op": "add-skill", "skill": n, "src": src, "target": target, "desc": f"add .agents/skills/{n}"})
+            continue
+        bad_links = scan_skill_links(canon, target)
+        if bad_links:
+            plan.append({"op": "error", "skill": n, "target": target, "desc": f"ERROR: skill {n} contains link/escape: {', '.join(bad_links)}"})
             continue
         if target.resolve() == src.resolve():
             continue
@@ -500,14 +751,19 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
         for f in target.rglob("*"):
             if f.is_file() and not (src / f.relative_to(target)).exists():
                 plan.append({"op": "del-file", "target": f, "desc": f"del {n}/{f.relative_to(target)}"})
-
     for entry in sorted(canon.iterdir()):
         if entry.is_dir() and entry.name not in names:
-            plan.append({"op": "rm-dir", "target": entry, "desc": f"rm-dir {entry.name}"})
+            bad_links = scan_skill_links(canon, entry)
+            if bad_links:
+                plan.append({"op": "error", "target": entry, "desc": f"ERROR: stale dir {entry.name} contains link/escape: {', '.join(bad_links)}"})
+            else:
+                plan.append({"op": "rm-dir", "target": entry, "desc": f"rm-dir {entry.name}"})
 
     # Manifest check
     mani_file = canon / MANIFEST_NAME
-    if not mani_file.exists():
+    if is_link(mani_file):
+        plan.append({"op": "error", "target": mani_file, "desc": f"ERROR: manifest {mani_file} is a link"})
+    elif not mani_file.exists():
         plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"add {MANIFEST_NAME}"})
     else:
         try:
@@ -531,6 +787,7 @@ def canonical_mode(argv=None):
     dry = "--dry-run" in argv
     canon = KIT / ".agents" / "skills"
     plan = plan_canonical_sync(canon)
+    has_errors = any(item.get("op") == "error" for item in plan)
     if dry:
         print("DRY RUN — no changes written")
         if not plan:
@@ -538,34 +795,75 @@ def canonical_mode(argv=None):
         else:
             for item in plan:
                 print(item["desc"])
-        return 0
+        return 1 if has_errors else 0
+
+    if has_errors:
+        for item in plan:
+            if item.get("op") == "error":
+                print(item["desc"])
+        print("canonical sync aborted due to errors/links")
+        return 1
 
     print(f"canonical: {canon}")
-    if not canon.exists():
-        canon.mkdir(parents=True)
-
     actions: list[str] = []
-    for item in plan:
-        op = item["op"]
-        if op == "add-skill":
-            shutil.copytree(item["src"], item["target"])
-            actions.append(item["desc"])
-        elif op == "upd-file":
-            item["target"].parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(item["src"], item["target"])
-            actions.append(item["desc"])
-        elif op == "del-file":
-            item["target"].unlink()
-            actions.append(item["desc"])
-        elif op == "rm-dir":
-            shutil.rmtree(item["target"])
-            actions.append(item["desc"])
-        elif op == "upd-manifest":
-            names = master_skill_names()
-            item["target"].write_text(
-                json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
-                encoding="utf-8", newline="\n")
-            actions.append(item["desc"])
+    tx = DeployTransaction()
+    with tx:
+        for item in plan:
+            op = item["op"]
+            if op in ("add-skill", "upd-file", "del-file", "rm-dir"):
+                skill_name = item.get("skill")
+                target_path = canon / skill_name if skill_name else item["target"]
+                tx.record_absent_ancestors(target_path)
+                tx.snapshot_target(target_path)
+            elif op == "upd-manifest":
+                tx.record_absent_ancestors(item["target"])
+                tx.snapshot_target(item["target"])
+
+        tx.mark_mutations_started()
+        if not canon.exists():
+            canon.mkdir(parents=True)
+
+        try:
+            for item in plan:
+                op = item["op"]
+                if op == "add-skill":
+                    safe_copytree(item["src"], item["target"], boundary=canon)
+                    actions.append(item["desc"])
+                elif op == "upd-file":
+                    if not is_safe_under_boundary(item["target"], canon):
+                        print(f"ERROR: unsafe upd file target {item['target']}")
+                        tx.rollback("unsafe upd file target")
+                        return 1
+                    item["target"].parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(item["src"], item["target"])
+                    actions.append(item["desc"])
+                elif op == "del-file":
+                    if not is_safe_under_boundary(item["target"], canon):
+                        print(f"ERROR: unsafe del file target {item['target']}")
+                        tx.rollback("unsafe del file target")
+                        return 1
+                    item["target"].unlink()
+                    actions.append(item["desc"])
+                elif op == "rm-dir":
+                    safe_rmtree(item["target"])
+                    actions.append(item["desc"])
+                elif op == "upd-manifest":
+                    names = master_skill_names()
+                    safe_write_text(
+                        item["target"],
+                        json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
+                        boundary=canon,
+                    )
+                    actions.append(item["desc"])
+                elif op == "error":
+                    print(item["desc"])
+                    tx.rollback(item["desc"])
+                    return 1
+        except Exception as e:
+            tx.rollback(str(e))
+            return 1
+
+        tx.commit()
 
     for a in actions:
         print(a)
@@ -597,18 +895,68 @@ def main():
                      "a full-deploy dry-run is not implemented")
     integrity_gate()
     print(f"coding-kit v{VERSION} -> all harnesses ({TODAY})")
-    print("\n=== SKILLS ===")
-    for d, log, _old_mani in sync_skills():
-        print(f"{d}: " + (", ".join(log) if log else "no changes"))
-    print("\n=== ROUTERS ===")
-    for path, action in regen_routers():
-        print(f"{action}: {path}")
-    # the machine CLAUDE.md keeps its local triggers; only its version/
-    # date/skill-count line is bumped in place (docstring promise — the
-    # call was missing, so verify() failed on every VERSION bump)
-    print(f"CLAUDE.md: {bump_claude_md()}")
-    return 0 if verify() else 1
+    routers_ok, router_errs = preflight_routers_and_claude()
+    if not routers_ok:
+        print("\nDEPLOY ABORTED: router or CLAUDE.md preflight encountered conflicts:")
+        for err in router_errs:
+            print("  " + err)
+        return 1
 
+    # Preflight skills
+    skills_ok, skills_plan, skills_reports = preflight_skills()
+    has_skill_failure = any(not r.ok for r in skills_reports)
+    for r in skills_reports:
+        print(f"{r.target}: " + (", ".join(r.actions) if r.actions else "no changes"))
+    if not skills_ok or has_skill_failure:
+        print("\nDEPLOY ABORTED: skill preflight encountered conflicts or errors.")
+        return 1
+    names_set = set(master_skill_names())
+    tx = DeployTransaction()
+    with tx:
+        # Snapshot validated targets from skills_plan
+        for item in skills_plan:
+            if item["kind"] == "master_alias":
+                continue
+            dest: Path = item["dest"]
+            tx.record_absent_ancestors(dest / MANIFEST_NAME)
+            tx.snapshot_target(dest / MANIFEST_NAME)
+            for name in item.get("owned_skills", []):
+                t = dest / name
+                tx.record_absent_ancestors(t)
+                tx.snapshot_target(t)
+            mani = item.get("mani")
+            if mani:
+                for stale_name in mani.get("skills", []):
+                    if stale_name not in names_set:
+                        stale_t = dest / stale_name
+                        if stale_t.exists():
+                            tx.record_absent_ancestors(stale_t)
+                            tx.snapshot_target(stale_t)
 
+        for h in HARNESSES:
+            r_path = home(h["router"])
+            tx.record_absent_ancestors(r_path)
+            tx.snapshot_target(r_path)
+            bak_p = Path(str(r_path) + ".kit-bak")
+            tx.record_absent_ancestors(bak_p)
+            tx.snapshot_target(bak_p)
+        tx.record_absent_ancestors(CLAUDE_MD)
+        tx.snapshot_target(CLAUDE_MD)
+
+        tx.mark_mutations_started()
+        try:
+            execute_skills(skills_plan)
+            print("\n=== ROUTERS ===")
+            for path, action in regen_routers():
+                print(f"{action}: {path}")
+            print(f"CLAUDE.md: {bump_claude_md()}")
+            if not verify():
+                tx.rollback("verify returned False")
+                return 1
+            tx.commit()
+            return 0
+        except Exception as e:
+            tx.rollback(str(e))
+            return 1
 if __name__ == "__main__":
     sys.exit(main())
