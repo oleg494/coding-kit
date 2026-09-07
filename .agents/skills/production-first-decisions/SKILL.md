@@ -4,7 +4,7 @@ description: 'Use for ANY "how to do it" decision: choosing an approach/tool/lib
 license: MIT
 compatibility: any project
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # Production-first: decisions by industry practice, not from your head

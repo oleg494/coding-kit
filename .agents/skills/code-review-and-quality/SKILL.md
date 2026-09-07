@@ -3,7 +3,7 @@ name: code-review-and-quality
 description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 ## Overview
@@ -12,9 +12,15 @@ Multi-dimensional code review with quality gates. Five axes: correctness, readab
 
 **The approval standard:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist. Don't block a change because it isn't exactly how you would have written it.
 
-## What NOT to Flag
+## Review Scope: Diff-Review vs Whole-System Audit
 
-Review noise buries real findings. Never report:
+Review scope must be explicitly defined:
+- **Diff-review (default PR / branch gate):** focus on changed lines and their direct blast radius. Apply "What NOT to Flag" below to suppress noise in unchanged code.
+- **Whole-system audit (security / architecture / repository audit):** inspects system-wide invariants across the codebase. Whole-system audits are NOT bound by the diff-boundary rule and must report material defects across all scanned files.
+
+## What NOT to Flag (Diff-Review Scope)
+
+Review noise buries real findings. In diff-review scope, never report:
 
 - Theoretical risks — no exploit path in THIS change's reality.
 - Defense-in-depth when the primary control suffices.
@@ -24,9 +30,8 @@ Review noise buries real findings. Never report:
 ## Severity: 3 Values
 
 - **critical** — blocks merge: real bug, broken contract, fraud.
-- **warning** — must fix before proceeding; alone not merge-blocking.
+- **warning** — important finding to resolve; alone not an automatic merge blocker unless cumulative quality threshold requires it.
 - **suggestion** — optional improvement; never blocks.
-
 ## Report Format (machine-checkable counts)
 
 End every review with the counts; the verdict is recomputed from them

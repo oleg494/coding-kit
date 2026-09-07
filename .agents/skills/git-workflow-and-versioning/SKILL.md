@@ -3,7 +3,7 @@ name: git-workflow-and-versioning
 description: Structures git workflow practices. Use when making any code change. Use when committing, branching, resolving conflicts, or when you need to organize work across multiple parallel streams. Use when cutting a release, choosing a semantic version bump, tagging, or writing a changelog.
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # Git Workflow and Versioning
@@ -23,9 +23,11 @@ main ──●──●──●──●──●──●──●──●─
          ●──●─╱    ●──╱    ← short-lived feature branches
 ```
 
-### 1. Commit Early, Commit Often
-Each successful increment gets its own commit. Don't accumulate large uncommitted changes.
-
+### 1. Commit Policy (Single Sourced)
+Commits happen when the user asked or when the repo's standing convention
+explicitly declares them (never silently expanded by an autonomous skill).
+When committing, commit clean, logical increments — don't accumulate
+unbounded uncommitted changes.
 ### 2. Atomic Commits
 Each commit does one logical thing:
 ```

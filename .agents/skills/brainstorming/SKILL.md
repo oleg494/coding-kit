@@ -3,7 +3,7 @@ name: brainstorming
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # Brainstorming Ideas Into Designs
@@ -15,12 +15,12 @@ through your path: understand the context, refine the idea, present a
 design, and confirm scope where confirmation is actually owed.
 
 <AUTHORIZATION-GATE>
-Authorization decides whether to ask. Proceed when the request authorizes
-the work and the work is reversible and local — a fix in an unmerged
-branch, an edit to code already in this repo, a read-only investigation.
-Do not present a design as a precondition for work that is already
-authorized; finish it, then report.
-
+Action authorization follows AGENTS.md / OPS.md: proceed when the request
+authorizes the work and the work is reversible and local — a fix in an
+unmerged branch, an edit to code already in this repo, a read-only
+investigation. Commits happen only when the user asked or repo convention
+explicitly declares them. Do not present a design as a precondition for
+work that is already authorized; finish it, then report.
 Stop and get explicit approval BEFORE acting only when:
 - the action is irreversible, external, or destructive (deploy, publish,
   merge, force-push, drop data, spend money, write outside the repo) AND
@@ -52,10 +52,11 @@ a short design first" — so your human partner can override it:
 
 - **Spike** — a feasibility question ("can we...", "is it possible...",
   "quick and dirty is fine") whose output is an answer, not code you
-  keep. Present the question and what you'll try in 2-3 sentences, get
-  a nod, then find out as cheaply as correctness allows. No design
-  doc, no spec file. Report findings as a recommendation; anything you
-  built stays labeled throwaway.
+  keep. Present the question and what you'll try in 2-3 sentences, then
+  proceed if authorized (a read-only or throwaway probe needs no approval
+  pause; pause only if external/destructive). Find out as cheaply as
+  correctness allows. No design doc, no spec file. Report findings as a
+  recommendation; anything you built stays labeled throwaway.
 - **Bounded** — a well-scoped change to code that already exists in
   this repo: a new flag, a small endpoint, a one-file fix.
   Understanding the kind of app is not enough — bounded means the flow
@@ -133,7 +134,7 @@ your path and complete them in order.
    constraints, success criteria; batch them, do not ration one per message
 3. **Propose 2-3 approaches** — with trade-offs and your recommendation
 4. **Present design** — in sections scaled to their complexity
-5. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
+5. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` (commit only if user asked or standing repo convention applies)
 
 6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 7. **User reviews written spec** — ask user to review the spec file before proceeding
@@ -209,7 +210,7 @@ is the whole process.
 - Write the validated design (spec) to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
   - (User preferences for spec location override this default)
 - Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
+- Save the design document (commit only if user asked or standing repo convention applies)
 
 **Spec Self-Review:**
 After writing the spec document, look at it with fresh eyes:
@@ -224,7 +225,7 @@ Fix any issues inline. No need to re-review — just fix and move on.
 **User Review Gate:**
 After the spec review loop passes, ask the user to review the written spec before proceeding:
 
-> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
+> "Spec written to `<path>`. Please review it and let me know if you want to make any changes before we start writing out the implementation plan."
 - Invoke the writing-plans skill to create a detailed implementation plan
 - Do NOT invoke any other skill. writing-plans is the next step.
 

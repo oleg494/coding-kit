@@ -3,7 +3,7 @@ name: dev-wiki
 description: 'Always-on. Cross-chat memory (database, not conversation): record decisions, errors, patterns in the global Wiki (~/.memory). Use on "record"/"save"/"remember"/"запиши"/"сохрани"/"запомни"/"в память"/"память" or "what do we know about X"/"напомни". Hierarchy: portable → ~/.memory/Wiki/; project-specific → WORK/<project>/docs/. Cycle: file → index.md → log.md → python ~/.memory/db-tools/build.py → lint.'
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # Dev Wiki — cross-chat developer memory
@@ -20,12 +20,12 @@ Memory lives in `~/.memory/` (global + per-project hierarchy; env `MEMORY_ROOT` 
 
 Knowledge lives/dies with the project → project; portable across projects → global Wiki.
 
-## Save reflex (proactive, not only on request)
+## Save reflex (bounded by task effect boundary)
 
-- **On every finished task / made decision / closed bug** — 10-second check:
+- **Side-effect boundary:** read-only or review-only tasks produce NO memory writes unless explicitly requested by the user.
+- **On every finished mutation task / made decision / closed bug** — 10-second check:
   would a future session need this? Yes → save. No → skip (noise-free is deliberate).
-- Conclusions → `findings.py add`; portable patterns → Wiki; realizations by trigger below.
-
+- Conclusions → `findings.py add`; portable patterns → Wiki; realizations by trigger below. Any saved `verify_cmd` is a proposed check, not standing authorization.
 ## Record types (global Wiki)
 
 | Type | Folder | When |
@@ -63,7 +63,7 @@ python ~/.memory/db-tools/search_all.py "query" --substring   # declensions/subs
 ```
 
 - Search the database, NOT conversation memory.
-- Found → answer with a link to the file.
+- Found → check lifecycle badges first: [superseded by #N] → resolve to the replacing finding before using it; [unverified] → treat as unconfirmed. Then answer with a link to the file.
 - Not found → "not in the database".
 
 ## Auto-write triggers
