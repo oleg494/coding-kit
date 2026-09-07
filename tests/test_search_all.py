@@ -329,14 +329,60 @@ class FindingsUnionTest(unittest.TestCase):
 
     def test_json_mode_keeps_pinned_keys(self):
         """v4.0.2 machine contract: [{db, path, snippet}] — findings ride
-        along with path='finding#<id> <topic>'."""
+        along with path='finding#<id> <topic>' and additive lifecycle keys."""
         import json
         payload = self._print_main("workflowz", "--json")
         data = json.loads(payload)
         self.assertEqual(len(data), 1)
-        self.assertEqual(set(data[0]), {"db", "path", "snippet"})
+        self.assertTrue({"db", "path", "snippet"}.issubset(data[0]))
         self.assertEqual(data[0]["db"], "research")
         self.assertEqual(data[0]["path"], "finding#1 workflowz brainstorm")
+        self.assertIsNone(data[0]["superseded_by"])
+        self.assertIs(data[0]["verified"], False)
+
+    def test_json_mode_lifecycle_metadata(self):
+        """LR-05: findings hits in JSON mode carry lifecycle metadata
+        (superseded_by, verified) alongside pinned db/path/snippet keys.
+        File hits keep the 3-key shape."""
+        import json
+        con = sqlite3.connect(self.research)
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, verified_at, source) "
+            "VALUES (2, '2026-09-03', 'workflowz replacement', 'new workflowz content', "
+            "'2026-09-03 10:00:00', 'audit')"
+        )
+        con.execute(
+            "INSERT INTO links(from_id, to_id, kind, created) "
+            "VALUES (2, 1, 'supersedes', '2026-09-03')"
+        )
+        con.commit()
+        con.close()
+
+        _seed_files_db(self.db_dir / "wiki.db", [
+            ("Wiki/workflowz.md", f"workflowz documentation {FILLER}"),
+        ])
+
+        payload = self._print_main("workflowz", "--json")
+        data = json.loads(payload)
+        by_path = {item["path"]: item for item in data}
+
+        for item in data:
+            self.assertTrue({"db", "path", "snippet"}.issubset(item))
+            self.assertTrue(item["snippet"])
+
+        f1 = by_path["finding#1 workflowz brainstorm"]
+        self.assertEqual(f1["db"], "research")
+        self.assertEqual(f1["superseded_by"], 2)
+        self.assertIs(f1["verified"], False)
+
+        f2 = by_path["finding#2 workflowz replacement"]
+        self.assertEqual(f2["db"], "research")
+        self.assertIsNone(f2["superseded_by"])
+        self.assertIs(f2["verified"], True)
+
+        file_hit = by_path["Wiki/workflowz.md"]
+        self.assertEqual(file_hit["db"], "wiki")
+        self.assertEqual(set(file_hit.keys()), {"db", "path", "snippet"})
 
     def _print_main(self, query, *extra):
         """main() against the seeded sandbox; returns stdout (rc 0)."""

@@ -11,10 +11,17 @@ Results print as ONE global bm25 merge-sort (best first) instead of
 alphabetical db order: a strong wiki.db hit must not rank below a weak
 hit from a clone db just because of its name.
 
+In --json mode, results are emitted as a JSON list. File hits retain the
+pinned 3-key shape {"db", "path", "snippet"}. Findings hits extend this
+additively with lifecycle metadata: "superseded_by" (int|null) and "verified"
+(bool), keeping file hits simple while providing machine consumers with
+lifecycle authority.
+
 Usage:
     python3 db-tools/search_all.py "firmware"
     python3 db-tools/search_all.py "load_mix" --limit 15
     python3 db-tools/search_all.py "legacy" --substring
+    python3 db-tools/search_all.py "workflow" --json
 """
 import argparse
 import json
@@ -209,10 +216,18 @@ def main() -> int:
                          substring=args.substring)
     if getattr(args, "json_mode", False):
         # db/path/snippet keys are the pinned machine contract (v4.0.2);
-        print(json.dumps(
-            [{"db": db, "path": label, "snippet": snip}
-             for _score, db, label, snip, _fid in results],
-            ensure_ascii=False))
+        # findings hits extend additively with lifecycle metadata (superseded_by, verified).
+        # File hits keep the 3-key shape as files do not carry findings lifecycle.
+        formatted = []
+        for hit in results:
+            _score, db, label, snip, fid = hit[0], hit[1], hit[2], hit[3], hit[4]
+            item = {"db": db, "path": label, "snippet": snip}
+            if fid is not None:
+                meta = getattr(hit, "meta", {}) or {}
+                item["superseded_by"] = meta.get("superseded_by")
+                item["verified"] = bool(meta.get("verified", False))
+            formatted.append(item)
+        print(json.dumps(formatted, ensure_ascii=False))
         return 0
     if not results:
         print("not found in any database")
