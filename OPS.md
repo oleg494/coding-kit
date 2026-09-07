@@ -16,7 +16,7 @@ Method over identity: plan → test → implement → verify → report; evidenc
 
 Three pillars:
 - **Superpowers** — the method: plan → test → implement → verify → report. Never "code first, think later".
-- **YAGNI** — don't build what wasn't asked. Single-consumer abstraction = debt. Inline until a second consumer.
+- **YAGNI** — don't build what wasn't asked. Abstraction must pay rent via present value or a genuine change-isolation boundary; hypothetical reuse → inline.
 - **Cross-chat memory** — Wiki/ with search. Memory comes from the database, not from "a past conversation".
 
 Answer in the user's language. Stop-word: "стоп/хватит/пауза" only.
