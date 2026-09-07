@@ -273,9 +273,8 @@ class FindingsUnionTest(unittest.TestCase):
         self.assertLess(score, 0, "bm25 scores are negative (lower = better)")
 
         out = self._print_main("workflowz")
-        self.assertIn("[research] finding#1 workflowz brainstorm …", out)
+        self.assertIn("[research] finding#1 workflowz brainstorm [unverified] …", out)
         self.assertIn("  findings.py show 1", out)
-
     def test_research_hit_without_files_dbs_still_answers(self):
         """D-G: no files_fts database at all — findings alone must answer
         (this is exactly the store state that used to exit 1)."""
@@ -532,6 +531,97 @@ class AgentsCommandContractTest(unittest.TestCase):
                          [db for _s, db, _l, _sn, _f in scores],
                          "printed order must equal the global bm25 order")
 
+
+class FindingsLifecycleMetadataTest(unittest.TestCase):
+    """LR-05: findings hits carry lifecycle metadata in search_all.py."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="kit-sa-lr05-"))
+        self.db_dir = self.tmp / "db"
+        self.db_dir.mkdir()
+        self.research = self.tmp / "research.db"
+        con = sqlite3.connect(self.research)
+        con.executescript(findings_db.SCHEMA)
+        # 1. unverified finding
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, verify_cmd, verified_at) "
+            "VALUES (1, '2026-09-01', 'unverified pattern', 'text about pattern', '', '')"
+        )
+        # 2. verified finding
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, verify_cmd, verified_at) "
+            "VALUES (2, '2026-09-02', 'verified pattern', 'text about pattern', 'pytest', '2026-09-02 14:00')"
+        )
+        # 3. superseded finding (superseded by finding 4)
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, verify_cmd, verified_at) "
+            "VALUES (3, '2026-09-03', 'superseded pattern', 'text about pattern', 'pytest', '2026-09-03 10:00')"
+        )
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, verify_cmd, verified_at) "
+            "VALUES (4, '2026-09-04', 'newer pattern', 'newer text', 'pytest', '2026-09-04 11:00')"
+        )
+        con.execute(
+            "INSERT INTO links(from_id, to_id, kind, created) "
+            "VALUES (4, 3, 'supersedes', '2026-09-04')"
+        )
+        con.commit()
+        con.close()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _print_main(self, query, *extra):
+        buf = []
+        argv = ["search_all.py", query, *extra]
+        with (
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.object(search_all, "DB_DIR", self.db_dir),
+            mock.patch.object(search_all, "research_db_path",
+                              return_value=str(self.research)),
+            mock.patch("builtins.print",
+                       side_effect=lambda *a, **k: buf.append(" ".join(str(x) for x in a))),
+        ):
+            rc = search_all.main()
+        self.assertEqual(rc, 0, "\n".join(buf))
+        return "\n".join(buf)
+
+    def test_search_findings_returns_lifecycle_fields(self):
+        hits = search_all.search_findings("pattern", research_db=self.research)
+        self.assertGreaterEqual(len(hits), 3)
+        by_id = {h[1]: h for h in hits}
+        # finding 1: unverified, not superseded
+        h1 = by_id[1]
+        self.assertIsNone(h1.superseded_by)
+        self.assertFalse(h1.verified)
+        # finding 2: verified, not superseded
+        h2 = by_id[2]
+        self.assertIsNone(h2.superseded_by)
+        self.assertTrue(h2.verified)
+        # finding 3: superseded by 4
+        h3 = by_id[3]
+        self.assertEqual(h3.superseded_by, 4)
+
+    def test_cli_prints_badges_for_unverified_and_superseded(self):
+        out = self._print_main("pattern")
+        # finding 1 is unverified
+        self.assertIn("[unverified]", out)
+        # finding 3 is superseded by #4
+        self.assertIn("[superseded by #4]", out)
+        # finding 2 is verified and not superseded, should have neither badge on its line
+        lines = [ln for ln in out.splitlines() if "finding#2" in ln]
+        self.assertTrue(lines)
+        self.assertNotIn("[unverified]", lines[0])
+        self.assertNotIn("[superseded", lines[0])
+
+    def test_search_all_exposes_lifecycle_fields(self):
+        hits = search_all.search_all("pattern", db_dir=self.db_dir, research_db=self.research)
+        by_id = {h[4]: h for h in hits if h[4] is not None}
+        self.assertIn(3, by_id)
+        self.assertEqual(by_id[3][5], 4)
+        self.assertEqual(by_id[3].superseded_by, 4)
+        self.assertTrue(by_id[2].verified)
+        self.assertFalse(by_id[1].verified)
 
 if __name__ == "__main__":
     unittest.main()

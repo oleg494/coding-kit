@@ -38,6 +38,33 @@ DB_DIR = chulan_root() / "db"
 BM25_WEIGHTS = "10.0, 1.0"
 
 
+class HitTuple(tuple):
+    """5-element tuple: (score, db, label, snippet, finding_id).
+    Findings carry lifecycle attributes: superseded_by, verified, verified_at, source.
+    Indexed access h[5], h[6], h[7], h[8] supported for findings hits.
+    """
+    def __new__(cls, base_tuple, meta=None):
+        instance = super().__new__(cls, base_tuple)
+        meta = meta or {}
+        instance.meta = meta
+        instance.superseded_by = meta.get("superseded_by")
+        instance.verified = meta.get("verified", False) if meta else None
+        instance.verified_at = meta.get("verified_at", "") if meta else None
+        instance.source = meta.get("source", "") if meta else None
+        return instance
+
+    def __getitem__(self, item):
+        if isinstance(item, int) and item >= 5:
+            if item == 5:
+                return self.superseded_by
+            if item == 6:
+                return self.verified
+            if item == 7:
+                return self.verified_at
+            if item == 8:
+                return self.source
+            raise IndexError("tuple index out of range")
+        return super().__getitem__(item)
 def list_searchable_dbs(db_dir=None) -> list:
     """Databases in the db/ directory that have a files_fts (or files_fts_trigram) table."""
     ddir = Path(db_dir) if db_dir else DB_DIR
@@ -93,7 +120,8 @@ def search_files(query: str, limit: int = 5, substring: bool = False,
 
 
 def search_findings(query: str, limit: int = 5, research_db=None) -> list:
-    """[(score, id, topic, snippet), ...] from the research.db findings union.
+    """[(score, id, topic, snippet, superseded_by, verified, verified_at, source), ...]
+    from the research.db findings union.
 
     Path via findings_db.research_db_path() (honors MEMORY_ROOT_RESEARCH_DB
     — never hardcoded). Read-only and best-effort like the files loop: an
@@ -108,9 +136,16 @@ def search_findings(query: str, limit: int = 5, research_db=None) -> list:
     con = None
     try:
         con = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
+        # Scalar subquery mirroring findings.py:_superseded_by('f.id')
+        superseded_sql = (
+            "(SELECT MIN(l.from_id) FROM links l "
+            "WHERE l.to_id = f.id AND l.kind = 'supersedes') "
+            "AS superseded_by"
+        )
         rows = con.execute(
-            "SELECT f.id, f.topic, snippet(findings_fts, 1, '[', ']', "
-            f"'…', 12), bm25(findings_fts, {BM25_WEIGHTS}) "
+            f"SELECT f.id, f.topic, snippet(findings_fts, 1, '[', ']', '…', 12), "
+            f"bm25(findings_fts, {BM25_WEIGHTS}), "
+            f"{superseded_sql}, f.verified_at, f.source "
             "FROM findings_fts JOIN findings f ON f.id = findings_fts.rowid "
             "WHERE findings_fts MATCH ? "
             f"ORDER BY bm25(findings_fts, {BM25_WEIGHTS}) LIMIT ?",
@@ -120,8 +155,18 @@ def search_findings(query: str, limit: int = 5, research_db=None) -> list:
     finally:
         if con is not None:
             con.close()
-    return [(score, fid, topic, snip) for fid, topic, snip, score in rows]
-
+    out = []
+    for fid, topic, snip, score, sup, v_at, src in rows:
+        meta = {
+            "finding_id": fid,
+            "superseded_by": sup,
+            "verified": bool(v_at),
+            "verified_at": v_at,
+            "source": src,
+        }
+        tup = (score, fid, topic, snip, sup, bool(v_at), v_at, src)
+        out.append(HitTuple(tup, meta))
+    return out
 
 def search_all(query: str, limit: int = 5, substring: bool = False,
                db_dir=None, research_db=None) -> list:
@@ -131,18 +176,20 @@ def search_all(query: str, limit: int = 5, substring: bool = False,
 
     finding_id is None for file hits; for findings the label is
     'finding#<id> <topic>' (printed on one line plus a show-hint).
+    Findings hits also expose lifecycle fields h[5] (superseded_by),
+    h[6] (verified), h[7] (verified_at), h[8] (source) and attributes.
     Ties keep insertion order — stable sort over files dbs (alphabetical)
     then findings (already bm25-ordered by SQL).
     """
-    hits = [(score, db, rel_path, snip, None)
+    hits = [HitTuple((score, db, rel_path, snip, None), None)
             for score, db, rel_path, snip
             in search_files(query, limit, substring, db_dir)]
-    hits += [(score, "research", f"finding#{fid} {topic}", snip, fid)
-             for score, fid, topic, snip
+    hits += [HitTuple((score, "research", f"finding#{fid} {topic}", snip, fid),
+                      {"finding_id": fid, "superseded_by": sup, "verified": ver, "verified_at": v_at, "source": src})
+             for score, fid, topic, snip, sup, ver, v_at, src
              in search_findings(query, limit, research_db)]
     hits.sort(key=lambda h: h[0])
     return hits
-
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
@@ -162,7 +209,6 @@ def main() -> int:
                          substring=args.substring)
     if getattr(args, "json_mode", False):
         # db/path/snippet keys are the pinned machine contract (v4.0.2);
-        # a findings row carries path='finding#<id> <topic>'.
         print(json.dumps(
             [{"db": db, "path": label, "snippet": snip}
              for _score, db, label, snip, _fid in results],
@@ -171,18 +217,27 @@ def main() -> int:
     if not results:
         print("not found in any database")
         return 1
-    for _score, db, label, snip, fid in results:
+    for hit in results:
+        _score, db, label, snip, fid = hit[0], hit[1], hit[2], hit[3], hit[4]
         if fid is not None:
-            # P11 contract: one line + the drill-down hint
-            print(f"[{db}] {label} …{snip}")
+            meta = getattr(hit, "meta", {})
+            sup = meta.get("superseded_by")
+            ver = meta.get("verified", False)
+            badges = []
+            if sup:
+                badges.append(f"[superseded by #{sup}]")
+            if not ver:
+                badges.append("[unverified]")
+            badge_str = (" " + " ".join(badges)) if badges else ""
+            # P11/LR-05 contract: one line + drill-down hint
+            print(f"[{db}] {label}{badge_str} …{snip}")
             print(f"  findings.py show {fid}")
         else:
             print(f"[{db}] {label}")
             print(f"  {snip}")
     print(f"\ntotal: {len(results)} in "
-          f"{len({db for _s, db, _l, _sn, _f in results})} databases")
+          f"{len({h[1] for h in results})} databases")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

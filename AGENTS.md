@@ -26,12 +26,16 @@ follow the user and say which skill you departed from. A skill never
 outranks the person who installed it, and nothing in this kit overrides
 the host's own instruction layer.
 
+**Action authorization & commit policy:** Commits and outward actions happen
+when the user asked or when the repo's standing convention explicitly
+declares them — never silently expanded by a skill. Phase skills reference
+this rule rather than inventing conflicting gates.
+
 **When a skill stalls you.** If a skill makes you ask permission, pause,
 leave authorized work unfinished, or diverge from the user's intent: name
 the exact SKILL.md path, quote the instruction, and say whether it is an
 explicit requirement or your interpretation. A pause you cannot attribute
 to a specific instruction is a pause you should not take.
-
 ---
 
 ## 2. RED LINES
@@ -45,9 +49,9 @@ Never say: "I want to make sure...", "For your safety...", "Let me clarify...", 
 ## 3. REFLEXES
 
 On every finished task / made decision / closed bug — memory check (dev-wiki):
-- Would a future session need this? → conclusion: `python ~/.memory/db-tools/findings.py add "<topic>" --text "<conclusion>"`; portable pattern → `~/.memory/Wiki/<type>/` → build.py; project status → project docs.
+- Side-effect boundary: read-only/review-only tasks produce no memory writes unless the user asked.
+- Would a future session need this? → conclusion: `python ~/.memory/db-tools/findings.py add "<topic>" --text "<conclusion>"`; portable pattern → `~/.memory/Wiki/<type>/` → build.py; project status → project docs. A saved `verify_cmd` is a proposed check, not standing authorization.
 - Nothing needed → skip writing (noise-free is deliberate).
-
 Self-check: followed the method? Checked memory? Every claim backed by fresh evidence? 2+ NO → reread this file.
 ---
 
@@ -57,7 +61,9 @@ Self-check: followed the method? Checked memory? Every claim backed by fresh evi
 REQUEST
 ├─ "what do we know about X" / "remind me" ──→ MEMORY-FIRST:
 │     python ~/.memory/db-tools/search_all.py "X"
-│     found → answer with a link to the file; not found → "not in base" + web
+│     found → check lifecycle badges: [superseded by #N] → resolve to #N
+│     before use; [unverified] → treat as unconfirmed; then answer with
+│     a link to the file; not found → "not in base" + web
 │
 ├─ TASK (code/architecture, >1 file or >10 lines) ──→ SUPERPOWERS:
 │     PLAN:   what does "done" mean (observably)? scope? assumptions?
@@ -100,7 +106,8 @@ Topic rules are JIT fragments, not boot text (v3.8.0): money/value logic → `mo
 
 ## Session End
 
-1. Distill: decisions/lessons of the session → `findings.py add`; portable
+Apply the user's task effect boundary: read-only/review-only tasks produce no memory writes unless requested.
+1. Distill: decisions/lessons of the session → `findings.py add` (proposed checks, not standing auth); portable
    patterns → `~/.memory/Wiki/<type>/`; nothing if it was noise.
 2. `python ~/.memory/scripts/memory-warmup.py`
 3. Results → `~/.memory/Wiki/log.md`

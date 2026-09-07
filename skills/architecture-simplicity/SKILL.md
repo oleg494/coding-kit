@@ -4,14 +4,14 @@ description: 'Use when the user wants to: design/redesign modules and layers, ch
 license: MIT
 compatibility: any language and stack, architecture design/review phase
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # Architecture & simplicity: design principles
 
 ## 1. Simplicity and dependency
 
-1. **YAGNI UNTIL SECOND NEED** — an abstraction with one consumer is debt, not architecture. Inline until a second consumer; only then extract. A layer you can remove means the same behavior with less code.
+1. **YAGNI UNTIL SECOND NEED** — an abstraction without present value or clear change isolation is debt, not architecture. Unless separating pure logic from I/O or isolating a concrete boundary of change, inline until a second consumer appears. A layer you can remove means the same behavior with less code.
 2. **STD LIB / PLATFORM BEFORE DEPENDENCY** — a new dependency costs more than 30 lines of your own code (often). Start with stdlib/native; add a dep only if the pain is measurable. moment.js for a single format = no.
 3. **SEPARATE MODULES BY CHANGE REASON** — generators.py, payments.py, access.py, bot.py — different axes of change. A PDF feature must not touch billing. No 3000-line god file.
 4. **SHARED CORE, THIN ADAPTERS** — one business logic; Telegram/CLI/desktop is a shell (I/O + auth + UX). A polish bug is fixed in one place, both clients stay fine.

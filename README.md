@@ -76,8 +76,8 @@ Gates and checks (the kit's own lifecycle, run directly):
 
 ## Evals & Trend Loop
 
-The kit includes an evidence-first evaluation harness:
-- **Trap-suite (`eval/runner.py`)**: 26 adversarial scenarios testing adherence to superpowers, YAGNI, and security invariants. Candidate answers are bounded and delimited as untrusted evidence. Omitted `--judge` defaults to the executor (self-judging carries inherent bias; recommend configuring a distinct `--judge` for gating).
+The kit includes evaluation harnesses targeting distinct questions (health checks, trigger activation routing, and behavioral adherence are evaluated separately from task success or cost claims):
+- **Trap-suite (`eval/runner.py`)**: 26 adversarial scenarios testing policy adherence to superpowers, YAGNI, and security invariants. Candidate answers are bounded and delimited as untrusted evidence. Omitted `--judge` defaults to the executor (self-judging carries inherent bias; recommend configuring a distinct `--judge` for gating). Adherence to rules does not prove task-level superiority.
 - **Task Smoke (`eval/task_runner.py`)**: 6 real coding tasks (incl. 2 impossible canaries) verified by deterministic `verify.py` test oracles (no LLM judge for pass/fail). Each attempt runs in an isolated sandbox cloned fresh from `eval/tasks/repo-fixture` (default `--tries 2`). This serves as a smoke canary, not a statistical benchmark.
 - **Trigger Evals (`eval/trigger_eval.py`)**: `--queries auto` validates 86 co-located queries across 12 skills (per-skill `evals/evals.json`), with `eval/trigger_queries.json` (80 queries, 10 skills) as the central fallback for skills lacking a co-located file — testing skill activation routing.
 - **Schema-v1 Results Store (`eval/results_io.py`)**: atomic append-only JSON storage under `eval/results/` with microsecond UTC timestamps, UUID `run_id`, separate `model` metadata, explicit `mode` (`"dry-run"` vs `"live"`), and standardized failure taxonomies.
@@ -86,7 +86,6 @@ The kit includes an evidence-first evaluation harness:
 - **Ablation (`eval/ablate.py`)**: experimental per-skill inlined-prompt contribution (pass-rate with vs. without the inlined skill body). Descriptive, not causal — ambient CLI skills are uncontrolled and small samples may be non-conclusive; it never deletes a skill. Requires a live `--executor`.
 - **Rigor A/B (`eval/rigor/`)**: controlled policy experiments with route/microtask/trap corpora, isolation + canary probes, and an acceptance gate that can reject its own candidate (it did — see docs/research/2026-09-03).
 - **Isolation**: executor subprocesses run from a neutral per-call temp `cwd`, which prevents automatic discovery of repo-local instruction/config files via the inherited `cwd`; ambient global skills and general filesystem access remain uncontrolled. HOME/auth environment is retained.
-
 Quick validation (no model, no live output):
 
 ```bash
@@ -106,19 +105,18 @@ retained outside this repository and are not bundled with the kit; this repo
 ships no reproduction script or composite-analysis command for these numbers —
 they are reported as run, not re-derivable from the repo.
 
-- **Pass rate: no difference** — 6/9 both arms. The kit did not make a strong
-  model solve more tasks.
+- **Pass rate: no difference** — 6/9 both arms. In this test, the kit did not increase solved-task counts for a strong model.
 - **Token cost is real**: +21% steps, +41% prompt tokens on identical outcomes
   (99.5M vs 70.4M across 5 mutually-solved tasks). Cache absorbs the kit's
   static ~5.4k-token overhead; the extra spend is the methodology's own
-  iterations (plan → TDD → verify).
+  iterations (plan → TDD → verify). No causal claim of overall cost reduction can be made.
 - **Task-dependent flips**: kit won one task outright (24/24 vs 6/24 — process
   discipline rescued a flailing attempt) and lost one small fiddly task
-  (2/5 vs 5/5 — ceremony overhead). n=9: trend, not a verdict.
+  (2/5 vs 5/5 — ceremony overhead). n=9: descriptive observation, not a general verdict.
 
 Honest takeaway: on a strong model and well-specified tasks the kit is not a
 uniform win — it buys reliability on hard multi-part tasks at a measurable
-token premium. Budget accordingly.
+token premium. Negative results and confounded replays are recorded as negative evidence, not optimization wins. Budget accordingly.
 
 ## Where your data lives
 

@@ -3,7 +3,7 @@ name: verification-before-completion
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # Verification Before Completion
@@ -20,8 +20,11 @@ metadata:
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If you haven't run the verification command in this message, you cannot claim it passes.
-
+Evidence is keyed to the checked state: revision/snapshot, exact command,
+scope, environment, and run timestamp. Reuse existing evidence until an
+invalidation condition occurs (code change, failure, or unresolved concern);
+report that provenance instead of treating the chat turn as a clock.
+If no valid evidence exists for the current checked state, you cannot claim it passes.
 ## The Gate Function
 
 ```
@@ -50,7 +53,7 @@ check exposed.
 
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
-| Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Tests pass | Test command output: 0 failures on checked state | Unchecked assumption, "should pass" |
 | Linter clean | Linter output: 0 errors | Partial check, extrapolation |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |

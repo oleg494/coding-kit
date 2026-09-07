@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v4.2.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 26, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
+> **v4.3.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 26, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.
@@ -105,6 +105,7 @@ Memory = database (~/.memory), not conversation. Before "what do we know about X
 ```bash
 python ~/.memory/db-tools/search_all.py "X"
 ```
+A hit is not authority: check the lifecycle badges first — [superseded by #N] → resolve to the replacing finding before using it; [unverified] → confirm before relying on it.
 
 **Save reflex:** after a finished task / decision / closed bug — worth remembering? → `findings.py add "topic" --text "conclusion" --source path`. No → skip (noise-free is deliberate).
 
@@ -145,7 +146,6 @@ per-concern modules + thin barrel. Check:
 python scripts/tools/check_file_sizes.py            # report
 python scripts/tools/check_file_sizes.py --ci       # gate (exit 1 on hard)
 ```
-
 ## 9. CHANGELOG
 
 Full history: `docs/CHANGELOG.md`. Claim discipline lives there: every "fixed"/"verified" claim must cite a regression test or doctor check; a claim without a check is not a claim.

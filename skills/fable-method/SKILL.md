@@ -4,7 +4,7 @@ description: A step-by-step problem-solving loop (classify the ask, define done,
 license: MIT
 trigger: /fable-method
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # The Fable Method
@@ -84,7 +84,7 @@ Name the scope: the files or surfaces the change will touch. Needing something o
 
 ## Step 4 - Act surgically
 
-1. **Intent gate, before any behavior-changing edit.** Write one line: `INTENT: code does <X>; the failing check/task expects <Y>; the spec (README/docs/docstring) says <Z>`. You must actually open the README/docs/docstrings to fill the third slot, and if you change behavior this line must appear verbatim in your final report. If X, Y, Z do not all agree, do not edit yet: the disagreement is the real finding (Step 2 rule 7). Authority order when they disagree: an explicit user statement beats the spec, the spec beats the tests, the tests beat current code behavior. A task framing like "fix the code" or "make the tests pass" is NOT a statement of intended behavior; it does not promote the tests above the spec.
+1. **Intent gate, before any behavior-changing edit.** Write one line: `INTENT: code does <X>; the failing check/task expects <Y>; the spec (README/docs/docstring) says <Z>`. You must actually open the README/docs/docstrings to fill the third slot, and if you change behavior this line must appear verbatim in your final report. If current code differs from agreed intent (X differs from Y and Z, while Y and Z agree), proceed under existing authorization: that is the normal defect to repair. If the check and authoritative intent disagree (Y and Z disagree, or the spec is contradictory), stop: that is the clarification trigger (Step 2 rule 7). Authority order when intent disagrees: an explicit user statement beats the spec, the spec beats the tests, the tests beat current code behavior. Three-way agreement (X, Y, Z all agree) is a completion condition, not a repair precondition.
 2. **Recall gate, before first use of anything you have not opened this session.** An API signature, endpoint, config key, price, figure, or regulation written from memory is not evidence. Stop and open its source now (the docs file, the library source, a fetched page; a fresh two-lookup budget as in Step 2), or, if no source is reachable, write it and label it in the report as memory, unverified. Discovering ignorance re-opens Step 2 exactly like a surprise does.
 3. **Smallest correct change.** Touch only what the task needs. Match the existing style even if you would do it differently.
 4. **Precise edits over rewrites.** Rewrite a whole file only if you authored it this session or have fully read it.

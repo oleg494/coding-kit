@@ -3,9 +3,8 @@
 > **v3.4.5** | For platforms with ≥16K context.
 > Superpowers: plan → TDD → implement → verify → report.
 > 8–16K context → core mode: OPS.md §1-5 + skill routing table only.
-> <8K context → compact mode: OPS.md §1-5 only.
+> <8K context → compact mode: irreducible core retains action authorization rules, stop conditions, calibrated uncertainty, and applicability exceptions (see §1 below).
 > Answer the user in THEIR language. Everything else — English.
-
 ## For every non-trivial task
 
 ### 1. SUPER POWERS (always)
@@ -61,9 +60,18 @@ python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source p
 
 Boundary rule: portable → `~/.memory/Wiki/`; project-specific → `WORK/<project>/docs/` + `build.py -r`.
 
+## Irreducible Core & Exceptions
+
+- **Authorization rules:** User instructions outrank kit skills. Commits happen only if requested by user or repo convention. Destructive commands require user confirmation. Reversible local changes proceed without approval stall.
+- **Uncertainty & stop conditions:** Label low-confidence facts honestly; don't guess. Stop when blocked by environment, permissions, or 3 failed cycles.
+- **Applicability exceptions (When NOT to use full cycle):**
+  - One-line fix, typo → verify is enough.
+  - Pure documentation → plan + verify.
+  - Read-only investigation/review → findings and recommendation only; no side-effect memory or file writes unless asked.
+
 ## Never
 - Write code without a plan and a test
-- Build abstractions with one consumer
+- Build abstractions without present value / clear change boundary
 - Add dependencies without measuring the pain
 - Claim "done" without evidence
 - Answer from conversation memory — use the database

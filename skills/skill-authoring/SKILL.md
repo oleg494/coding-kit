@@ -4,7 +4,7 @@ description: 'Use when creating or editing any skill: frontmatter rules (name/de
 license: MIT
 compatibility: applies to skills/ in this set, ~/.hermes/skills, .claude/skills
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # How to author skills correctly
@@ -94,6 +94,7 @@ The raw material is what happened in this chat (or a named directory/procedure/U
 2. **Trigger test before writing.** In a fresh session, would the description fire for the natural phrase a user would say? No plausible trigger → stop, don't write it. The description is the only thing a future session sees.
 3. **Draft SKILL.md** by the rules above: numbered imperative procedure, defaults (not menus), gotchas — the most valuable section.
 4. **Choose the location.** Portable (any machine/project) → kit `skills/<slug>/`, commit — subject to the kit gates (English, file-size, review), propagates to every harness automatically. Machine/user-specific → the harness's user skills dir (e.g. `~/.claude/skills/`); does NOT propagate.
-5. **Verify before claiming done.** Frontmatter delimiters, `name` == folder, description within limits; trigger test against the most natural phrase; replay one real past case through the new skill — same outcome, ideally fewer wasted moves.
-
+5. **Verify and candidate state before broad promotion.** Frontmatter delimiters, `name` == folder, description within limits; trigger test against the natural phrase. A newly distilled procedure starts as a candidate:
+   - **Promotion criteria:** promotion to default or mandatory policy requires replaying the originating case, at least one nearby negative case (where the procedure must NOT fire or alter behavior), and at least one held-out case.
+   - **Retirement criteria:** skills are evaluated and retired by post-install opportunity/use and measurable contribution to correct outcomes, not raw read counts.
 Gotchas: don't over-generalize — encode the procedure that exists, not the class of procedures; Russian belongs only in trigger words; scripts stay in `scripts/`, never inline; a skill that was wrong once is fixed like code — edit + verify against the same case.

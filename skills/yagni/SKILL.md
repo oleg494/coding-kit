@@ -3,7 +3,7 @@ name: yagni
 description: 'Always-on. Law of minimalism: don''t build what wasn''t asked for. Abstraction with one consumer → inline. New dependency → only if the pain is measurable. Dead code → delete. "For the future" → not a reason. Use for ANY code change.'
 license: MIT
 metadata:
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # YAGNI — law of minimalism
@@ -12,8 +12,7 @@ Always-on skill. Apply before every code change.
 
 ## Rules
 
-1. **Abstraction with one consumer → inline.** Extract only when a second one appears. Can you remove a layer — same behavior, less code? → remove it.
-
+1. **Abstraction must justify its complexity by present value.** A single-consumer abstraction that exists only for hypothetical reuse is debt: inline until a second need or a genuine change-isolation boundary emerges. Can you remove a layer — same behavior, less code? → remove it.
 2. **New dependency → only if the pain is measurable.** 30 lines of your own code beat 300KB of someone else's. Start with stdlib/native. moment.js for a single format = no.
 
 3. **Code that can be removed without changing behavior → remove it.** Dead code is not commented out forever.
