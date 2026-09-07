@@ -3,7 +3,7 @@ name: fable-judge
 description: 'Adversarial verification of finished work: re-runs the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
 ---
 
 
@@ -42,13 +42,14 @@ values — critical / warning / suggestion (see code-review-and-quality;
 defense-in-depth when the primary control suffices, no issues in
 unchanged code, no "consider library X"). Report the counts and
 recompute the verdict — the verdict is arithmetic, never a mood
-(canonical implementation: `verdict_from_counts(critical, warning)`
+(canonical implementation: `verdict_from_counts(critical, warning, unverified=0)`
 in `scripts/tools/review_protocol.py`):
 
 ```
 verdict_from_counts(0, 0) == "VERIFIED"
 verdict_from_counts(0, 2) == "VERIFIED"
 verdict_from_counts(0, 3) == "VERIFIED WITH CAVEATS"
+verdict_from_counts(0, 0, unverified=1) == "VERIFIED WITH CAVEATS"
 verdict_from_counts(1, 4) == "REFUTED"
 ```
 

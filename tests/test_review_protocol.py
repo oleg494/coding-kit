@@ -108,6 +108,33 @@ class VerdictFromCountsTest(unittest.TestCase):
             review_protocol.verdict_from_counts(-1, 0)
         with self.assertRaises(ValueError):
             review_protocol.verdict_from_counts(0, -2)
+    def test_unverified_claims_yield_caveats(self):
+        self.assertEqual(
+            review_protocol.verdict_from_counts(0, 0, unverified=1),
+            "VERIFIED WITH CAVEATS",
+        )
+        self.assertEqual(
+            review_protocol.verdict_from_counts(0, 2, unverified=1),
+            "VERIFIED WITH CAVEATS",
+        )
+        self.assertEqual(
+            review_protocol.verdict_from_counts(0, 0, unverified=5),
+            "VERIFIED WITH CAVEATS",
+        )
+
+    def test_unverified_ignored_when_critical_present(self):
+        self.assertEqual(
+            review_protocol.verdict_from_counts(1, 0, unverified=1),
+            "REFUTED",
+        )
+        self.assertEqual(
+            review_protocol.verdict_from_counts(2, 4, unverified=3),
+            "REFUTED",
+        )
+
+    def test_negative_unverified_rejected(self):
+        with self.assertRaises(ValueError):
+            review_protocol.verdict_from_counts(0, 0, unverified=-1)
 
     def test_docblock_example_in_fable_judge_matches_canonical(self):
         """Extract the `verdict_from_counts(...)` example lines from the
@@ -116,14 +143,15 @@ class VerdictFromCountsTest(unittest.TestCase):
         text = (KIT / "skills" / "fable-judge" / "SKILL.md").read_text(
             encoding="utf-8")
         calls = re.findall(
-            r"verdict_from_counts\(\s*(\d+)\s*,\s*(\d+)\s*\)\s*(?:==|->)\s*"
+            r"verdict_from_counts\(\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*unverified=(\d+))?\s*\)\s*(?:==|->)\s*"
             r"\"(VERIFIED WITH CAVEATS|VERIFIED|REFUTED)\"", text)
         self.assertGreaterEqual(len(calls), 3,
                                 "skill text must carry >=3 verdict examples")
-        for c, w, expected in calls:
-            self.assertEqual(review_protocol.verdict_from_counts(int(c), int(w)),
+        for c, w, u, expected in calls:
+            unv = int(u) if u else 0
+            self.assertEqual(review_protocol.verdict_from_counts(int(c), int(w), unverified=unv),
                              expected,
-                             f"docblock example ({c}, {w}) drifts from code")
+                             f"docblock example ({c}, {w}, unverified={unv}) drifts from code")
 
 
 class BreakGlassTest(unittest.TestCase):
@@ -169,7 +197,7 @@ class RecomputableVerdictTest(unittest.TestCase):
     def test_fable_judge_names_the_function(self):
         text = (KIT / "skills" / "fable-judge" / "SKILL.md").read_text(
             encoding="utf-8")
-        self.assertIn("verdict_from_counts(critical, warning)", text,
+        self.assertIn("verdict_from_counts(critical, warning, unverified=0)", text,
                       "skill must name the canonical function")
 
 

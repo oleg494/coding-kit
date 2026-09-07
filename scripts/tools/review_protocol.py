@@ -10,9 +10,9 @@ machine-checkable counts by 3-value severity —
 
 and the verdict is RECOMPUTABLE from the counts, never a mood:
 
-    verdict_from_counts(critical, warning) ->
+    verdict_from_counts(critical, warning, unverified=0) ->
         "REFUTED"              if critical > 0
-        "VERIFIED WITH CAVEATS" elif warning > 2
+        "VERIFIED WITH CAVEATS" elif unverified > 0 or warning > 2
         "VERIFIED"              otherwise
 
 The rubric's approval bias is deliberate: a clean report plus a couple
@@ -32,7 +32,7 @@ CAVEATS = "VERIFIED WITH CAVEATS"
 REFUTED = "REFUTED"
 
 
-def verdict_from_counts(critical: int, warning: int) -> str:
+def verdict_from_counts(critical: int, warning: int, unverified: int = 0) -> str:
     """Recompute the review verdict from severity counts.
 
     >>> verdict_from_counts(0, 0)
@@ -41,14 +41,18 @@ def verdict_from_counts(critical: int, warning: int) -> str:
     'VERIFIED'
     >>> verdict_from_counts(0, 3)
     'VERIFIED WITH CAVEATS'
+    >>> verdict_from_counts(0, 0, unverified=1)
+    'VERIFIED WITH CAVEATS'
     >>> verdict_from_counts(1, 0)
     'REFUTED'
+    >>> verdict_from_counts(1, 0, unverified=2)
+    'REFUTED'
     """
-    if critical < 0 or warning < 0:
+    if critical < 0 or warning < 0 or unverified < 0:
         raise ValueError("counts must be non-negative")
     if critical > 0:
         return REFUTED
-    if warning > 2:
+    if unverified > 0 or warning > 2:
         return CAVEATS
     return VERIFIED
 
