@@ -104,20 +104,21 @@ def _is_link(p: Path) -> bool:
         return False
 
 
-def link_engine(root: Path) -> None:
+def link_engine(root: Path) -> bool:
     """Point <root>/db-tools at this kit's engine (the link follows the
     last installer). A pre-existing link is re-pointed; a real directory
-    is left alone (never destroy what may be data)."""
+    is left alone (never destroy what may be data).
+    Returns True if engine is linked to this kit, False if a real directory
+    conflicts and was preserved."""
     target = root / "db-tools"
     if _is_link(target):
         if target.resolve() == ENGINE.resolve():
             print("  db-tools already linked to this kit")
-            return
+            return True
     elif target.exists():
         print(f"  NOTE: {target} is a real directory; replace it manually "
               f"to use this kit's engine.")
-        return
-
+        return False
     if os.name == "nt" and not shutil.which("powershell"):
         raise RuntimeError(
             "PowerShell executable ('powershell') not found in PATH; "
@@ -184,16 +185,20 @@ def link_engine(root: Path) -> None:
         msg += " Please re-run install or create the link manually."
         raise RuntimeError(msg) from None
     print(f"  linked {target} -> {ENGINE}")
+    return True
 
 
-def build_indexes(root: Path) -> None:
+def build_indexes(engine_dir: Path) -> None:
+    build_script = engine_dir / "build.py"
+    if not build_script.exists():
+        print(f"  build.py WARN: {build_script} not found")
+        return
     build = subprocess.run(
-        [sys.executable, str(ENGINE / "build.py")],
+        [sys.executable, str(build_script)],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     if build.returncode != 0:
         print("  build.py WARN:\n" + (build.stderr or build.stdout)[:500])
-
 
 def main(argv: list = None) -> int:
     argv = list(sys.argv[1:]) if argv is None and \
@@ -241,17 +246,28 @@ def main(argv: list = None) -> int:
         print(f"  NOTE: legacy data found at {legacy}. Move its Wiki posts "
               f"into {root / 'Wiki'}/<type>/ or set MEMORY_ROOT={legacy}.")
 
+    linked = False
     try:
-        link_engine(root)
+        linked = link_engine(root)
     except RuntimeError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
-    build_indexes(root)
 
+    if not linked:
+        print("\n---")
+        print(f"Install INCOMPLETE: {root / 'db-tools'} is a real directory and was preserved.")
+        print("To complete installation and use this kit's engine, back up or remove that directory")
+        print("and re-run install.py.")
+        return 1
+
+    final_engine = root / "db-tools"
+    build_indexes(final_engine)
+
+    smoke_script = final_engine / "search_all.py"
     smoke = subprocess.run(
         # probe token from the root's own scripts (memory-warmup.py):
-        # indexed on every OS, unlike engine-link traversal
-        [sys.executable, str(ENGINE / "search_all.py"), "warmup"],
+        # run against the final user-facing entry point
+        [sys.executable, str(smoke_script), "warmup"],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     ok = smoke.returncode == 0 and bool(smoke.stdout.strip())
@@ -259,7 +275,7 @@ def main(argv: list = None) -> int:
     print("Install done. Layout:")
     print(f"  Wiki/: {root / 'Wiki'} (your knowledge — personal, never committed)")
     print(f"  db/  : {root / 'db'} (indexes, gitignored)")
-    print(f"  engine: {root / 'db-tools'} (linked to the kit)")
+    print(f"  engine: {final_engine} (linked to the kit)")
     print(f"  search smoke: {'OK' if ok else smoke.stderr[:300]}")
     print("\nNow follow README.md -> Install section for your environment "
           "(rules file + skills).")

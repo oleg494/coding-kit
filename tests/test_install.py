@@ -136,10 +136,19 @@ class InstallTest(unittest.TestCase):
         real = self.root / "db-tools"
         real.mkdir(parents=True)
         (real / "precious.txt").write_text("data", encoding="utf-8")
-        self.assertEqual(install.main(), 0)
-        self.assertTrue((real / "precious.txt").is_file())
-        self.assertFalse(install._is_link(real))
+        # CR-05: Real directory must be preserved, but install must report INCOMPLETE
+        # (distinct nonzero exit, e.g. 1) instead of success.
+        rc = install.main()
+        self.assertNotEqual(rc, 0, "Install must report incomplete when db-tools is a real directory")
+        self.assertTrue((real / "precious.txt").is_file(), "Data in real dir must be preserved")
+        self.assertFalse(install._is_link(real), "Real directory must not be overwritten or converted to link")
 
+    def test_successful_install_validates_final_entry_point(self):
+        # Successful install links db-tools to ENGINE and runs build/smoke against final path
+        self.assertEqual(install.main(), 0)
+        final_db_tools = self.root / "db-tools"
+        self.assertTrue(install._is_link(final_db_tools))
+        self.assertTrue((final_db_tools / "search_all.py").is_file())
     def test_smoke_failure_fails_install(self):
         real_run = subprocess.run
 
