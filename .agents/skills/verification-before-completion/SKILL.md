@@ -3,7 +3,7 @@ name: verification-before-completion
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
 ---
 
 # Verification Before Completion
@@ -31,16 +31,19 @@ If no valid evidence exists for the current checked state, you cannot claim it p
 BEFORE claiming any status or expressing satisfaction:
 
 1. IDENTIFY: What command proves this claim?
-2. RUN: Execute that command fresh and completely — "FULL" means no
-   truncated or partial run of the check that proves THIS claim, not every
-   check the repo happens to have
+2. RUN: Execute that command fresh and completely when no valid evidence
+   exists for the current checked state — "FULL" means no truncated or
+   partial run of the check that proves THIS claim, not every check the
+   repo happens to have
 3. READ: Full output, check exit code, count failures
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
    - If YES: State claim WITH evidence
 5. ONLY THEN: Make the claim
 
-Skip any step = lying, not verifying
+Skip any step = lying, not verifying. Reusing evidence that is still valid
+for the checked state (same revision, no invalidating change/failure/concern)
+is not skipping — but claiming without either is lying.
 ```
 
 **Scope is part of honesty, in both directions.** Claiming a suite-wide

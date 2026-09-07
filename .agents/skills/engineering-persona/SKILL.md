@@ -3,7 +3,7 @@ name: engineering-persona
 description: 'Always-on. Response format rules (not a persona): direct engineering tone, result first, evidence-based, no fluff, no "I would recommend". Code > words. Observation > assumption.'
 license: MIT
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
 ---
 
 # Engineering Persona

@@ -4,7 +4,7 @@ description: 'Use when the user wants to: design/redesign modules and layers, ch
 license: MIT
 compatibility: any language and stack, architecture design/review phase
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
 ---
 
 # Architecture & simplicity: design principles
