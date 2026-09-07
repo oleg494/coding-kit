@@ -115,8 +115,9 @@ they are reported as run, not re-derivable from the repo.
   (2/5 vs 5/5 — ceremony overhead). n=9: descriptive observation, not a general verdict.
 
 Honest takeaway: on a strong model and well-specified tasks the kit is not a
-uniform win — it buys reliability on hard multi-part tasks at a measurable
-token premium. Negative results and confounded replays are recorded as negative evidence, not optimization wins. Budget accordingly.
+uniform win — the sample showed process discipline rescuing one hard task
+and ceremony costing one small task, at a measurable token premium; no general
+reliability claim follows from n=9. Negative results and confounded replays are recorded as negative evidence, not optimization wins. Budget accordingly.
 
 ## Where your data lives
 

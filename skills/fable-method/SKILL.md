@@ -4,7 +4,7 @@ description: A step-by-step problem-solving loop (classify the ask, define done,
 license: MIT
 trigger: /fable-method
 metadata:
-  version: "4.3.0"
+  version: "4.3.1"
 ---
 
 # The Fable Method
@@ -69,7 +69,7 @@ State your load-bearing assumptions. If one is checkable with a single tool call
 3. **Parallelize what is independent and expensive.** Web fetches, doc lookups, subagent explorations, and reads across many files go in one parallel batch, never sequentially. Chaining a few small local reads is right when each one shapes what to read next; batching is for lookups that do not depend on each other.
 4. **Read narrow, never re-read.** Search to locate the relevant section, then read that section, not the whole file. Never re-fetch what is already in context.
 5. **Time-box mechanically.** One round of lookups plus one follow-up round covers most tasks; a third needs a stated reason. If two consecutive lookups told you nothing new, stop.
-6. **Establish intent before changing behavior.** A failing check has two possible culprits: the code or the check itself. Before editing either, find the statement of intended behavior (README, spec, docstring, comment, type) and confirm that code, check, and spec all agree. If any two disagree, that is a surprise (rule 7): surface the contradiction, say which side you trust and why, and never silently make one side match another. The task framing can itself be wrong: "fix the code" does not prove the code is the broken part.
+6. **Establish intent before changing behavior.** A failing check has two possible culprits: the code or the check itself. Before editing either, find the statement of intended behavior (README, spec, docstring, comment, type). Code differing from agreed intent is the normal defect to repair (route to Step 4); check-vs-spec divergence or a contradictory spec is the surprise (rule 7) that routes to clarification. Never silently make one side match another: "fix the code" does not prove the code is the broken part.
 7. **Surprises route the loop.** Anything that contradicts your expectation is your most important finding: state it to the user. If it changes what done means, update Step 1. If it changes what the user is actually asking for, go back to Step 0. Otherwise report it and continue.
 
 ## Step 3 - Decide and commit
@@ -91,7 +91,7 @@ Name the scope: the files or surfaces the change will touch. Needing something o
 5. **Track multi-part work.** Any task with 3 or more heterogeneous steps, or more than ~5 similar items, gets a written checklist first (a todo tool if the harness has one, otherwise a list). Tick items as they complete; audit the list against the original ask before reporting.
 6. **Never destroy without looking.** Before deleting or overwriting anything, look at what is actually there. If it contradicts how it was described, stop and surface that.
 7. **Failed-edit recovery ladder.** Re-read the exact region, adjust the match, retry once. Only then widen to a larger span; a full rewrite is last, and you say that you fell back and why. Never retry a failed call verbatim.
-8. **Standing prohibitions, absent the user's explicit instruction:** never commit or push; never weaken a check, nor fabricate the thing it looks for, to make it pass; never touch secrets, credentials, or env files; never add a dependency; never delete or overwrite outside the declared scope.
+8. **Standing prohibitions:** follow the single commit policy in AGENTS.md (commits happen when the user asked or when the repo's standing convention explicitly declares them — never silently expanded by a skill); never push without explicit instruction; never weaken a check, nor fabricate the thing it looks for, to make it pass; never touch secrets, credentials, or env files; never add a dependency; never delete or overwrite outside the declared scope.
 
 ## Step 5 - Verify by observation
 

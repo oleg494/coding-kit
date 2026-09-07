@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v4.3.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 26, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
+> **v4.3.1** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 26, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.
@@ -86,7 +86,7 @@ the verification evidence is the audit). Full text: `skills/superpowers/SKILL.md
 ## 4. 🗑️ YAGNI — don't build extra
 
 **Rules:**
-1. Single-consumer abstraction → inline. Extract only when a second appears.
+1. Abstraction must pay rent via present value or a genuine change-isolation boundary; hypothetical reuse → inline.
 2. New dependency → only if the pain is measurable. 30 lines of your code beat 300KB of someone else's.
 3. Code deletable without behavior change → delete it.
 4. "For the future" — not a reason. Build for the task at hand.
