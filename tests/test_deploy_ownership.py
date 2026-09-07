@@ -314,3 +314,263 @@ class TestCR04SinglePlan(unittest.TestCase):
                 self.assertEqual(rc, 0)
                 self.assertFalse((canon / "my_skill" / "stale_inner.txt").exists())
                 self.assertFalse((canon / "obsolete_skill").exists())
+
+
+class TestResidualDefects(unittest.TestCase):
+    """Tests for residual defects found in external audit of v4.3.0.
+
+    Defect 1 (P1): sync can write OUTSIDE the destination through nested symlinks/junctions.
+    Defect 2 (P2): preview/execution parity incomplete + no global preflight across destinations.
+    """
+
+    def test_scan_skill_links_detects_symlink_or_junction(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            dest = Path(td) / "skills"
+            dest.mkdir()
+            skill_dir = dest / "my_skill"
+            skill_dir.mkdir()
+            outside = Path(td) / "outside"
+            outside.mkdir()
+            (outside / "secret.txt").write_text("precious", encoding="utf-8")
+            junc = skill_dir / "nested_junc"
+            # Try creating a junction portably on Windows or symlink on POSIX
+            if sys.platform == "win32":
+                import subprocess
+                cmd = ["powershell", "-NoProfile", "-Command",
+                       f'New-Item -ItemType Junction -Path "{junc}" -Target "{outside}" | Out-Null']
+                subprocess.run(cmd, check=True)
+            else:
+                junc.symlink_to(outside, target_is_directory=True)
+
+            self.assertTrue(deploy.is_link(junc))
+            bad_links = deploy.scan_skill_links(dest, skill_dir)
+            self.assertTrue(len(bad_links) > 0, f"Expected bad links detected, got: {bad_links}")
+
+    def test_nested_symlink_inside_adoptable_skill_refuses_dest_and_protects_outside(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest = root / "skills"
+            dest.mkdir()
+            outside = root / "outside"
+            outside.mkdir()
+            sentinel = outside / "sentinel.txt"
+            sentinel.write_text("original content", encoding="utf-8")
+
+            master_name = deploy.master_skill_names()[0]
+            target = dest / master_name
+            # Copy byte-identical master skill
+            shutil.copytree(deploy.SKILLS / master_name, target)
+
+            # Plant a symlink inside target pointing to outside sentinel
+            link_file = target / "evil_link.txt"
+            try:
+                link_file.symlink_to(sentinel)
+            except OSError:
+                # Windows without SeCreateSymbolicLinkPrivilege
+                # Test with directory junction pointing outside
+                evil_dir = target / "evil_dir"
+                import subprocess
+                cmd = ["powershell", "-NoProfile", "-Command",
+                       f'New-Item -ItemType Junction -Path "{evil_dir}" -Target "{outside}" | Out-Null']
+                res = subprocess.run(cmd)
+                if res.returncode != 0:
+                    self.skipTest("Cannot create symlinks or junctions in this environment")
+
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest)]):
+                report = deploy.sync_skills()
+                # Outside sentinel must still exist and be UNCHANGED
+                self.assertTrue(sentinel.exists())
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "original content")
+                # Report must indicate conflict / failure for dest
+                has_conflict = any("conflict" in str(a).lower() for _, acts, _ in report for a in acts)
+                self.assertTrue(has_conflict, f"Expected conflict in report: {report}")
+
+    def test_nested_symlink_write_through_attempt_refused_and_outside_file_intact(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest = root / "skills"
+            dest.mkdir()
+            outside = root / "outside"
+            outside.mkdir()
+            sentinel = outside / "victim.txt"
+            sentinel.write_text("precious original", encoding="utf-8")
+
+            master_name = deploy.master_skill_names()[0]
+            target = dest / master_name
+            shutil.copytree(deploy.SKILLS / master_name, target)
+
+            # Overwrite an existing skill file (e.g. SKILL.md) with a symlink to victim
+            target_file = target / "SKILL.md"
+            if target_file.exists():
+                target_file.unlink()
+            try:
+                target_file.symlink_to(sentinel)
+            except OSError:
+                self.skipTest("Symlink creation not permitted without admin privilege on Windows")
+
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest)]):
+                report = deploy.sync_skills()
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "precious original")
+                has_conflict = any("conflict" in str(a).lower() for _, acts, _ in report for a in acts)
+                self.assertTrue(has_conflict)
+    def test_nested_link_inside_manifest_owned_skill_refuses_dest(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest = root / "skills"
+            dest.mkdir()
+            outside = root / "outside"
+            outside.mkdir()
+            sentinel = outside / "sentinel.txt"
+            sentinel.write_text("original content", encoding="utf-8")
+
+            master_name = deploy.master_skill_names()[0]
+            target = dest / master_name
+            shutil.copytree(deploy.SKILLS / master_name, target)
+
+            # Create manifest owning master_name
+            mani_file = dest / deploy.MANIFEST_NAME
+            mani_file.write_text(f'{{"kit_version": "{deploy.VERSION}", "skills": ["{master_name}"]}}', encoding="utf-8")
+
+            # Create a junction pointing outside inside target/nested
+            nested_target = target / "nested_outside"
+            if sys.platform == "win32":
+                import subprocess
+                cmd = ["powershell", "-NoProfile", "-Command",
+                       f'New-Item -ItemType Junction -Path "{nested_target}" -Target "{outside}" | Out-Null']
+                res = subprocess.run(cmd)
+                if res.returncode != 0:
+                    self.skipTest("Cannot create junction")
+            else:
+                nested_target.symlink_to(outside, target_is_directory=True)
+
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest)]):
+                report = deploy.sync_skills()
+                # Outside sentinel must still exist and be intact
+                self.assertTrue(sentinel.exists())
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "original content")
+                has_conflict = any("conflict" in str(a).lower() for _, acts, _ in report for a in acts)
+                self.assertTrue(has_conflict, f"Expected conflict in report: {report}")
+    def test_global_preflight_all_destinations_fail_before_any_write(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest1 = root / "dest1"
+            dest2 = root / "dest2"
+            dest1.mkdir()
+            dest2.mkdir()
+
+            sentinel1 = dest1 / "sentinel1.txt"
+            sentinel1.write_text("dest1 original", encoding="utf-8")
+
+            # dest2 has an unowned differing skill -> conflict
+            master_name = deploy.master_skill_names()[0]
+            unowned = dest2 / master_name
+            unowned.mkdir(parents=True)
+            (unowned / "custom.txt").write_text("user custom skill", encoding="utf-8")
+
+            with mock.patch.object(deploy, "SYNC_TARGETS", [str(dest1), str(dest2)]):
+                report = deploy.sync_skills()
+                # dest1 must be completely untouched!
+                self.assertTrue(sentinel1.exists())
+                self.assertEqual(sentinel1.read_text(encoding="utf-8"), "dest1 original")
+                self.assertFalse((dest1 / deploy.MANIFEST_NAME).exists(), "dest1 manifest must NOT be written")
+                self.assertFalse((dest1 / master_name).exists(), "dest1 must NOT receive any synced skills")
+                # Both dests should report conflicts / zero writes
+                dest2_conflict = any("conflict" in str(a).lower() for d, acts, _ in report if d == str(dest2) for a in acts)
+                self.assertTrue(dest2_conflict)
+
+    def test_canonical_manifest_change_advertised_in_dry_run_and_executed(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_dir = root / "skills"
+            (skills_dir / "my_skill").mkdir(parents=True)
+            (skills_dir / "my_skill" / "SKILL.md").write_text("v1", encoding="utf-8")
+
+            canon = root / ".agents" / "skills"
+            (canon / "my_skill").mkdir(parents=True)
+            (canon / "my_skill" / "SKILL.md").write_text("v1", encoding="utf-8")
+            # Write a manifest with stale kit_version
+            mani_file = canon / deploy.MANIFEST_NAME
+            mani_file.write_text('{"kit_version": "0.0.1", "skills": ["my_skill"]}', encoding="utf-8")
+
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+                dry_out = out.getvalue()
+                self.assertEqual(rc, 0)
+                self.assertIn("upd .kit-manifest.json", dry_out)
+
+                # Stale manifest should NOT have changed during dry-run
+                self.assertIn('"0.0.1"', mani_file.read_text(encoding="utf-8"))
+
+            # Now run without dry-run
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+                self.assertEqual(rc, 0)
+                self.assertIn(deploy.VERSION, mani_file.read_text(encoding="utf-8"))
+
+    def test_global_preflight_conflict_causes_deploy_main_failure(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            dest1 = root / "dest1"
+            dest2 = root / "dest2"
+            dest1.mkdir()
+            dest2.mkdir()
+            master_name = deploy.master_skill_names()[0]
+            unowned = dest2 / master_name
+            unowned.mkdir(parents=True)
+            (unowned / "custom.txt").write_text("user custom skill", encoding="utf-8")
+            fake_harnesses = [{
+                "id": "test_omp",
+                "router": str(root / ".omp" / "agent" / "AGENTS.md"),
+                "name": "TestOMP",
+                "skills_line": None,
+                "skills_dir": None,
+            }]
+            with mock.patch.object(sys, "argv", ["deploy.py"]), \
+                 mock.patch.object(deploy, "SYNC_TARGETS", [str(dest1), str(dest2)]), \
+                 mock.patch.object(deploy, "HARNESSES", fake_harnesses), \
+                 mock.patch.object(deploy, "CLAUDE_MD", root / "CLAUDE.md"), \
+                 mock.patch.object(deploy, "integrity_gate"):
+                rc = deploy.main()
+                self.assertNotEqual(rc, 0, "Deploy must fail when any destination preflight fails")
+                self.assertFalse((dest1 / master_name).exists(), "dest1 must have zero writes")
+                self.assertFalse((dest1 / deploy.MANIFEST_NAME).exists(), "dest1 manifest must not be written")
+    def test_canonical_identical_manifest_dry_run_no_changes(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            skills_dir = root / "skills"
+            (skills_dir / "my_skill").mkdir(parents=True)
+            (skills_dir / "my_skill" / "SKILL.md").write_text("v1", encoding="utf-8")
+
+            canon = root / ".agents" / "skills"
+            (canon / "my_skill").mkdir(parents=True)
+            (canon / "my_skill" / "SKILL.md").write_text("v1", encoding="utf-8")
+            import json
+            mani_file = canon / deploy.MANIFEST_NAME
+            mani_content = json.dumps({"kit_version": deploy.VERSION, "skills": ["my_skill"]}, indent=1) + "\n"
+            mani_file.write_text(mani_content, encoding="utf-8")
+
+            with mock.patch.object(deploy, "KIT", root), \
+                 mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
+                out = io.StringIO()
+                with mock.patch.object(sys, "stdout", out):
+                    rc = deploy.main()
+                self.assertEqual(rc, 0)
+                self.assertIn("no changes", out.getvalue())
+                self.assertNotIn("upd .kit-manifest.json", out.getvalue())

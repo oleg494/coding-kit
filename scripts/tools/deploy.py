@@ -96,8 +96,38 @@ def home(p):
 
 def is_link(p: Path) -> bool:
     """True for symlinks and Windows junctions."""
-    return p.exists() and str(p.resolve()) != str(p.absolute())
+    return p.is_symlink() or (p.exists() and str(p.resolve()) != str(p.absolute()))
 
+
+def scan_skill_links(dest: Path, skill_dir: Path) -> list[str]:
+    """Scan an existing skill dir for symlinks/junctions or escapes outside dest.
+
+    Returns list of problem descriptions (empty if clean).
+    """
+    bad = []
+    if not skill_dir.exists():
+        return bad
+    if is_link(skill_dir):
+        bad.append(f"{skill_dir.name} (root link)")
+        return bad
+    dest_res = dest.resolve()
+    try:
+        if not skill_dir.resolve().is_relative_to(dest_res):
+            bad.append(f"{skill_dir.name} (escapes destination)")
+            return bad
+    except Exception as e:
+        bad.append(f"{skill_dir.name} (resolution error: {e})")
+        return bad
+    for p in skill_dir.rglob("*"):
+        if is_link(p):
+            bad.append(f"{p.relative_to(dest)} (link)")
+            continue
+        try:
+            if not p.resolve().is_relative_to(dest_res):
+                bad.append(f"{p.relative_to(dest)} (resolves outside destination)")
+        except Exception as e:
+            bad.append(f"{p.relative_to(dest)} (resolution error: {e})")
+    return bad
 
 def master_skill_names():
     return sorted(x.name for x in SKILLS.iterdir() if x.is_dir())
@@ -146,45 +176,54 @@ def dirs_byte_identical(src: Path, target: Path) -> bool:
     """Check whether all files in src and target are byte-identical and have identical layout."""
     if not target.exists() or not target.is_dir() or is_link(target):
         return False
+    if scan_skill_links(target.parent, target):
+        return False
     src_files = {f.relative_to(src): f for f in src.rglob("*") if f.is_file()}
     target_files = {f.relative_to(target): f for f in target.rglob("*") if f.is_file()}
     if set(src_files.keys()) != set(target_files.keys()):
         return False
     for rel, sf in src_files.items():
         tf = target_files[rel]
-        if sf.read_bytes() != tf.read_bytes():
+        if is_link(tf) or sf.read_bytes() != tf.read_bytes():
             return False
     return True
 
-
-def sync_one_skill(src: Path, target: Path, log):
+def sync_one_skill(src: Path, target: Path, log, dest: Path | None = None):
     """File-level sync of one skill dir; returns nothing, appends actions."""
     if not target.exists():
         shutil.copytree(src, target)
         log.append("add " + src.name)
         return
+    root_dest = dest or target.parent
+    dest_res = root_dest.resolve()
     for f in src.rglob("*"):
         if not f.is_file():
             continue
         rel = f.relative_to(src)
         tf = target / rel
+        if is_link(tf):
+            raise RuntimeError(f"Refusing to write to link {tf}")
+        if tf.exists() and not tf.resolve().is_relative_to(dest_res):
+            raise RuntimeError(f"Refusing to write outside destination {tf}")
         if not tf.exists() or f.read_bytes() != tf.read_bytes():
             tf.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, tf)
             log.append("upd " + src.name + "/" + str(rel))
     for f in target.rglob("*"):
         if f.is_file() and not (src / f.relative_to(target)).exists():
+            if is_link(f):
+                raise RuntimeError(f"Refusing to unlink link {f}")
             f.unlink()
             log.append("del " + src.name + "/" + str(f.relative_to(target)))
-
-
 def sync_skills():
     names = master_skill_names()
-    report = []
+    # Phase 1: Preflight ALL destinations before performing any writes
+    preflight = []
+    any_failure = False
     for d in SYNC_TARGETS:
         dest = home(d)
         if is_link(dest):
-            report.append((d, ["skip (junction - always current)"], None))
+            preflight.append({"d": d, "dest": dest, "kind": "junction"})
             continue
         mani_file = dest / MANIFEST_NAME
         mani = None
@@ -192,20 +231,16 @@ def sync_skills():
             try:
                 raw_mani = json.loads(mani_file.read_text(encoding="utf-8"))
             except Exception as e:
-                report.append((d, [f"ERROR: malformed manifest JSON: {e}"], None))
+                preflight.append({"d": d, "dest": dest, "kind": "error", "errors": [f"ERROR: malformed manifest JSON: {e}"]})
+                any_failure = True
                 continue
             valid, err = validate_manifest(dest, raw_mani)
             if not valid:
-                report.append((d, [f"ERROR: malformed manifest ({err})"], None))
+                preflight.append({"d": d, "dest": dest, "kind": "error", "errors": [f"ERROR: malformed manifest ({err})"]})
+                any_failure = True
                 continue
             mani = raw_mani
 
-        # CR-01: Establish kit ownership BEFORE any write!
-        # A skill dir is kit-owned iff:
-        # (a) target manifest lists it, or
-        # (b) does not exist yet, or
-        # (c) exists and is byte-identical to master (safe adoption).
-        # An existing, differing, unlisted skill dir = CONFLICT: never touch it, report it.
         manifest_skills = set(mani.get("skills", [])) if mani else set()
         conflicts = []
         owned_skills = []
@@ -213,25 +248,63 @@ def sync_skills():
             target = dest / name
             if not target.exists():
                 owned_skills.append(name)
+                continue
+            # Scan existing target dir for nested links/escapes
+            bad_links = scan_skill_links(dest, target)
+            if bad_links:
+                conflicts.append(f"skill {name} contains symlink/junction/escape: {', '.join(bad_links)}")
             elif name in manifest_skills:
                 owned_skills.append(name)
             elif dirs_byte_identical(SKILLS / name, target):
                 owned_skills.append(name)
             else:
-                conflicts.append(name)
+                conflicts.append(f"unowned skill {name} exists with differing content")
 
         if conflicts:
-            report.append((d, [f"CONFLICT: unowned skill {c} exists with differing content (skipping)" for c in conflicts], mani))
-            continue
+            preflight.append({
+                "d": d, "dest": dest, "kind": "conflict",
+                "mani": mani,
+                "conflicts": [f"CONFLICT: {c} (skipping)" for c in conflicts],
+            })
+            any_failure = True
+        else:
+            preflight.append({
+                "d": d, "dest": dest, "kind": "ok",
+                "mani": mani,
+                "manifest_skills": manifest_skills,
+                "owned_skills": owned_skills,
+            })
 
+    if any_failure:
+        report = []
+        for item in preflight:
+            kind = item["kind"]
+            if kind == "junction":
+                report.append((item["d"], ["skip (junction - always current)"], None))
+            elif kind == "error":
+                report.append((item["d"], item["errors"], None))
+            elif kind == "conflict":
+                report.append((item["d"], item["conflicts"], item["mani"]))
+            else:
+                report.append((item["d"], ["aborted (prior destination had conflicts/errors)"], item["mani"]))
+        return report
+
+    # Phase 2: Mutation (all destinations passed preflight)
+    report = []
+    for item in preflight:
+        d, dest, kind = item["d"], item["dest"], item["kind"]
+        if kind == "junction":
+            report.append((d, ["skip (junction - always current)"], None))
+            continue
         if not dest.exists():
             dest.mkdir(parents=True)
 
         log = []
+        owned_skills = item["owned_skills"]
         for name in owned_skills:
-            sync_one_skill(SKILLS / name, dest / name, log)
+            sync_one_skill(SKILLS / name, dest / name, log, dest=dest)
 
-        # Remove whole kit skills dropped from master (manifest-guarded).
+        mani = item["mani"]
         removed = []
         if mani:
             for name in mani.get("skills", []):
@@ -239,8 +312,7 @@ def sync_skills():
                     shutil.rmtree(dest / name)
                     removed.append("rm-dir " + name)
 
-        # Successfully updated manifest: lists all currently owned & synced skills
-        persisted_skills = sorted(list((manifest_skills | set(owned_skills)) & set(names)))
+        persisted_skills = sorted(list((item["manifest_skills"] | set(owned_skills)) & set(names)))
         (dest / MANIFEST_NAME).write_text(
             json.dumps({"kit_version": VERSION, "skills": persisted_skills}, indent=1),
             encoding="utf-8", newline="\n")
@@ -358,10 +430,14 @@ def verify():
             if not target.exists():
                 bad.append("missing " + name)
                 continue
+            bad_links = scan_skill_links(dest, target)
+            if bad_links:
+                bad.append(f"links in {name}: {', '.join(bad_links)}")
+                continue
             for f in src.rglob("*"):
                 if f.is_file():
                     tf = target / f.relative_to(src)
-                    if not tf.exists() or f.read_bytes() != tf.read_bytes():
+                    if is_link(tf) or not tf.exists() or f.read_bytes() != tf.read_bytes():
                         bad.append("diff " + name + "/" + str(f.relative_to(src)))
         stale = [s for s in manifest_skills
                  if s not in names and (dest / s).exists()]
@@ -399,12 +475,13 @@ def verify():
 
 
 def plan_canonical_sync(canon: Path) -> list[dict]:
-    """CR-04: Compute ONE unified change plan for canonical sync."""
+    """CR-04: Compute ONE unified change plan for canonical sync (including manifest)."""
     names = master_skill_names()
     plan = []
     if not canon.exists():
         for n in names:
             plan.append({"op": "add-skill", "skill": n, "src": SKILLS / n, "target": canon / n, "desc": f"add .agents/skills/{n}"})
+        plan.append({"op": "upd-manifest", "target": canon / MANIFEST_NAME, "desc": f"add {MANIFEST_NAME}"})
         return plan
 
     for n in names:
@@ -427,6 +504,18 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
     for entry in sorted(canon.iterdir()):
         if entry.is_dir() and entry.name not in names:
             plan.append({"op": "rm-dir", "target": entry, "desc": f"rm-dir {entry.name}"})
+
+    # Manifest check
+    mani_file = canon / MANIFEST_NAME
+    if not mani_file.exists():
+        plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"add {MANIFEST_NAME}"})
+    else:
+        try:
+            curr_mani = json.loads(mani_file.read_text(encoding="utf-8"))
+            if curr_mani.get("kit_version") != VERSION or curr_mani.get("skills") != names:
+                plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"upd {MANIFEST_NAME}"})
+        except Exception:
+            plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"upd {MANIFEST_NAME}"})
 
     return plan
 
@@ -471,11 +560,13 @@ def canonical_mode(argv=None):
         elif op == "rm-dir":
             shutil.rmtree(item["target"])
             actions.append(item["desc"])
+        elif op == "upd-manifest":
+            names = master_skill_names()
+            item["target"].write_text(
+                json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
+                encoding="utf-8", newline="\n")
+            actions.append(item["desc"])
 
-    names = master_skill_names()
-    (canon / MANIFEST_NAME).write_text(
-        json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
-        encoding="utf-8", newline="\n")
     for a in actions:
         print(a)
     if not actions:
