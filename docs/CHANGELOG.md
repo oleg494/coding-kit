@@ -4,6 +4,29 @@
 > re-read by the model every session; OPS keeps only the living contract).
 
 > **Claim discipline (v2.7.4):** every "fixed"/"verified" claim below must cite the regression test (tests/test_*.py) or doctor check that re-verifies it. A claim without a check is not a claim — the v2.6 "githist 40-hex boundary" entry had neither code nor test (audit 2026-08-22). Sub-agent/cross-model verdicts are testimony: re-run fresh before reporting.
+- **v4.3.0 (2026-09-07)**:
+  - **Deploy & install hardening (CR-01..05)**:
+    - Remediated 5 deployment and installation defects identified in `docs/research/2026-09-07-independent-code-review.md`.
+    - Kit ownership established before any writes in `deploy.py`: skill directories require target manifest listing, non-existence, or byte-identical match to master for safe adoption; unowned differing skill directories refuse with conflict status without mutations; routers require kit markers to modify and create `.kit-bak` backups before replacement (`tests/test_deploy_ownership.py::TestCR01Ownership`).
+    - Manifest validation before mutation: complete manifest schema, single-component names, traversal, absolute path, and junction/symlink checks fail closed before sync writes (`tests/test_deploy_ownership.py::TestCR02ManifestValidation`).
+    - Preflight missing harness configs: missing `~/.claude/CLAUDE.md` is skipped as harness-not-present without crashing `bump_claude_md()` or `verify()` (`tests/test_deploy_ownership.py::TestCR03Preflight`).
+    - Single computed deployment plan: `canonical_mode` computes a unified add/upd/del/rm-dir plan shared between `--dry-run` preview and execution (`tests/test_deploy_ownership.py::TestCR04SinglePlan`).
+    - Installer final-path verification: `install.py` runs index builds and search smoke against the final `<root>/db-tools` path; conflicting real directories are preserved and signaled with an INCOMPLETE status (`tests/test_install.py::InstallTest::test_real_dir_is_preserved`, `test_successful_install_validates_final_entry_point`).
+  - **Policy coherence (LR-01..10)**:
+    - Remediated 10 logic and policy boundaries identified in `docs/research/2026-09-07-independent-logic-review.md`.
+    - Single-sourced commit and authorization policy in `AGENTS.md` and `OPS.md`, cross-referenced in phase skills (`brainstorming` AUTHORIZATION-GATE, `git-workflow-and-versioning` Commit Policy).
+    - `fable-method` intent gate distinguishing code defects from test/specification disagreements.
+    - `fable-judge` per-claim verdict states where unverifiable load-bearing claims cap verdicts at VERIFIED WITH CAVEATS.
+    - `verification-before-completion` evidence discipline explicitly keyed to verified system state.
+    - `search_all.py` search hits display superseded/verified lifecycle badges and metadata (`tests/test_search_all.py::FindingsLifecycleMetadataTest`). The recall routes in `AGENTS.md`, `OPS.md` §5 and `dev-wiki` now require resolving lifecycle validity (superseded → replacing finding; unverified → confirm) before answering.
+    - Explicit side-effect boundaries for memory operations across `AGENTS.md`, `OPS.md`, and `dev-wiki`.
+    - `yagni` and `architecture-simplicity` reframed as present-value engineering heuristics.
+    - `engineering-persona` allows calibrated uncertainty where evidence is incomplete.
+    - `SKILL_RUNTIME.md` irreducible core retains authorization, stop conditions, and exceptions.
+    - `README.md` evaluation claims clearly partition health/activation/adherence metrics from task success/cost without causal overreach.
+    - `skill-authoring` candidate state introduced with concrete promotion and retirement criteria.
+  - **Sources**: `docs/research/2026-09-07-independent-code-review.md` and `docs/research/2026-09-07-independent-logic-review.md`.
+
 - **v4.2.0 (2026-09-06)**:
   - **Instruction precedence & authorization gate**: clarified hierarchy
     (host system/developer > user instructions > kit skills) in AGENTS.md and
