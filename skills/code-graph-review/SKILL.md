@@ -4,7 +4,7 @@ description: 'Use BEFORE a commit or change review, when you need to understand 
 license: MIT
 compatibility: git repo with a built graph (code-review-graph MCP)
 metadata:
-  version: "4.3.1"
+  version: "4.4.0"
 ---
 
 # Code graph review: what will the change break
