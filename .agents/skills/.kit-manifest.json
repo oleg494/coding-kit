@@ -1,7 +1,8 @@
 {
-  "kit_version": "4.4.0",
+ "kit_version": "4.5.0",
  "skills": [
   "architecture-simplicity",
+  "autonomous-work",
   "brainstorming",
   "code-graph-review",
   "code-review-and-quality",

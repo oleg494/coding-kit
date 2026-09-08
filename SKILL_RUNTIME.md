@@ -49,6 +49,16 @@ PLAN → TDD → IMPLEMENT → VERIFY → REPORT
 4. MARK: 📚 skill-name
 ```
 
+## Autonomous work (opt-in)
+
+Broad authorization to choose and continue useful work ("do useful work",
+"keep going without asking", "работай сам") loads skill `autonomous-work`:
+select the highest-value in-scope objective, verify by observation, record
+durable evidence, continue. It is task opt-in, not an always-on skill and not
+a `MODE:` override — `STRICT_AUDIT` and read-only tasks stay read-only, and
+outward/destructive/spending actions still need explicit authorization.
+Stop/revocation (`стоп`/`stop`, `STOP` file, explicit revoke) wins immediately.
+
 ## Cross-chat memory (hierarchy)
 
 ```bash

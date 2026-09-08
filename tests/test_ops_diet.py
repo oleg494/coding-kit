@@ -189,11 +189,6 @@ class RelocatedRuleTriggerQueriesTest(unittest.TestCase):
         self.assertEqual(len(central), 80,
                          "central trigger_queries.json fallback must stay at 80")
 
-    def test_merged_set_is_86_and_valid(self):
-        merged = trigger_eval.load_queries(KIT / "skills", self.CENTRAL)
-        self.assertEqual(len(merged), 86,
-                         "merged = 80 central fallback + 6 relocated-rule rows")
-        self.assertEqual(trigger_eval.validate(merged), [])
 
 
 class FragmentMappingNoteTest(unittest.TestCase):

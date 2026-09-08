@@ -1,0 +1,11 @@
+{
+  "skill_name": "autonomous-work",
+  "evals": [
+    {"id": "autonomous-work-0", "prompt": "No task today. Choose useful work yourself and keep going autonomously.", "should_trigger": true},
+    {"id": "autonomous-work-1", "prompt": "Improve backup reliability autonomously; continue after each verified objective until nothing useful remains.", "should_trigger": true},
+    {"id": "autonomous-work-2", "prompt": "Resume the autonomous mission from its checkpoint, preserving my edits since yesterday.", "should_trigger": true},
+    {"id": "autonomous-work-3", "prompt": "Fix only this off-by-one and show the targeted check. Do not touch anything else.", "should_trigger": false},
+    {"id": "autonomous-work-4", "prompt": "Explain what an autonomous agent means. Do not run tools or edit files.", "should_trigger": false},
+    {"id": "autonomous-work-5", "prompt": "Audit this module read-only and stop after your findings.", "should_trigger": false}
+  ]
+}

@@ -4,7 +4,7 @@ description: 'Use when the user wants to: add/fix tests, understand what is cove
 license: MIT
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "4.4.0"
+  version: "4.5.0"
 ---
 
 # Testing discipline: tests as a spec and defining "done"

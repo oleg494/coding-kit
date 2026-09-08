@@ -3,7 +3,7 @@ name: brainstorming
 description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
 license: MIT
 metadata:
-  version: "4.4.0"
+  version: "4.5.0"
 ---
 
 # Brainstorming Ideas Into Designs

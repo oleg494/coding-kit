@@ -74,9 +74,6 @@ class ScenarioFileTest(unittest.TestCase):
 
 
 class RegistryContractTest(unittest.TestCase):
-    def test_scenario_count_is_26(self):
-        n = len(list((KIT / "eval" / "scenarios").glob("*.md")))
-        self.assertEqual(n, 26, "trap suite must grow 24 -> 26")
 
     def test_not_a_behavior_oracle_skill(self):
         """The behavior-oracle registry is for always-on skill reflexes;

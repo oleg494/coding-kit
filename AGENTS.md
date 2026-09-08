@@ -92,6 +92,13 @@ REQUEST
 ├─ "learn this / /learn X / make a skill" ──→ learn: distill the
 │     repeatable procedure into a new SKILL.md (format: skill-authoring)
 │
+├─ broad autonomous authorization ("do useful work", "keep going
+│     without asking", "работай сам") ──→ autonomous-work: select the
+│     highest-value in-scope objective, verify by observation, record
+│     durable evidence, continue; stop/revocation wins immediately.
+│     Opt-in only — bounded requests keep their existing scope; no
+│     MODE override, no implied outward/destructive/spending authority
+│
 └─ SMALL THING (<10 lines, no code logic) ──→ do it now, verify after
 ```
 

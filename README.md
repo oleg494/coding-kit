@@ -1,6 +1,6 @@
 # coding-kit — Coding Agent OS
 
-A portable agent-brain kit: methodology (superpowers), minimalism (YAGNI), cross-chat memory (SQLite FTS5), adversarial evals (trap-suite). 36 Hermes-compatible skills, English instructions, one command bootstrap.
+A portable agent-brain kit: methodology (superpowers), minimalism (YAGNI), cross-chat memory (SQLite FTS5), adversarial evals (trap-suite). 37 Hermes-compatible skills, English instructions, one command bootstrap.
 
 Works in environments that read an agent rules file and SKILL.md skills. Developed and tested on Claude Code / OMP (see adapters for others; per-harness behavior beyond those is untested by this project).
 
@@ -12,9 +12,9 @@ Works in environments that read an agent rules file and SKILL.md skills. Develop
 | Contract | `OPS.md` | phases, memory hierarchy, gates, changelog |
 | Runtime | `SKILL_RUNTIME.md` | context-size modes |
 | Manifest | `profile.yml` | single source of truth: paths, skills |
-| Skills | `skills/` | 36: always-on core + obra phase skills + domain + dashboard/UX |
+| Skills | `skills/` | 37: always-on core + obra phase skills + domain + dashboard/UX |
 | Memory engine | `memory/db-tools/` | build, search_all, findings, repomap (FTS5) |
-| Evals | `eval/` | trap-suite (26 scenarios), task smoke (6 oracle-verified tasks incl. 2 canaries), trigger-eval (86 co-located queries across 12 skills; 80-query central fallback), ablation, rigor A/B, schema-v1 store + trend + telemetry |
+| Evals | `eval/` | trap-suite (31 scenarios), task smoke (6 oracle-verified tasks incl. 2 canaries), trigger-eval (92 co-located queries across 13 skills; 80-query central fallback), ablation, rigor A/B, schema-v1 store + trend + telemetry |
 | Adapters | `adapters/` | per-environment setup guides |
 
 ## Requirements
@@ -95,12 +95,44 @@ Gates and checks (the kit's own lifecycle, run directly):
 - `python memory/scripts/memory-warmup.py` — cross-chat memory warmup.
 
 
+## Autonomous work (opt-in)
+
+Broad authorization to choose and continue useful work ("do useful work",
+"keep going without asking", "работай сам") loads skill `autonomous-work`.
+It is task opt-in: ordinary bounded requests keep their existing scope, and
+there is no `MODE:` override — `STRICT_AUDIT` and read-only tasks stay
+read-only. Outward, destructive, spending, and memory-writing actions still
+require explicit authorization.
+
+The skill covers work selection from evidence, verify-by-observation loops,
+durable mission/progress/handoff state, and immediate stop/revocation. For
+continuation across process boundaries (context compaction, terminal death)
+an optional foreground stdlib supervisor ships with the kit:
+
+```bash
+python scripts/tools/autonomous.py --workspace PATH --mission TEXT \
+  --executor COMMAND --verify COMMAND \
+  [--state-dir PATH] [--max-iterations 10] [--timeout 600]
+```
+
+`--executor`/`--verify` are argv, never a POSIX shell (Windows `.cmd`/`.bat`
+need `cmd`). State defaults to `<workspace>/.autonomous` (`state.json` +
+`logs/`, atomic writes, resumable). The executor writes a checkpoint proposal
+(`checkpoint.json`, removed before each spawn; its absolute path is passed on
+stdin as `Checkpoint: <path>` and via `AUTONOMOUS_CHECKPOINT`). Checkpoints
+are untrusted claims, never commands: `complete` is accepted only after the
+independent `--verify` exits zero. Exit codes: `0` verified completion only,
+`1` failed/exhausted/blocked/stalled, `130` user stop; a `STOP` file in the
+state dir prevents a spawn and interrupts a live child. A filesystem
+workspace is not a security sandbox. Design and acceptance criteria:
+`docs/research/2026-09-08-autonomous-mode.md`.
+
 ## Evals & Trend Loop
 
 The kit includes evaluation harnesses targeting distinct questions (health checks, trigger activation routing, and behavioral adherence are evaluated separately from task success or cost claims):
-- **Trap-suite (`eval/runner.py`)**: 26 adversarial scenarios testing policy adherence to superpowers, YAGNI, and security invariants. Candidate answers are bounded and delimited as untrusted evidence. Omitted `--judge` defaults to the executor (self-judging carries inherent bias; recommend configuring a distinct `--judge` for gating). Adherence to rules does not prove task-level superiority.
+- **Trap-suite (`eval/runner.py`)**: 31 adversarial scenarios testing policy adherence to superpowers, YAGNI, and security invariants. Candidate answers are bounded and delimited as untrusted evidence. Omitted `--judge` defaults to the executor (self-judging carries inherent bias; recommend configuring a distinct `--judge` for gating). Adherence to rules does not prove task-level superiority.
 - **Task Smoke (`eval/task_runner.py`)**: 6 real coding tasks (incl. 2 impossible canaries) verified by deterministic `verify.py` test oracles (no LLM judge for pass/fail). Each attempt runs in an isolated sandbox cloned fresh from `eval/tasks/repo-fixture` (default `--tries 2`). This serves as a smoke canary, not a statistical benchmark.
-- **Trigger Evals (`eval/trigger_eval.py`)**: `--queries auto` validates 86 co-located queries across 12 skills (per-skill `evals/evals.json`), with `eval/trigger_queries.json` (80 queries, 10 skills) as the central fallback for skills lacking a co-located file — testing skill activation routing.
+- **Trigger Evals (`eval/trigger_eval.py`)**: `--queries auto` validates 92 co-located queries across 13 skills (per-skill `evals/evals.json`), with `eval/trigger_queries.json` (80 queries, 10 skills) as the central fallback for skills lacking a co-located file — testing skill activation routing.
 - **Schema-v1 Results Store (`eval/results_io.py`)**: atomic append-only JSON storage under `eval/results/` with microsecond UTC timestamps, UUID `run_id`, separate `model` metadata, explicit `mode` (`"dry-run"` vs `"live"`), and standardized failure taxonomies.
 - **Trend Reporting (`eval/trend.py`)**: summarizes newest runs by `(kind, model)`, filters dry-runs and zero-result artifacts via explicit mode discriminators, reports baseline deltas, and produces structured Failure Evidence Packets with bounded trace tails for debugging.
 - **Telemetry (`eval/telemetry.py`)**: every result doc folds per-attempt wall-clock `duration_s` into `duration_s_total`/`duration_s_mean` across all three runners (trap/tasks/trigger). Optional `--usage-json` `{tokens_total, cost_usd}` records user-reported provider totals — the harness measures wall-clock only and never fabricates cost.

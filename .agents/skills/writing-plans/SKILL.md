@@ -3,7 +3,7 @@ name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching code
 license: MIT
 metadata:
-  version: "4.4.0"
+  version: "4.5.0"
 ---
 
 # Writing Plans

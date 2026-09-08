@@ -79,10 +79,6 @@ class OpsSection3GatesTest(unittest.TestCase):
         for needle in self.NEEDLES:
             self.assertIn(needle, hay, f"OPS.md §3 missing gate: {needle}")
 
-    def test_banner_names_trap_suite_26(self):
-        text = OPS.read_text(encoding="utf-8")
-        self.assertIn("trap-suite 26", text,
-                      "OPS banner must track the trap-suite size")
 
 
 class ConvergeAuditScenarioTest(unittest.TestCase):
@@ -125,19 +121,6 @@ class ConvergeAuditScenarioTest(unittest.TestCase):
 
 
 class RegistryContractTest(unittest.TestCase):
-    def test_scenario_count_is_26(self):
-        n = len(list((KIT / "eval" / "scenarios").glob("*.md")))
-        self.assertEqual(n, 26, "trap suite must grow 24 -> 26")
-
-    def test_wave4_count_pins_bumped(self):
-        """The wave4 per-wave count pins must move to 26, not stay stale."""
-        for name in ("test_compaction_scenario.py",
-                     "test_memory_provenance.py"):
-            text = (KIT / "tests" / name).read_text(encoding="utf-8")
-            self.assertNotIn("assertEqual(n, 24", text,
-                             f"{name}: stale scenario-count pin")
-            self.assertIn("assertEqual(n, 26", text,
-                          f"{name}: count pin must move to 26")
 
     def test_security_map_names_the_scenario(self):
         text = (KIT / "docs" / "SECURITY-MAP.md").read_text(

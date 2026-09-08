@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v4.4.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 26, task-smoke 4 (oracle verify), usage-audit (real-session telemetry), trigger-eval 86 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, doctor 14 checks, 36 skills.
+> **v4.5.0** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 31, task-smoke 6 (oracle verify), usage-audit (real-session telemetry), trigger-eval 92 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, autonomous-work (opt-in autonomous work selection; optional foreground supervisor), doctor 14 checks, 37 skills.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.
@@ -123,7 +123,7 @@ A hit is not authority: check the lifecycle badges first — [superseded by #N] 
 
 Always-on: `superpowers` (the method), `yagni` (minimalism), `engineering-persona` (tone), `fable-method` (complex tasks), `dev-wiki` (memory).
 
-31 domain skills live in `skills/` with trigger descriptions in each SKILL.md; the authoritative manifest is `profile.yml`.
+32 domain skills live in `skills/` with trigger descriptions in each SKILL.md; the authoritative manifest is `profile.yml`.
 
 **Skill diagnostics:**
 - `python scripts/tools/skills_search.py "<symptom words>"` — find the fitting skill without a model
