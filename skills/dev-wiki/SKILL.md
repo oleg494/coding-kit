@@ -54,14 +54,39 @@ Knowledge lives/dies with the project → project; portable across projects → 
 5. `python ~/.memory/db-tools/build.py`
 6. `python ~/.memory/db-tools/lint_wiki.py`
 7. Important conclusion → `python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source path --project <slug> --importance <high|normal|low>`
-(Use project slug such as `coding-kit` or `portable`; importance defaults to `unreviewed`. Never store credentials.)
+
+### Project Taxonomy & Importance
+
+- **Projects:** dynamically discovered from `~/.memory/db/*.db` plus optional `projects.json`. Slug format: `[a-z0-9][a-z0-9_-]{0,63}`.
+  - `portable`: cross-project reusable techniques, tools, and methodologies.
+  - `unknown`: unclassified personal notes, coursework, or items not tied to a specific project.
+- **Importance levels:**
+  - `high`: critical security boundaries, invariants, data-loss prevention, and durable architectural contracts.
+  - `normal`: standard actionable engineering findings, reproducible runbooks, feature setups, and telemetry.
+  - `low`: transient checkpoints, scratch notes, personal experiments, or milestone logs.
+  - `unreviewed`: default state prior to qualitative review.
+- **Edit finding:**
+  ```bash
+  python ~/.memory/db-tools/findings.py edit <id> --project <slug> --importance <high|normal|low>
+  ```
+- **Batch classification:**
+  ```bash
+  python ~/.memory/db-tools/findings.py classify mapping.json --dry-run
+  python ~/.memory/db-tools/findings.py classify mapping.json
+  ```
+  Mapping accepts a list or an object with `{"records": [...]}`:
+  ```json
+  [{"id": 1, "candidate_project": "coding-kit", "candidate_importance": "low", "project_rationale": "...", "importance_rationale": "..."}]
+  ```
+  Batch classification is atomic (rolls back on any error) and idempotent: user-curated records (manual edits with provenance `cli_edit`) are strictly preserved unless `--force` is supplied.
+
 ## Workflow — search
 
 ```bash
-python ~/.memory/db-tools/search_all.py "query"          # all databases at once
-python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high  # scoped retrieval
-python ~/.memory/db-tools/search_all.py "query" --substring   # declensions/substrings
-
+python ~/.memory/db-tools/search_all.py "query"                                        # all databases at once
+python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high     # scoped retrieval
+python ~/.memory/db-tools/search_all.py "query" --substring                           # declensions/substrings
+```
 - Search the database, NOT conversation memory.
 - Found → check lifecycle badges first: [superseded by #N] → resolve to the replacing finding before using it; [unverified] → treat as unconfirmed. Then answer with a link to the file.
 - Not found → "not in the database".

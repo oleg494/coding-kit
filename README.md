@@ -46,7 +46,24 @@ python ~/.memory/db-tools/findings.py add "first-note" \
   --source README.md   # → [✓] added (id=1)
 python ~/.memory/db-tools/findings.py search "first-note" --project coding-kit  # → found: 1
 python ~/.memory/db-tools/findings.py projects   # overview grouped by project and importance
+python ~/.memory/db-tools/findings.py edit 1 --project coding-kit --importance high
+python ~/.memory/db-tools/findings.py classify mapping.json --dry-run  # validate batch mapping
 ```
+
+### Project Taxonomy & Importance Levels
+
+- **Projects:** dynamically discovered from `~/.memory/db/*.db` plus optional `projects.json`. Slug format: `[a-z0-9][a-z0-9_-]{0,63}`.
+  - `portable`: reusable engineering patterns, tools, and cross-project knowledge.
+  - `unknown`: unclassified personal notes, coursework, or items not tied to a specific project.
+- **Importance levels:**
+  - `high`: critical security boundaries, invariants, data-loss prevention, durable release contracts.
+  - `normal`: standard actionable engineering findings, reproducible runbooks, feature setups.
+  - `low`: transient checkpoints, scratch notes, personal experiments, milestone logs.
+  - `unreviewed`: default state prior to qualitative review.
+- **Batch Classification (`classify`):**
+  Accepts JSON list or object with `{"records": [...]}`:
+  `[{"id": 1, "candidate_project": "coding-kit", "candidate_importance": "low", "project_rationale": "...", "importance_rationale": "..."}]`
+  Atomic transaction (rolls back on any error) and idempotent: user-curated records (`cli_edit`) are preserved unless `--force` is given.
 
 **Phase 2 — agent integration** (per-harness; `install.py` does NOT do
 this step). Pick your agent from `adapters/`:
