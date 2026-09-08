@@ -77,7 +77,7 @@ def _wiki_where() -> str:
 
 def stats() -> dict:
     """Stats: global Wiki + project databases + findings."""
-    out = {"wiki_entries": 0, "recent_7d": 0, "project_dbs": [], "findings": 0}
+    out = {"wiki_entries": 0, "recent_7d": 0, "project_dbs": [], "findings": 0, "findings_by_project": {}, "high_by_project": {}}
     if WIKI_DB.exists():
         con = sqlite3.connect(f"file:{WIKI_DB}?mode=ro", uri=True)
         try:
@@ -106,7 +106,17 @@ def stats() -> dict:
             con = sqlite3.connect(f"file:{RESEARCH_DB}?mode=ro", uri=True)
             out["findings"] = con.execute(
                 "SELECT COUNT(*) FROM findings").fetchone()[0]
-            con.close()
+            has_proj = con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='findings'").fetchone()[0] > 0
+            if has_proj:
+                cols = {c[1] for c in con.execute("PRAGMA table_info(findings)")}
+                if "project" in cols:
+                    for row in con.execute("SELECT project, COUNT(*) FROM findings GROUP BY project"):
+                        p = row[0] or "unknown"
+                        out["findings_by_project"][p] = row[1]
+                    if "importance" in cols:
+                        for row in con.execute("SELECT project, COUNT(*) FROM findings WHERE importance = 'high' GROUP BY project"):
+                            p = row[0] or "unknown"
+                            out["high_by_project"][p] = row[1]
         except sqlite3.Error:
             pass
     return out
@@ -182,6 +192,28 @@ def unsure_feed() -> list:
     feed.append('pull: search_all.py "<your topic>"')
     return feed
 
+def high_priority_feed() -> list:
+    """High-priority architectural invariants / decisions per project."""
+    if not RESEARCH_DB.exists():
+        return []
+    try:
+        con = sqlite3.connect(f"file:{RESEARCH_DB}?mode=ro", uri=True)
+        cols = {c[1] for c in con.execute("PRAGMA table_info(findings)")}
+        if "importance" not in cols:
+            con.close()
+            return []
+        rows = con.execute("""
+            SELECT f.id, f.project, f.topic
+            FROM findings f
+            WHERE f.importance = 'high'
+              AND NOT EXISTS (SELECT 1 FROM links l WHERE l.to_id = f.id AND l.kind = 'supersedes')
+            ORDER BY f.id DESC LIMIT 4
+        """).fetchall()
+        con.close()
+    except sqlite3.Error:
+        return []
+    return [f"[{r[1] or 'unknown'}] #{r[0]} {_clip(r[2])}" for r in rows]
+
 
 def integrity_check() -> dict:
     """Quick integrity check of the global Wiki."""
@@ -246,6 +278,7 @@ def main():
         output["findings"] = unsure_feed()
         output["integrity"] = integrity_check()
         output["git_stale_days"] = git_stale_days()
+        output["high_priority"] = high_priority_feed()
 
     if args.json:
         print(json.dumps(output, ensure_ascii=False, indent=2))
@@ -256,7 +289,12 @@ def main():
         print(f"Wiki: {s['wiki_entries']} entries ({s['recent_7d']} this week)")
         for pd in s["project_dbs"]:
             print(f"  project [{pd['name']}]: {pd['files']} files")
-        print(f"  findings: {s['findings']}")
+        f_summary = f"  findings: {s['findings']}"
+        if s.get("findings_by_project"):
+            bp = s["findings_by_project"]
+            top_p = [f"{k}: {bp[k]}" for k in sorted(bp.keys(), key=lambda x: -bp[x])[:4]]
+            f_summary += f" ({', '.join(top_p)})"
+        print(f_summary)
     if "recent" in output:
         print("\nRecent:")
         for r in output["recent"]:
@@ -265,12 +303,15 @@ def main():
         print("\nUnsure (what memory is NOT sure about):")
         for line in output["findings"]:
             print(f"  {line}")
+    if "high_priority" in output and output["high_priority"]:
+        print("\nKey Invariants & High-Priority Findings:")
+        for line in output["high_priority"]:
+            print(f"  {line}")
     if "integrity" in output:
         ic = output["integrity"]
         print(f"\nIntegrity: {'OK' if ic['ok'] else str(len(ic['errors'])) + ' issue(s)'}")
         for e in ic["errors"][:10]:
             print(f"  ! {e}")
-    if output.get("git_stale_days", -1) >= 0:
         d = output["git_stale_days"]
         if d >= 7:
             print(f"  ! git stale: {d}d since last commit — run "

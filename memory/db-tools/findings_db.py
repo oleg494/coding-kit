@@ -33,7 +33,20 @@ CREATE TABLE IF NOT EXISTS findings (
     file TEXT DEFAULT '',
     symbol TEXT DEFAULT '',
     verify_cmd TEXT DEFAULT '',
-    verified_at TEXT DEFAULT ''
+    verified_at TEXT DEFAULT '',
+    project TEXT DEFAULT 'unknown',
+    importance TEXT DEFAULT 'unreviewed'
+);
+CREATE TABLE IF NOT EXISTS finding_classifications (
+    finding_id INTEGER PRIMARY KEY,
+    project TEXT NOT NULL DEFAULT 'unknown',
+    project_provenance TEXT NOT NULL DEFAULT 'none',
+    project_evidence TEXT DEFAULT '',
+    importance TEXT NOT NULL DEFAULT 'unreviewed',
+    importance_provenance TEXT NOT NULL DEFAULT 'none',
+    importance_evidence TEXT DEFAULT '',
+    classified_at TEXT NOT NULL,
+    classified_by TEXT NOT NULL DEFAULT 'migration-v1'
 );
 CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,27 +96,43 @@ def connect():
         " AND name IN ('findings_ai', 'findings_ad', 'findings_au')")}
     if has != {"findings", "findings_fts",
                "findings_ai", "findings_ad", "findings_au"}:
-        # DDL only when the schema is absent or PARTIAL (pre-FTS stores
-        # have findings but no findings_fts; a dropped sync trigger
-        # would otherwise drift the index silently on every UPDATE —
-        # the IF NOT EXISTS clauses make the script idempotent). A
-        # complete schema must not take the write lock on every
-        # connect (D-K).
         con.executescript(SCHEMA)
     # Soft migration of old databases: columns that did not exist before
-    cols = [r[1] for r in con.execute("PRAGMA table_info(findings)")]
-    if "source" not in cols:
-        con.execute("ALTER TABLE findings ADD COLUMN source TEXT DEFAULT ''")
-    if "file" not in cols:
-        con.execute("ALTER TABLE findings ADD COLUMN file TEXT DEFAULT ''")
-    if "symbol" not in cols:
-        con.execute("ALTER TABLE findings ADD COLUMN symbol TEXT DEFAULT ''")
-    if "verify_cmd" not in cols:
-        con.execute("ALTER TABLE findings ADD COLUMN verify_cmd TEXT DEFAULT ''")
-    if "verified_at" not in cols:
-        con.execute("ALTER TABLE findings ADD COLUMN verified_at TEXT DEFAULT ''")
-    # FTS backfill (D-C, the restore bomb): the triggers keep NEW writes in
-    # sync, but rows predating the virtual table are never indexed — a
+    cols = set(r[1] for r in con.execute("PRAGMA table_info(findings)"))
+    needed_cols = {"source", "file", "symbol", "verify_cmd", "verified_at", "project", "importance"}
+    if not needed_cols.issubset(cols):
+        if "source" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN source TEXT DEFAULT ''")
+        if "file" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN file TEXT DEFAULT ''")
+        if "symbol" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN symbol TEXT DEFAULT ''")
+        if "verify_cmd" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN verify_cmd TEXT DEFAULT ''")
+        if "verified_at" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN verified_at TEXT DEFAULT ''")
+        if "project" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN project TEXT DEFAULT 'unknown'")
+        if "importance" not in cols:
+            con.execute("ALTER TABLE findings ADD COLUMN importance TEXT DEFAULT 'unreviewed'")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_findings_project ON findings(project)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_findings_importance ON findings(importance)")
+    has_class = con.execute(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='finding_classifications'"
+    ).fetchone()[0] > 0
+    if not has_class:
+        con.execute("""
+        CREATE TABLE IF NOT EXISTS finding_classifications (
+            finding_id INTEGER PRIMARY KEY,
+            project TEXT NOT NULL DEFAULT 'unknown',
+            project_provenance TEXT NOT NULL DEFAULT 'none',
+            project_evidence TEXT DEFAULT '',
+            importance TEXT NOT NULL DEFAULT 'unreviewed',
+            importance_provenance TEXT NOT NULL DEFAULT 'none',
+            importance_evidence TEXT DEFAULT '',
+            classified_at TEXT NOT NULL,
+            classified_by TEXT NOT NULL DEFAULT 'migration-v1'
+        )""")
     # restored pre-FTS backup searches as empty while stats/list look
     # healthy and PRAGMA integrity_check passes. Detect "index freshly
     # created over a non-empty table" and rebuild from the content table.
@@ -140,6 +169,8 @@ def connect_read():
             "SELECT COUNT(*) FROM findings").fetchone()[0]
         n_fts = con.execute(
             "SELECT COUNT(*) FROM findings_fts_docsize").fetchone()[0]
+        # Notice: project/importance absence does not break read queries (list/search/show
+        # project safe defaults), so read-only connections must not force an RW migration!
     except sqlite3.Error:
         con.close()
         return connect()  # schema absent/partial: rw migrates

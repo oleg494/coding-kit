@@ -58,6 +58,8 @@ class HitTuple(tuple):
         instance.verified = meta.get("verified", False) if meta else None
         instance.verified_at = meta.get("verified_at", "") if meta else None
         instance.source = meta.get("source", "") if meta else None
+        instance.project = meta.get("project", "unknown") if meta else None
+        instance.importance = meta.get("importance", "unreviewed") if meta else None
         return instance
 
     def __getitem__(self, item):
@@ -126,7 +128,7 @@ def search_files(query: str, limit: int = 5, substring: bool = False,
     return results
 
 
-def search_findings(query: str, limit: int = 5, research_db=None) -> list:
+def search_findings(query: str, limit: int = 5, research_db=None, project: str = "", importance: str = "") -> list:
     """[(score, id, topic, snippet, superseded_by, verified, verified_at, source), ...]
     from the research.db findings union.
 
@@ -143,40 +145,59 @@ def search_findings(query: str, limit: int = 5, research_db=None) -> list:
     con = None
     try:
         con = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
-        # Scalar subquery mirroring findings.py:_superseded_by('f.id')
-        superseded_sql = (
-            "(SELECT MIN(l.from_id) FROM links l "
-            "WHERE l.to_id = f.id AND l.kind = 'supersedes') "
-            "AS superseded_by"
-        )
+        try:
+            cols = {c[1] for c in con.execute("PRAGMA table_info(findings)").fetchall()}
+        except Exception:
+            cols = set()
+        has_links = con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'").fetchone()[0] > 0
+        proj_col = "f.project" if "project" in cols else "'unknown' AS project"
+        imp_col = "f.importance" if "importance" in cols else "'unreviewed' AS importance"
+        if has_links:
+            superseded_sql = (
+                "(SELECT MIN(l.from_id) FROM links l "
+                "WHERE l.to_id = f.id AND l.kind = 'supersedes') "
+                "AS superseded_by"
+            )
+        else:
+            superseded_sql = "NULL AS superseded_by"
+        where_clause = "WHERE findings_fts MATCH ?"
+        params = [sanitize_query(query)]
+        if project:
+            where_clause += f" AND ({proj_col}) = ?"
+            params.append(project)
+        if importance:
+            where_clause += f" AND ({imp_col}) = ?"
+            params.append(importance)
         rows = con.execute(
             f"SELECT f.id, f.topic, snippet(findings_fts, 1, '[', ']', '…', 12), "
             f"bm25(findings_fts, {BM25_WEIGHTS}), "
-            f"{superseded_sql}, f.verified_at, f.source "
-            "FROM findings_fts JOIN findings f ON f.id = findings_fts.rowid "
-            "WHERE findings_fts MATCH ? "
+            f"{superseded_sql}, f.verified_at, f.source, {proj_col}, {imp_col} "
+            f"FROM findings_fts JOIN findings f ON f.id = findings_fts.rowid "
+            f"{where_clause} "
             f"ORDER BY bm25(findings_fts, {BM25_WEIGHTS}) LIMIT ?",
-            (sanitize_query(query), limit)).fetchall()
+            params + [limit]).fetchall()
     except sqlite3.Error:
         return []
     finally:
         if con is not None:
             con.close()
     out = []
-    for fid, topic, snip, score, sup, v_at, src in rows:
+    for fid, topic, snip, score, sup, v_at, src, proj, imp in rows:
         meta = {
             "finding_id": fid,
             "superseded_by": sup,
             "verified": bool(v_at),
             "verified_at": v_at,
             "source": src,
+            "project": proj or "unknown",
+            "importance": imp or "unreviewed",
         }
         tup = (score, fid, topic, snip, sup, bool(v_at), v_at, src)
         out.append(HitTuple(tup, meta))
     return out
 
 def search_all(query: str, limit: int = 5, substring: bool = False,
-               db_dir=None, research_db=None) -> list:
+               db_dir=None, research_db=None, project: str = "", importance: str = "") -> list:
     """[(score, db, label, snippet, finding_id), ...] — files dbs + findings
     union in ONE global bm25 order (ascending score = descending relevance;
     bm25 is negative, more negative = better).
@@ -188,13 +209,18 @@ def search_all(query: str, limit: int = 5, substring: bool = False,
     Ties keep insertion order — stable sort over files dbs (alphabetical)
     then findings (already bm25-ordered by SQL).
     """
-    hits = [HitTuple((score, db, rel_path, snip, None), None)
-            for score, db, rel_path, snip
-            in search_files(query, limit, substring, db_dir)]
-    hits += [HitTuple((score, "research", f"finding#{fid} {topic}", snip, fid),
-                      {"finding_id": fid, "superseded_by": sup, "verified": ver, "verified_at": v_at, "source": src})
-             for score, fid, topic, snip, sup, ver, v_at, src
-             in search_findings(query, limit, research_db)]
+    hits = []
+    # If filtering by findings importance or project that is not a db name, search_files may be filtered
+    if not importance:
+        hits = [HitTuple((score, db, rel_path, snip, None), None)
+                for score, db, rel_path, snip
+                in search_files(query, limit, substring, db_dir)
+                if not project or db == project]
+    findings_hits = search_findings(query, limit, research_db, project=project, importance=importance)
+    hits += [HitTuple((score, f"research:{h.meta.get('project', 'unknown')}" if h.meta.get('project') and h.meta.get('project') != 'unknown' else "research", f"finding#{fid} {topic}", snip, fid),
+                      h.meta)
+             for h in findings_hits
+             for score, fid, topic, snip, sup, ver, v_at, src in [h]]
     hits.sort(key=lambda h: h[0])
     return hits
 
@@ -205,6 +231,10 @@ def main() -> int:
                     help="results per database")
     ap.add_argument("--substring", action="store_true",
                     help="trigram substring instead of words (declensions)")
+    ap.add_argument("--project", default="",
+                    help="filter by project slug")
+    ap.add_argument("--importance", default="",
+                    help="filter by importance (high, normal, low, unreviewed)")
     ap.add_argument("--json", dest="json_mode", action="store_true",
                     help="machine output: JSON list")
     args = ap.parse_args()
@@ -213,7 +243,9 @@ def main() -> int:
               file=sys.stderr)
         return 1
     results = search_all(args.query, limit=args.limit,
-                         substring=args.substring)
+                         substring=args.substring,
+                         project=args.project,
+                         importance=args.importance)
     if getattr(args, "json_mode", False):
         # db/path/snippet keys are the pinned machine contract (v4.0.2);
         # findings hits extend additively with lifecycle metadata (superseded_by, verified).
@@ -226,6 +258,10 @@ def main() -> int:
                 meta = getattr(hit, "meta", {}) or {}
                 item["superseded_by"] = meta.get("superseded_by")
                 item["verified"] = bool(meta.get("verified", False))
+                if meta.get("project") and meta.get("project") != "unknown":
+                    item["project"] = meta.get("project")
+                if meta.get("importance") and meta.get("importance") != "unreviewed":
+                    item["importance"] = meta.get("importance")
             formatted.append(item)
         print(json.dumps(formatted, ensure_ascii=False))
         return 0

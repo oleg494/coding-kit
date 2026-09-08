@@ -53,14 +53,14 @@ Knowledge lives/dies with the project → project; portable across projects → 
 4. Append to `~/.memory/Wiki/log.md`.
 5. `python ~/.memory/db-tools/build.py`
 6. `python ~/.memory/db-tools/lint_wiki.py`
-7. Important conclusion → `python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source path`
-
+7. Important conclusion → `python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source path --project <slug> --importance <high|normal|low>`
+(Use project slug such as `coding-kit` or `portable`; importance defaults to `unreviewed`. Never store credentials.)
 ## Workflow — search
 
 ```bash
 python ~/.memory/db-tools/search_all.py "query"          # all databases at once
+python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high  # scoped retrieval
 python ~/.memory/db-tools/search_all.py "query" --substring   # declensions/substrings
-```
 
 - Search the database, NOT conversation memory.
 - Found → check lifecycle badges first: [superseded by #N] → resolve to the replacing finding before using it; [unverified] → treat as unconfirmed. Then answer with a link to the file.

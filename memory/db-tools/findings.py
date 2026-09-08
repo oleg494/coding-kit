@@ -49,6 +49,14 @@ from findings_links import (
     cmd_link_rm,
     cmd_related,
 )
+from findings_classify import (
+    IMPORTANCE_LEVELS,
+    RESERVED_PROJECTS,
+    cmd_classify as _cmd_classify,
+    cmd_projects,
+    list_known_projects,
+    validate_project_slug,
+)
 
 OPS = {"AND", "OR", "NOT", "NEAR"}  # noqa: F401 — re-exported for old imports
 
@@ -184,12 +192,14 @@ def cmd_add(args):
     # never legitimately spans a field boundary.
     secrets, pii = [], []
     for part in (args.topic, text, args.source or "",
-                 getattr(args, "verify_cmd", "") or ""):
+                 getattr(args, "verify_cmd", "") or "",
+                 getattr(args, "project", "") or "",
+                 getattr(args, "importance", "") or ""):
         _s, _p = find_secrets(part)
         secrets += _s
         pii += _p
     if secrets and not getattr(args, "force", False):
-        print(f"[!] possible secret in topic/text/source/verify-cmd "
+        print(f"[!] possible secret in topic/text/source/verify-cmd/project/importance "
               f"({len(secrets)} hit(s): {', '.join(sorted(set(secrets))[:3])}) — "
               f"REFUSED. Store only WHERE the secret lives, not the secret; "
               f"override: --force", file=sys.stderr)
@@ -232,12 +242,28 @@ def cmd_add(args):
               "would mis-parse at verify time; REFUSED", file=sys.stderr)
         con.close()
         sys.exit(2)
+    raw_project = getattr(args, "project", "") or "unknown"
+    try:
+        project = validate_project_slug(raw_project)
+    except ValueError as e:
+        print(f"[!] {e}", file=sys.stderr)
+        con.close()
+        sys.exit(2)
+    known = set(list_known_projects())
+    if project not in known:
+        print(f"[~] note: '{project}' is a new project slug (known: {', '.join(sorted(known))})", file=sys.stderr)
+    importance = getattr(args, "importance", "") or "unreviewed"
+    if importance not in IMPORTANCE_LEVELS:
+        print(f"[!] invalid importance '{importance}': must be one of {', '.join(sorted(IMPORTANCE_LEVELS))}", file=sys.stderr)
+        con.close()
+        sys.exit(2)
     cur.execute(
         "INSERT INTO findings (created, topic, text, tags, source, file, "
-        "symbol, verify_cmd) VALUES (?,?,?,?,?,?,?,?)",
+        "symbol, verify_cmd, project, importance) VALUES (?,?,?,?,?,?,?,?,?,?)",
         (datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M"),
          args.topic, text, args.tags, args.source or "",
-         args.file or "", args.symbol or "", getattr(args, "verify_cmd", "") or ""))
+         args.file or "", args.symbol or "", getattr(args, "verify_cmd", "") or "",
+         project, importance))
     new_id = cur.lastrowid
     now = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
     for tgt, kind in ([(r, "related") for r in rel if r != new_id]
@@ -245,6 +271,15 @@ def cmd_add(args):
         cur.execute(
             "INSERT INTO links (from_id, to_id, kind, note, created) "
             "VALUES (?,?,?,?,?)", (new_id, tgt, kind, "", now))
+    # Record mutation in audit table finding_classifications
+    cur.execute("""
+        INSERT OR REPLACE INTO finding_classifications (
+            finding_id, project, project_provenance, project_evidence,
+            importance, importance_provenance, importance_evidence,
+            classified_at, classified_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (new_id, project, "cli_add", "user cli argument",
+          importance, "cli_add", "user cli argument", now, "user-cli"))
     con.commit()
     print(f"[✓] added: {args.topic} (id={new_id})")
     if args.file:
@@ -309,12 +344,16 @@ def _quote_balanced(s):
     return (s or "").count('"') % 2 == 0 and (s or "").count("'") % 2 == 0
 
 
-def _superseded_by(alias):
+def _superseded_by(alias, cur=None):
     """P13 badge: links kind='supersedes', to_id = the OLD row. A scalar
     subquery, NOT a LEFT JOIN: a second `--supersedes N` would fan row N
     out into duplicate result rows (and duplicate --json ids) with a
     join; MIN(from_id) keeps one row per finding. `alias` is a fixed
     column reference (f.id), never user input."""
+    if cur is not None:
+        has_links = cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'").fetchone()[0] > 0
+        if not has_links:
+            return "NULL AS superseded_by"
     return ("(SELECT MIN(l.from_id) FROM links l "
             f"WHERE l.to_id = {alias} AND l.kind = 'supersedes') "
             "AS superseded_by")
@@ -350,7 +389,14 @@ def cmd_edit(args):
     for col, val in (("topic", args.topic), ("text", args.text),
                      ("tags", args.tags), ("source", args.source),
                      ("verify_cmd", args.verify_cmd),
-                     ("file", args.file), ("symbol", args.symbol)):
+                     ("file", args.file), ("symbol", args.symbol),
+                     ("project", validate_project_slug(args.project) if getattr(args, "project", None) is not None else None),
+                     ("importance", getattr(args, "importance", None))):
+        if col == "importance" and val is not None:
+            if val not in IMPORTANCE_LEVELS:
+                print(f"[!] invalid importance '{val}': must be one of {', '.join(sorted(IMPORTANCE_LEVELS))}", file=sys.stderr)
+                con.close()
+                sys.exit(2)
         if val is not None:
             if col == "tags":
                 val = _norm_tags(val)
@@ -364,9 +410,10 @@ def cmd_edit(args):
     # symmetry; joining lets the regex bridge a field boundary — see cmd_add).
     secrets = []
     for v in (args.topic, args.text, args.tags, args.source,
-              args.verify_cmd, args.file, args.symbol):
+              args.verify_cmd, args.file, args.symbol,
+              getattr(args, "project", None), getattr(args, "importance", None)):
         if v is not None:
-            secrets += find_secrets(v)[0]
+            secrets += find_secrets(str(v))[0]
     if secrets and not getattr(args, "force", False):
         print(f"[!] possible secret in edited fields ({len(secrets)} hit(s)) — "
               f"REFUSED. Store only WHERE the secret lives; override: --force",
@@ -377,6 +424,18 @@ def cmd_edit(args):
     # Columns are the fixed list above (topic/text/tags/source),
     # values are only parameters: no injection.
     cur.execute(f"UPDATE findings SET {', '.join(sets)} WHERE id = ?", params)  # noqa: S608 — columns whitelist, values params; nosemgrep
+    # Update audit trail in finding_classifications whenever project or importance is touched
+    if getattr(args, "project", None) is not None or getattr(args, "importance", None) is not None:
+        now = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
+        new_row = cur.execute("SELECT project, importance FROM findings WHERE id = ?", (args.id,)).fetchone()
+        cur.execute("""
+            INSERT OR REPLACE INTO finding_classifications (
+                finding_id, project, project_provenance, project_evidence,
+                importance, importance_provenance, importance_evidence,
+                classified_at, classified_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (args.id, new_row["project"], "cli_edit", "user cli edit",
+              new_row["importance"], "cli_edit", "user cli edit", now, "user-cli"))
     con.commit()
     print(f"[✓] updated: id={args.id} \"{row['topic']}\"")
     con.close()
@@ -425,9 +484,12 @@ def cmd_verify(args):
 def cmd_search(args):
     con = connect_read()
     cur = con.cursor()
+    cols = {c[1] for c in cur.execute("PRAGMA table_info(findings)").fetchall()}
+    proj_col = "f.project" if "project" in cols else "'unknown' AS project"
+    imp_col = "f.importance" if "importance" in cols else "'unreviewed' AS importance"
     base = ("SELECT f.id, f.created, f.topic, f.tags, f.source, f.file, "
-            "f.symbol, f.verify_cmd, f.verified_at, "
-            + _superseded_by("f.id") + ", "
+            f"f.symbol, f.verify_cmd, f.verified_at, {proj_col}, {imp_col}, "
+            + _superseded_by("f.id", cur) + ", "
             "bm25(findings_fts, 10.0, 1.0) AS score, "
             "snippet(findings_fts, 1, '[', ']', '…', 12) AS snip, "
             "highlight(findings_fts, 0, '[', ']') AS htopic "
@@ -443,6 +505,14 @@ def cmd_search(args):
     if tag:
         filters += " AND ' '||f.tags||' ' LIKE ?"
         params.append(f"% {tag} %")
+    project = getattr(args, "project", "")
+    if project:
+        filters += f" AND ({proj_col}) = ?"
+        params.append(project)
+    importance = getattr(args, "importance", "")
+    if importance:
+        filters += f" AND ({imp_col}) = ?"
+        params.append(importance)
     # P9: relevance first (weights mirror search.py:220), recency only as
     # tiebreak; id-DESC was defect #1 (0/10 overlap with bm25-top-10 on
     # the 10k clone). COUNT separately from LIMIT = honest header.
@@ -500,7 +570,10 @@ def cmd_search(args):
              "score": round(r["score"], 4),
              "superseded_by": r["superseded_by"],
              "has_verify": bool(r["verify_cmd"]),
-             "verified_at": r["verified_at"], "snippet": r["snip"]}
+             "verified_at": r["verified_at"],
+             "project": r["project"] if "project" in r.keys() else "unknown",
+             "importance": r["importance"] if "importance" in r.keys() else "unreviewed",
+             "snippet": r["snip"]}
             for r in rows], ensure_ascii=False))
         con.close()
         return
@@ -514,7 +587,8 @@ def cmd_search(args):
     for r in rows:
         badge = (f"  ⚠ superseded by #{r['superseded_by']}"
                  if r["superseded_by"] else "")
-        print(f"[{r['id']}] {r['created']}  {r['htopic']}  "
+        proj_badge = f" [{r['project']}]" if ("project" in r.keys() and r["project"] and r["project"] != "unknown") else ""
+        print(f"[{r['id']}] {r['created']}  {r['htopic']}{proj_badge}  "
               f"({r['tags']}){badge}")
         print(f"  …{r['snip']}")
         print()
@@ -524,15 +598,25 @@ def cmd_search(args):
 def cmd_list(args):
     con = connect_read()
     cur = con.cursor()
+    cols = {c[1] for c in cur.execute("PRAGMA table_info(findings)").fetchall()}
+    proj_col = "f.project" if "project" in cols else "'unknown' AS project"
+    imp_col = "f.importance" if "importance" in cols else "'unreviewed' AS importance"
     sel = ("SELECT f.id, f.created, f.topic, f.tags, f.file, f.symbol, "
-           + _superseded_by("f.id") + " FROM findings f ")
-    if args.tags:
-        rows = cur.execute(
-            sel + "WHERE ' '||f.tags||' ' LIKE ? ORDER BY f.id DESC",
-            (f"% {args.tags} %",)).fetchall()
-    else:
-        rows = cur.execute(
-            sel + "ORDER BY f.id DESC LIMIT ?", (args.limit,)).fetchall()
+           f"{proj_col}, {imp_col}, "
+           + _superseded_by("f.id", cur) + " FROM findings f ")
+    conds, params = [], []
+    if getattr(args, "project", ""):
+        conds.append(f"({proj_col}) = ?")
+        params.append(args.project)
+    if getattr(args, "importance", ""):
+        conds.append(f"({imp_col}) = ?")
+        params.append(args.importance)
+    if getattr(args, "unreviewed", False):
+        conds.append(f"({imp_col}) = 'unreviewed'")
+    where_clause = ("WHERE " + " AND ".join(conds) + " ") if conds else ""
+    rows = cur.execute(
+        sel + where_clause + "ORDER BY f.id DESC LIMIT ?",
+        params + [args.limit]).fetchall()
     if not rows:
         print("empty so far — add the first finding: findings.py add \"topic\"")
         return
@@ -541,7 +625,9 @@ def cmd_list(args):
         loc = f" [{r['file']}:{r['symbol']}]" if r["file"] else ""
         badge = (f"  ⚠ superseded by #{r['superseded_by']}"
                  if r["superseded_by"] else "")
-        print(f"[{r['id']}] {r['created']}  {r['topic']}  "
+        proj_str = f" [{r['project']}]" if ("project" in r.keys() and r["project"] and r["project"] != "unknown") else ""
+        imp_str = f" *{r['importance']}*" if ("importance" in r.keys() and r["importance"] and r["importance"] != "unreviewed") else ""
+        print(f"[{r['id']}] {r['created']}  {r['topic']}{proj_str}{imp_str}  "
               f"({r['tags']}){loc}{badge}")
     con.close()
 
@@ -560,6 +646,10 @@ def cmd_show(args):
         print(f"tags: {r['tags']}")
     if r["source"]:
         print(f"source: {r['source']}")
+    if "project" in r.keys() and r["project"]:
+        print(f"project: {r['project']}")
+    if "importance" in r.keys() and r["importance"]:
+        print(f"importance: {r['importance']}")
     if r["file"]:
         print(f"at: {r['file']}" + (f":{r['symbol']}" if r["symbol"] else ""))
     if r["verify_cmd"]:
@@ -667,7 +757,11 @@ def cmd_doctor(args):
     con.close()
 
 
-def main():
+def cmd_classify(args):
+    return _cmd_classify(args, find_secrets_fn=find_secrets)
+
+
+def arg_parser():
     ap = argparse.ArgumentParser(description="Findings and conclusions database")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p_add = sub.add_parser("add", help="add a finding")
@@ -677,6 +771,10 @@ def main():
                        help="read conclusion text from stdin (no shell quoting)")
     p_add.add_argument("--tags", default="", help="space-separated tags")
     p_add.add_argument("--source", default="", help="where it came from (path/URL)")
+    p_add.add_argument("--project", default="unknown",
+                       help="project slug (coding-kit, agent, agent-cian-copy, multiproxy, oh-my-pi, web3-screener, pdd-bot, portable, unknown)")
+    p_add.add_argument("--importance", default="unreviewed",
+                       help="importance level (high, normal, low, unreviewed)")
     p_add.add_argument("--file", default="",
                        help="project file where the problem lives (rel_path)")
     p_add.add_argument("--symbol", default="",
@@ -707,12 +805,19 @@ def main():
                           help="filter: source (path/URL) contains substring")
     p_search.add_argument("--tag", default="",
                           help="filter: exact finding tag")
+    p_search.add_argument("--project", default="",
+                          help="filter: project slug")
+    p_search.add_argument("--importance", default="",
+                          help="filter: importance level")
     p_search.add_argument("--json", dest="json_mode", action="store_true",
                           help="machine output: JSON list")
     p_search.set_defaults(fn=cmd_search)
 
     p_list = sub.add_parser("list", help="list findings")
     p_list.add_argument("--tags", default="", help="filter by tag (exact word)")
+    p_list.add_argument("--project", default="", help="filter by project slug")
+    p_list.add_argument("--importance", default="", help="filter by importance level")
+    p_list.add_argument("--unreviewed", action="store_true", help="filter unreviewed records")
     p_list.add_argument("--limit", type=int, default=20)
     p_list.set_defaults(fn=cmd_list)
 
@@ -726,6 +831,8 @@ def main():
     p_edit.add_argument("--text")
     p_edit.add_argument("--tags")
     p_edit.add_argument("--source")
+    p_edit.add_argument("--project")
+    p_edit.add_argument("--importance")
     p_edit.add_argument("--verify-cmd", dest="verify_cmd")
     p_edit.add_argument("--file")
     p_edit.add_argument("--symbol")
@@ -752,12 +859,20 @@ def main():
                       help="type: related/extends/contradicts/source (default related)")
     p_la.add_argument("--note", default="", help="note for the link")
     p_la.set_defaults(fn=cmd_link_add)
+    p_classify = sub.add_parser("classify", help="batch apply reviewed classification mapping")
+    p_classify.add_argument("file", help="path to JSON mapping file")
+    p_classify.add_argument("--dry-run", action="store_true", help="validate and preview without writing")
+    p_classify.add_argument("--force", action="store_true", help="overwrite already reviewed records")
+    p_classify.set_defaults(fn=cmd_classify)
     p_ll = link_sub.add_parser("list", help="finding links (both directions)")
     p_ll.add_argument("id", type=int)
     p_ll.set_defaults(fn=cmd_link_list)
     p_lr = link_sub.add_parser("rm", help="delete link by id")
     p_lr.add_argument("id", type=int)
     p_lr.set_defaults(fn=cmd_link_rm)
+
+    p_projects = sub.add_parser("projects", help="overview of findings by project")
+    p_projects.set_defaults(fn=cmd_projects)
 
     p_stats = sub.add_parser("stats", help="metrics: total findings, last 7 days, links, top tags")
     p_stats.set_defaults(fn=cmd_stats)
@@ -766,12 +881,12 @@ def main():
         "doctor", help="integrity: findings vs FTS agreement, integrity-check, "
                        "auto-rebuild on desync")
     p_doctor.set_defaults(fn=cmd_doctor)
+    return ap
 
+
+def main():
+    ap = arg_parser()
     args = ap.parse_args()
     args.fn(args)
-
-
 if __name__ == "__main__":
     main()
-
-

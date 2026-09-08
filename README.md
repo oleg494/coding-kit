@@ -42,8 +42,10 @@ engine link, indexes), idempotent, safe to re-run. Custom location:
 
 ```bash
 python ~/.memory/db-tools/findings.py add "first-note" \
-  --text "hello from coding-kit" --source README.md   # → [✓] added (id=1)
-python ~/.memory/db-tools/findings.py search "first-note"  # → found: 1
+  --text "hello from coding-kit" --project coding-kit --importance normal \
+  --source README.md   # → [✓] added (id=1)
+python ~/.memory/db-tools/findings.py search "first-note" --project coding-kit  # → found: 1
+python ~/.memory/db-tools/findings.py projects   # overview grouped by project and importance
 ```
 
 **Phase 2 — agent integration** (per-harness; `install.py` does NOT do
@@ -64,7 +66,9 @@ root are self-consistent; it does not prove your harness loaded anything.
 ## Daily loop
 
 ```bash
-python ~/.memory/db-tools/search_all.py "X"    # before "what do we know about X"
+python ~/.memory/db-tools/search_all.py "X"                     # before "what do we know about X"
+python ~/.memory/db-tools/search_all.py "X" --project <slug>   # scoped to project
+python ~/.memory/db-tools/search_all.py "X" --importance high   # prioritized recall
 ```
 
 Gates and checks (the kit's own lifecycle, run directly):
