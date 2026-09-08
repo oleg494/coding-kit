@@ -4,11 +4,12 @@
 
 | Version | Supported |
 |---|---|
+| 4.4.x | yes |
+| 4.3.x | yes |
+| 4.x   | yes |
 | 3.4.x | yes |
 | 3.3.x | yes |
-| 3.2.x | yes |
-| 3.0.x | yes |
-| < 3.0 | no |
+| < 3.3 | no |
 
 ## Reporting a vulnerability
 

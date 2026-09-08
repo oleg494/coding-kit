@@ -1,7 +1,7 @@
 {
  "files": {
   "AGENTS.md": "9a829b95347ead77581054286b509e6ded0cc6fce8664cce00b240c7f33f12a3",
-  "OPS.md": "c7a461be7cb41cba5b32344e4df720f4e1cf3a6f1dfd13420a431080810503c9",
+  "OPS.md": "e26cb18e7d6d055eb7676a49abcdb79ca523e545ba278f3f6d965cb1d6a8a2e1",
   "SKILL_RUNTIME.md": "ed79c644213c01522566467bd1f075a545e624bc25935d9e80294a268f8af694",
   "adapters/UNIVERSAL.md": "16d9a27fd1d8a27f054f345ece4154dd07a37250a8f816fb4c9713a78429791c",
   "adapters/antigravity.md": "aba535c2796a96a48aa89b6b7c93e8c00987084a536a8a0da66f08e1ccbb6570",
@@ -97,7 +97,7 @@
   "memory/db-tools/tasks.py": "10a8be389974669fac2b0752584a6cdb2fe230837a52d4b99cfe629a15efd1a5",
   "memory/scripts/_compat.py": "38b29af21e0e7d2abb4ee2355ccfcb47307d4f70432e0cd795bc6873a800380e",
   "memory/scripts/memory-warmup.py": "8cb487f8012405f5aadc63bd2b442a0e01102d0499c561debc8772f02ce83f70",
-  "profile.yml": "1118871dde6b8cab03a05934d68b613b7db9ddb207ea674c80c256f92c195a27",
+  "profile.yml": "a0a5b2e5f8b1328d07cff782948d58260f0d2ca5c9abba769a1e6b3da8529566",
   "scripts/doctor.py": "925f97397154082183b78e90b44b022924c80e741b7f0e8dadf00ec21ea2efb5",
   "scripts/install.py": "600c99491ae048ebdca96f9546dfc96c4b94c78aa1bfe5933d8fd8aca4014af7",
   "scripts/tools/_deploy_tx.py": "371f78569f96cdcc24040b3fccac6f4a0c106a8f1412500b2e3e6b1624ad7907",
@@ -142,9 +142,9 @@
   "skills/using-git-worktrees/SKILL.md": "5807af8c677bba9baf52dcd9d44e590f8c7115bdb15e05fec56351b3b315a97a",
   "skills/verification-before-completion/SKILL.md": "f644a01b44337ee7e142d4994795be201b70decbfa7621e131083aecfb0c1ea6",
   "skills/web-research/SKILL.md": "6e674174b742f16c493e4a2264e12dc8133fa59e702f56fe5d2985138186d114",
-  "skills/windows-encoding-fixes/SKILL.md": "ab898bcb767dd58031d691b844a6dc1152fa6b4f55c5902bc20caf21c5880038",
+  "skills/windows-encoding-fixes/SKILL.md": "85cc78f9fced3839b554ff860f01e0cc39fec68a56333321f930fb1b8148b98b",
   "skills/writing-plans/SKILL.md": "7f7fd2adf3e8dd8e383876b852cb39d1bba60416f2603268330c394c8db45215",
   "skills/yagni/SKILL.md": "fc4adffeb7e55a3733217c5841dcfb28669b2b9ed0f9c58d733221640ee86d91"
  },
- "kit_version": "4.3.1"
+ "kit_version": "4.4.0"
 }
