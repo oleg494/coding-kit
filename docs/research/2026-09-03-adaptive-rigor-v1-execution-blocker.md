@@ -62,8 +62,7 @@ CLI variants, all failing with the 429/502 `antigravity-local` error:
   proving the override applied; routing failure unchanged);
 - gemini-3.8-flash (provider key error on the same pool).
 
-Debug capture (`claude --debug-file`, committed at eval/results/cli-debug.log,
-secrets-verified: Authorization values are `[REDACTED]` by the CLI):
+Debug capture (`claude --debug-file`, secrets-verified: Authorization values are `[REDACTED]` by the CLI):
 `[API REQUEST] /v1/messages source=sdk` → attempt 1/11 429
 `antigravity-local` within 8s; subsequent attempts 502/429 on the same pool.
 
