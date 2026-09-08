@@ -368,6 +368,7 @@ def cmd_del(args):
         print(f"no finding with id={args.id}")
         return
     cur.execute("DELETE FROM findings WHERE id = ?", (args.id,))
+    cur.execute("DELETE FROM finding_classifications WHERE finding_id = ?", (args.id,))
     n_links = cur.execute(
         "DELETE FROM links WHERE from_id = ? OR to_id = ?",
         (args.id, args.id)).rowcount

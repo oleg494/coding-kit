@@ -163,6 +163,11 @@ def unsure_feed() -> list:
     week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M")
     try:
         con = sqlite3.connect(f"file:{RESEARCH_DB}?mode=ro", uri=True)
+        cols = {c[1] for c in con.execute("PRAGMA table_info(findings)").fetchall()}
+        has_imp = "importance" in cols
+        has_links = con.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'"
+        ).fetchone()[0] > 0
         contra = con.execute(
             "SELECT l.from_id, l.to_id, a.topic, b.topic FROM links l "
             "JOIN findings a ON a.id = l.from_id "
@@ -172,13 +177,26 @@ def unsure_feed() -> list:
             "               WHERE (s.to_id = l.from_id OR s.to_id = l.to_id) "
             "               AND s.kind = 'supersedes') "
             "ORDER BY l.id DESC LIMIT 2"
-        ).fetchall()
+        ).fetchall() if has_links else []
         # IFNULL: rows from before the verify_cmd/source ALTERs may hold
         # NULL instead of '' — NULL is exactly "no anchor"
+        sup_filter = (
+            "AND NOT EXISTS (SELECT 1 FROM links s WHERE s.to_id = f.id AND s.kind = 'supersedes') "
+            if has_links else ""
+        )
+        order_by = (
+            "ORDER BY CASE f.importance "
+            "  WHEN 'high' THEN 1 "
+            "  WHEN 'normal' THEN 2 "
+            "  WHEN 'unreviewed' THEN 3 "
+            "  ELSE 4 END ASC, f.id DESC"
+            if has_imp else "ORDER BY f.id DESC"
+        )
         unanch = con.execute(
-            "SELECT id, topic FROM findings WHERE created >= ? "
-            "AND IFNULL(verify_cmd,'') = '' AND IFNULL(source,'') = '' "
-            "ORDER BY id DESC LIMIT 3", (week_ago,)
+            f"SELECT f.id, f.topic FROM findings f WHERE f.created >= ? "
+            f"AND IFNULL(f.verify_cmd,'') = '' AND IFNULL(f.source,'') = '' "
+            f"{sup_filter}"
+            f"{order_by} LIMIT 3", (week_ago,)
         ).fetchall()
         con.close()
     except sqlite3.Error:
@@ -202,17 +220,27 @@ def high_priority_feed() -> list:
         if "importance" not in cols:
             con.close()
             return []
-        rows = con.execute("""
-            SELECT f.id, f.project, f.topic
+        has_links = con.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'"
+        ).fetchone()[0] > 0
+        sup_filter = (
+            "AND NOT EXISTS (SELECT 1 FROM links l WHERE l.to_id = f.id AND l.kind = 'supersedes')"
+            if has_links else ""
+        )
+        rows = con.execute(f"""
+            SELECT f.id, f.project, f.topic, IFNULL(f.verified_at, '')
             FROM findings f
             WHERE f.importance = 'high'
-              AND NOT EXISTS (SELECT 1 FROM links l WHERE l.to_id = f.id AND l.kind = 'supersedes')
+              {sup_filter}
             ORDER BY f.id DESC LIMIT 4
         """).fetchall()
         con.close()
     except sqlite3.Error:
         return []
-    return [f"[{r[1] or 'unknown'}] #{r[0]} {_clip(r[2])}" for r in rows]
+    return [
+        f"[{r[1] or 'unknown'}] #{r[0]} {_clip(r[2])}{'' if r[3] else ' [unverified]'}"
+        for r in rows
+    ]
 
 
 def integrity_check() -> dict:

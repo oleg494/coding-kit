@@ -369,5 +369,229 @@ class MemoryOrganizationTest(unittest.TestCase):
         hits_high = search_all.search_all("performance", research_db=self.db_path, importance="high")
         self.assertEqual(len(hits_high), 1)
         self.assertEqual(hits_high[0].meta.get("importance"), "high")
+
+    def test_cmd_del_cleans_up_finding_classifications_preserving_others(self):
+        con = findings_db.connect()
+        con.close()
+        # Add finding 1 (to be deleted)
+        args1 = findings.arg_parser().parse_args([
+            "add", "del-topic", "--text", "finding to be deleted",
+            "--project", "coding-kit", "--importance", "high"
+        ])
+        findings.cmd_add(args1)
+        # Add finding 2 (to be kept)
+        args2 = findings.arg_parser().parse_args([
+            "add", "keep-topic", "--text", "finding to be kept",
+            "--project", "coding-kit", "--importance", "normal"
+        ])
+        findings.cmd_add(args2)
+
+        con = findings_db.connect_read()
+        fid_del = con.execute("SELECT id FROM findings WHERE topic='del-topic'").fetchone()["id"]
+        fid_keep = con.execute("SELECT id FROM findings WHERE topic='keep-topic'").fetchone()["id"]
+        self.assertEqual(con.execute("SELECT COUNT(*) FROM finding_classifications WHERE finding_id = ?", (fid_del,)).fetchone()[0], 1)
+        self.assertEqual(con.execute("SELECT COUNT(*) FROM finding_classifications WHERE finding_id = ?", (fid_keep,)).fetchone()[0], 1)
+        con.close()
+
+        # Delete finding 1
+        del_args = findings.arg_parser().parse_args(["del", str(fid_del)])
+        findings.cmd_del(del_args)
+
+        con = findings_db.connect_read()
+        # Target finding deleted, its audit deleted
+        self.assertIsNone(con.execute("SELECT id FROM findings WHERE id = ?", (fid_del,)).fetchone())
+        self.assertEqual(con.execute("SELECT COUNT(*) FROM finding_classifications WHERE finding_id = ?", (fid_del,)).fetchone()[0], 0)
+        # Kept finding preserved, its audit preserved
+        self.assertIsNotNone(con.execute("SELECT id FROM findings WHERE id = ?", (fid_keep,)).fetchone())
+        audit_keep = con.execute("SELECT * FROM finding_classifications WHERE finding_id = ?", (fid_keep,)).fetchone()
+        self.assertIsNotNone(audit_keep)
+        self.assertEqual(audit_keep["project"], "coding-kit")
+        self.assertEqual(audit_keep["importance"], "normal")
+        con.close()
+    def test_high_priority_feed_labels_unverified_status(self):
+        import importlib
+        warmup = importlib.import_module("memory-warmup")
+        con = findings_db.connect()
+        # Verified high finding
+        con.execute("""
+            INSERT INTO findings (id, created, topic, text, project, importance, verified_at)
+            VALUES (1, '2026-09-08 10:00', 'verified high finding', 'body', 'coding-kit', 'high', '2026-09-08 10:30')
+        """)
+        # Unverified high finding
+        con.execute("""
+            INSERT INTO findings (id, created, topic, text, project, importance, verified_at)
+            VALUES (2, '2026-09-08 10:05', 'unverified high finding', 'body', 'coding-kit', 'high', '')
+        """)
+        con.commit()
+        con.close()
+
+        orig_db = warmup.RESEARCH_DB
+        warmup.RESEARCH_DB = Path(self.db_path)
+        try:
+            feed = warmup.high_priority_feed()
+            self.assertEqual(len(feed), 2)
+            # Unverified item must carry [unverified] badge
+            unverified_lines = [line for line in feed if "#2" in line]
+            self.assertTrue(unverified_lines, "finding #2 missing from high priority feed")
+            self.assertIn("[unverified]", unverified_lines[0])
+            # Verified item must not carry [unverified]
+            verified_lines = [line for line in feed if "#1" in line]
+            self.assertTrue(verified_lines, "finding #1 missing from high priority feed")
+            self.assertNotIn("[unverified]", verified_lines[0])
+        finally:
+            warmup.RESEARCH_DB = orig_db
+
+    def test_unsure_feed_prioritizes_high_importance_over_low_checkpoints(self):
+        import importlib
+        from unittest.mock import patch
+        from datetime import datetime
+        warmup = importlib.import_module("memory-warmup")
+        con = findings_db.connect()
+        fixed_now = datetime(2030, 6, 15, 12, 0)
+        now_str = fixed_now.strftime("%Y-%m-%d %H:%M")
+        # High importance unanchored finding
+        con.execute("""
+            INSERT INTO findings (id, created, topic, text, project, importance, source, verify_cmd)
+            VALUES (1, ?, 'high unanchored security finding', 'body', 'coding-kit', 'high', '', '')
+        """, (now_str,))
+        # 4 newer low importance unanchored checkpoints (ids 2, 3, 4, 5)
+        for i in (2, 3, 4, 5):
+            con.execute("""
+                INSERT INTO findings (id, created, topic, text, project, importance, source, verify_cmd)
+                VALUES (?, ?, ?, 'body', 'coding-kit', 'low', '', '')
+            """, (i, now_str, f"low checkpoint {i}"))
+        con.commit()
+        con.close()
+
+        orig_db = warmup.RESEARCH_DB
+        warmup.RESEARCH_DB = Path(self.db_path)
+        try:
+            with patch.object(warmup, "datetime") as mock_dt:
+                mock_dt.now.return_value = fixed_now
+                mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+                feed = warmup.unsure_feed()
+                # The feed has limit 3 unanchored entries; finding #1 MUST be included
+                unanchored = [line for line in feed if line.startswith("unanchored:")]
+                self.assertLessEqual(len(unanchored), 3)
+                high_found = any("#1" in line for line in unanchored)
+                self.assertTrue(high_found, f"high importance finding #1 crowded out: {unanchored}")
+        finally:
+            warmup.RESEARCH_DB = orig_db
+
+    def test_unsure_feed_excludes_superseded_unanchored_findings(self):
+        import importlib
+        from unittest.mock import patch
+        from datetime import datetime
+        warmup = importlib.import_module("memory-warmup")
+        con = findings_db.connect()
+        fixed_now = datetime(2030, 6, 15, 12, 0)
+        now_str = fixed_now.strftime("%Y-%m-%d %H:%M")
+        # Item 1: unanchored (no source, no verify_cmd)
+        con.execute("""
+            INSERT INTO findings (id, created, topic, text, project, importance, source, verify_cmd)
+            VALUES (1, ?, 'old unanchored finding', 'body', 'coding-kit', 'high', '', '')
+        """, (now_str,))
+        # Item 2: replacing finding also unanchored (to test purely supersession exclusion)
+        con.execute("""
+            INSERT INTO findings (id, created, topic, text, project, importance, source, verify_cmd)
+            VALUES (2, ?, 'replacing unanchored finding', 'body', 'coding-kit', 'high', '', '')
+        """, (now_str,))
+        con.execute("""
+            INSERT INTO links (from_id, to_id, kind, note, created)
+            VALUES (2, 1, 'supersedes', '', ?)
+        """, (now_str,))
+        con.commit()
+        con.close()
+
+        orig_db = warmup.RESEARCH_DB
+        warmup.RESEARCH_DB = Path(self.db_path)
+        try:
+            with patch.object(warmup, "datetime") as mock_dt:
+                mock_dt.now.return_value = fixed_now
+                mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+                feed = warmup.unsure_feed()
+                # Old superseded finding #1 must not be in unsure feed, but replacing unanchored #2 must be present
+                unanchored = [line for line in feed if line.startswith("unanchored:")]
+                self.assertFalse(any("#1" in line for line in unanchored), f"superseded finding in unsure feed: {unanchored}")
+                self.assertTrue(any("#2" in line for line in unanchored), f"replacing unanchored finding missing from unsure feed: {unanchored}")
+        finally:
+            warmup.RESEARCH_DB = orig_db
+
+    def test_unsure_feed_legacy_schema_fallback(self):
+        import importlib
+        from unittest.mock import patch
+        from datetime import datetime
+        warmup = importlib.import_module("memory-warmup")
+        legacy_path = os.path.join(self.tmpdir, "legacy_no_imp.db")
+        con = sqlite3.connect(legacy_path)
+        con.execute("""
+            CREATE TABLE findings (
+                id INTEGER PRIMARY KEY,
+                created TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                text TEXT NOT NULL,
+                tags TEXT DEFAULT '',
+                source TEXT DEFAULT '',
+                file TEXT DEFAULT '',
+                symbol TEXT DEFAULT '',
+                verify_cmd TEXT DEFAULT '',
+                verified_at TEXT DEFAULT ''
+            );
+        """)
+        con.execute("CREATE TABLE links (id INTEGER PRIMARY KEY, from_id INT, to_id INT, kind TEXT, note TEXT, created TEXT);")
+        fixed_now = datetime(2030, 6, 15, 12, 0)
+        now_str = fixed_now.strftime("%Y-%m-%d %H:%M")
+        con.execute("INSERT INTO findings (id, created, topic, text) VALUES (1, ?, 'legacy item', 'text')", (now_str,))
+        con.commit()
+        con.close()
+
+        orig_db = warmup.RESEARCH_DB
+        warmup.RESEARCH_DB = Path(legacy_path)
+        try:
+            with patch.object(warmup, "datetime") as mock_dt:
+                mock_dt.now.return_value = fixed_now
+                mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+                feed = warmup.unsure_feed()
+                unanchored = [line for line in feed if line.startswith("unanchored:")]
+                self.assertEqual(len(unanchored), 1)
+                self.assertIn("#1", unanchored[0])
+        finally:
+            warmup.RESEARCH_DB = orig_db
+
+    def test_unsure_feed_respects_deterministic_clock_future_expiry(self):
+        """Verify controlled clock proof: unanchored finding expires after 7 days."""
+        import importlib
+        from unittest.mock import patch
+        from datetime import datetime, timedelta
+        warmup = importlib.import_module("memory-warmup")
+        con = findings_db.connect()
+        base_time = datetime(2035, 1, 1, 12, 0)
+        con.execute("""
+            INSERT INTO findings (id, created, topic, text, project, importance, source, verify_cmd)
+            VALUES (1, ?, 'future finding', 'body', 'coding-kit', 'high', '', '')
+        """, (base_time.strftime("%Y-%m-%d %H:%M"),))
+        con.commit()
+        con.close()
+
+        orig_db = warmup.RESEARCH_DB
+        warmup.RESEARCH_DB = Path(self.db_path)
+        try:
+            # Day 3 (within 7 days): present
+            with patch.object(warmup, "datetime") as mock_dt:
+                mock_dt.now.return_value = base_time + timedelta(days=3)
+                mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+                feed = warmup.unsure_feed()
+                unanchored = [line for line in feed if line.startswith("unanchored:")]
+                self.assertTrue(any("#1" in line for line in unanchored))
+
+            # Day 10 (beyond 7 days): expired, excluded
+            with patch.object(warmup, "datetime") as mock_dt:
+                mock_dt.now.return_value = base_time + timedelta(days=10)
+                mock_dt.side_effect = lambda *args, **kw: datetime(*args, **kw)
+                feed = warmup.unsure_feed()
+                unanchored = [line for line in feed if line.startswith("unanchored:")]
+                self.assertFalse(any("#1" in line for line in unanchored))
+        finally:
+            warmup.RESEARCH_DB = orig_db
 if __name__ == "__main__":
     unittest.main()

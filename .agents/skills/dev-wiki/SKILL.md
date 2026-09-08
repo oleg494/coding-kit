@@ -83,14 +83,16 @@ Knowledge lives/dies with the project → project; portable across projects → 
 ## Workflow — search
 
 ```bash
-python ~/.memory/db-tools/search_all.py "query"                                        # all databases at once
-python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high     # scoped retrieval
+python ~/.memory/db-tools/search_all.py "query"                                        # all databases at once (project + portable)
+python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high     # exact project scoped retrieval
+python ~/.memory/db-tools/search_all.py "query" --project portable                    # portable cross-cutting retrieval
 python ~/.memory/db-tools/search_all.py "query" --substring                           # declensions/substrings
 ```
 - Search the database, NOT conversation memory.
-- Found → check lifecycle badges first: [superseded by #N] → resolve to the replacing finding before using it; [unverified] → treat as unconfirmed. Then answer with a link to the file.
+- Project + portable composition: `--project portable` selects findings classified portable; global search also searches indexed Wiki/project files. To scope retrieval without losing portable patterns, query both target `--project <slug>` and `--project portable` or query globally.
+- Found → check lifecycle badges first: `[superseded by #N]` → resolve to the replacing finding before using it; `[unverified]` → treat as unconfirmed. Then answer with a link to the file.
+- Warmup lifecycle (`memory-warmup.py`): high-priority feed surfaces key active invariants with verification status (`[unverified]` if missing `verified_at`); unsure feed prioritizes high/normal unanchored items over low-importance checkpoints.
 - Not found → "not in the database".
-
 ## Auto-write triggers
 
 - "record", "save", "remember", «запиши», «сохрани», «запомни», «в память», «память» → full cycle.
