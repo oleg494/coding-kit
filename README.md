@@ -1,207 +1,281 @@
-# coding-kit — Coding Agent OS
+# coding-kit
 
-A portable agent-brain kit: methodology (superpowers), minimalism (YAGNI), cross-chat memory (SQLite FTS5), adversarial evals (trap-suite). 37 Hermes-compatible skills, English instructions, one command bootstrap.
+**Reusable workflows and cross-session memory for coding agents.**
 
-Works in environments that read an agent rules file and SKILL.md skills. Developed and tested on Claude Code / OMP (see adapters for others; per-harness behavior beyond those is untested by this project).
+Give your agent a shared development method, searchable project knowledge,
+and tools to evaluate its behavior. The kit combines 37 skills, plain-text
+instructions, and a Python standard-library memory engine. It is not an
+agent runtime, a sandbox, or a guarantee of better answers.
 
-## What's inside
+[![Kit gates](https://github.com/oleg494/coding-kit/actions/workflows/test.yml/badge.svg)](https://github.com/oleg494/coding-kit/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/oleg494/coding-kit)](https://github.com/oleg494/coding-kit/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-| Layer | File | Role |
-|---|---|---|
-| Soul | `AGENTS.md` | identity, red lines, routing (read first) |
-| Contract | `OPS.md` | phases, memory hierarchy, gates, changelog |
-| Runtime | `SKILL_RUNTIME.md` | context-size modes |
-| Manifest | `profile.yml` | single source of truth: paths, skills |
-| Skills | `skills/` | 37: always-on core + obra phase skills + domain + dashboard/UX |
-| Memory engine | `memory/db-tools/` | build, search_all, findings, repomap (FTS5) |
-| Evals | `eval/` | trap-suite (31 scenarios), task smoke (6 oracle-verified tasks incl. 2 canaries), trigger-eval (92 co-located queries across 13 skills; 80-query central fallback), ablation, rigor A/B, schema-v1 store + trend + telemetry |
-| Adapters | `adapters/` | per-environment setup guides |
+[Get started](#get-started) · [Daily use](#daily-use) · [Evidence and limitations](#evidence-and-limitations) · [Contributing](CONTRIBUTING.md)
 
-## Requirements
+## What you can use it for
 
-- Python **3.12** — the only version tested (CI: windows-latest and
-  ubuntu-latest). Other versions are untested; reports of working setups
-  are welcome.
-- For the test suite: `pytest` (`python -m pip install pytest` — the only
-  test dependency; the kit itself is stdlib-only).
+- **Carry decisions across sessions.** Save findings in your private memory
+  store and search them from a fresh agent session instead of reconstructing
+  project history from chat.
+- **Give coding work a repeatable method.** Skills cover planning,
+  reproducing bugs, implementation, review, and verification. YAGNI means
+  avoiding functionality and abstractions the task does not need.
+- **Evaluate behavior rather than trust promises.** Run policy scenarios,
+  skill-routing checks, and small coding tasks with deterministic verifiers.
+  These answer different questions; none alone proves overall coding quality.
 
-## Install — two phases
+Developed and tested with **Claude Code and Oh My Pi (OMP)**. Other agents
+that read instruction files and `SKILL.md` skills can be configured manually;
+this project does not claim to have tested their behavior. Instructions are
+in English; the kit asks the agent to answer in your language.
 
-**Phase 1 — memory bootstrap** (one command, touches nothing global):
+## Get started
 
-```bash
+Installation has two separate steps: **create the memory store**, then
+**connect your agent**. The first step does not install agent instructions.
+
+### 1. Create your memory store
+
+Requirements: Git and **Python 3.12**. CI runs on Windows and Ubuntu with
+Python 3.12; other Python versions are untested. Runtime scripts use the
+standard library. Only contributors running the test suite need `pytest`.
+
+Run these commands in PowerShell or Bash:
+
+```text
 git clone https://github.com/oleg494/coding-kit.git coding-kit
 cd coding-kit
 python scripts/install.py
 ```
 
-`install.py` creates `~/.memory/` (your private knowledge base — fixtures,
-engine link, indexes), idempotent, safe to re-run. Custom location:
-`MEMORY_ROOT=/x/y python scripts/install.py`. After it prints
-`search smoke: OK` the memory store works standalone — prove it:
+The installer creates your user-level `~/.memory/` directory, including
+fixtures and indexes, and links its engine to this clone. Keep the clone in
+place. Re-running the installer is supported. Look for `search smoke: OK`.
+It does not configure your agent's rules or skills.
 
-```bash
-python ~/.memory/db-tools/findings.py add "first-note" \
-  --text "hello from coding-kit" --project coding-kit --importance normal \
-  --source README.md   # → [✓] added (id=1)
-python ~/.memory/db-tools/findings.py search "first-note" --project coding-kit  # → found: 1
-python ~/.memory/db-tools/findings.py projects   # overview grouped by project and importance
-python ~/.memory/db-tools/findings.py edit 1 --project coding-kit --importance high
-python ~/.memory/db-tools/findings.py classify mapping.json --dry-run  # validate batch mapping
+<details>
+<summary>Use a different memory location</summary>
+
+Set `MEMORY_ROOT` before installation and in sessions that use the kit.
+
+PowerShell:
+
+```powershell
+$env:MEMORY_ROOT = "$HOME/coding-memory"
+python scripts/install.py
 ```
 
-### Project Taxonomy & Importance Levels
-
-- **Projects:** dynamically discovered from `~/.memory/db/*.db` plus optional `projects.json`. Slug format: `[a-z0-9][a-z0-9_-]{0,63}`.
-  - `portable`: reusable engineering patterns, tools, and cross-project knowledge.
-  - `unknown`: unclassified personal notes, coursework, or items not tied to a specific project.
-- **Importance levels:**
-  - `high`: critical security boundaries, invariants, data-loss prevention, durable release contracts.
-  - `normal`: standard actionable engineering findings, reproducible runbooks, feature setups.
-  - `low`: transient checkpoints, scratch notes, personal experiments, milestone logs.
-  - `unreviewed`: default state prior to qualitative review.
-- **Batch Classification (`classify`):**
-  Accepts JSON list or object with `{"records": [...]}`:
-  `[{"id": 1, "candidate_project": "coding-kit", "candidate_importance": "low", "project_rationale": "...", "importance_rationale": "..."}]`
-  Atomic transaction (rolls back on any error) and idempotent: user-curated records (`cli_edit`) are preserved unless `--force` is given.
-
-**Phase 2 — agent integration** (per-harness; `install.py` does NOT do
-this step). Pick your agent from `adapters/`:
-
-- **Claude Code / OMP**: rules → `~/.claude/CLAUDE.md`; skills → `~/.claude/skills/`
-- **Antigravity**: rules → `~/AGENTS.md`; skills → `~/.agents/skills/`
-- **ZCode (Z.ai)**: rules → `~/.zcode/AGENTS.md`; skills → `~/.zcode/skills/` (junction recommended)
-- **Hermes**: soul → `SOUL.md`; `config.yaml` → `skills.external_dirs`
-
-Verify integration by behavior, not file checks: ask the agent to show its
-method (plan → TDD → implement → verify → report) and to search memory for
-your first-note — it must route through
-`python ~/.memory/db-tools/search_all.py "X"`, not answer from
-conversation. `python scripts/doctor.py` green means the repo and memory
-root are self-consistent; it does not prove your harness loaded anything.
-
-## Daily loop
+Bash:
 
 ```bash
-python ~/.memory/db-tools/search_all.py "X"                     # before "what do we know about X"
-python ~/.memory/db-tools/search_all.py "X" --project <slug>   # scoped to project
-python ~/.memory/db-tools/search_all.py "X" --importance high   # prioritized recall
+export MEMORY_ROOT="$HOME/coding-memory"
+python scripts/install.py
 ```
 
-Gates and checks (the kit's own lifecycle, run directly):
-- `python scripts/doctor.py` — 14 self-diagnostic health checks.
-- `python -m pytest tests -q` — unit test suite (needs `pytest` installed).
-- `python scripts/tools/check_file_sizes.py --ci` — file-size gate (hard limits).
-- `python memory/scripts/memory-warmup.py` — cross-chat memory warmup.
+Examples below call the engine from the clone, so they do not depend on
+shell expansion of `~` in script arguments.
 
+</details>
+
+### 2. Connect your agent
+
+Merge a pointer to this clone's [AGENTS.md](AGENTS.md) and
+[OPS.md](OPS.md) into your agent's rules file. Use an absolute path to the
+clone so the files remain reachable from other projects. Preserve your
+existing instructions; do not replace them wholesale.
+
+Copy or link the contents of [skills/](skills/) into the agent's skill
+directory, preserving unrelated skills. These are user-level changes and
+can affect every project opened with that agent.
+
+| Agent | Rules file | Skills |
+|---|---|---|
+| Claude Code | `~/.claude/CLAUDE.md` | `~/.claude/skills/` |
+| Oh My Pi (OMP) | `~/.omp/agent/AGENTS.md` | Auto-discovers `~/.claude/skills/` |
+| Antigravity | `~/AGENTS.md` | `~/.agents/skills/` |
+| ZCode | `~/.zcode/AGENTS.md` | `~/.zcode/skills/` |
+| Hermes | `SOUL.md` | Point `config.yaml` → `skills.external_dirs` at the clone's `skills/` |
+
+The OMP paths above match the kit's [deployment targets](scripts/tools/deploy.py).
+See the [Antigravity](adapters/antigravity.md) and [ZCode](adapters/zcode.md)
+guides for their environment-specific setup.
+
+### 3. Verify the connection
+
+From the clone, save and retrieve a small note:
+
+```text
+python memory/db-tools/findings.py add "first-note" --text "hello from coding-kit" --project coding-kit --importance normal --source README.md
+python memory/db-tools/findings.py search "first-note" --project coding-kit
+```
+
+Then start a **fresh agent session** and ask:
+
+> Search my coding-kit memory for "first-note" using the memory tools.
+> Show the command you ran and the stored finding.
+
+The agent should invoke `findings.py search` or `search_all.py` against your
+memory store and retrieve the note, not merely repeat this example. If it
+does not, check that the rules and skill paths are loaded by your agent.
+
+`python scripts/doctor.py` checks repository and memory consistency.
+A green result is **not** proof that an agent loaded or followed the kit.
+
+## Daily use
+
+Run the memory tools from the clone, or use their absolute paths elsewhere:
+
+```text
+python memory/db-tools/search_all.py "deployment decision"
+python memory/db-tools/search_all.py "deployment decision" --project coding-kit
+python memory/db-tools/search_all.py "deployment decision" --importance high
+python memory/db-tools/findings.py projects
+```
+
+Ask the agent to save a decision when it is worth carrying into another
+session. Memory writes need authorization; a read-only review should not
+silently modify your knowledge base.
+
+Your knowledge lives in `~/.memory/` (or `MEMORY_ROOT`), **outside the kit
+repository**. The clone contains methodology and tooling, not your personal
+project history. Do not commit your memory store or assume it is a sandbox
+for untrusted data. See the [security policy](SECURITY.md).
+
+<details>
+<summary>Organize findings by project and importance</summary>
+
+Projects are discovered from the memory root's `db/*.db` files and optional
+`projects.json`. Project slugs use `[a-z0-9][a-z0-9_-]{0,63}`.
+Use `portable` for reusable cross-project knowledge and `unknown` for
+unclassified notes.
+
+Importance levels:
+
+- `high`: critical boundaries, invariants, and durable release contracts.
+- `normal`: actionable findings, runbooks, and feature setups.
+- `low`: temporary checkpoints and scratch notes.
+- `unreviewed`: findings not yet qualitatively reviewed.
+
+Use `findings.py edit --help` to update a finding using its returned ID;
+IDs are not guaranteed to start at 1. For batch classification,
+`findings.py classify mapping.json --dry-run` validates a mapping before
+mutation. Classification is transactional and preserves user-curated records
+unless `--force` is supplied. See [findings.py](memory/db-tools/findings.py).
+
+</details>
+
+## Evidence and limitations
+
+**The kit is not a demonstrated universal coding-quality improvement.**
+It adds instructions and can add work. Whether that helps depends on the
+model, task, and integration.
+
+A historical external [DeepSWE](https://deepswe.datacurve.ai/) A/B run
+compared the same agent with and without the kit using `deepseek-v4-pro`,
+pier + mini-swe-agent in Docker, and a 10-task seed-0 subset:
+
+| Observation | Reported result |
+|---|---|
+| Solved tasks in the reported nine-task comparison | **6/9 in both arms** |
+| Steps across five mutually solved tasks | **+21% with the kit** |
+| Prompt tokens across those five tasks | **+41%**: 99.5M vs 70.4M |
+| Task-level differences | One kit win and one kit loss |
+
+This was a small historical sample using a 36-skill manifest, not a benchmark
+of the current release. Raw artifacts are retained outside this repository;
+the repo does not ship a reproduction script for these numbers. The results
+are descriptive, not a causal explanation or a general reliability claim.
+Prompt-token counts are not a measured monetary bill.
+
+The [4.5.1 release notes](https://github.com/oleg494/coding-kit/releases/tag/v4.5.1)
+separately document policy-calibration observations and their limits. They
+are stated-next-action evidence, not an end-to-end coding-quality win rate.
+
+### Run the kit's checks
+
+```text
+python -m pip install pytest
+python scripts/doctor.py
+python -m pytest tests -q
+python scripts/tools/check_file_sizes.py --ci
+```
+
+CI runs the [kit gates](.github/workflows/test.yml) on Windows and Ubuntu.
+Structural validation can run without a model or paid API calls:
+
+```text
+python eval/runner.py --inline-skills
+python eval/task_runner.py --dry-run
+python eval/trigger_eval.py --queries eval/trigger_queries.json
+```
+
+These commands validate evaluation inputs; they do **not** measure a live
+model's behavior.
+
+<details>
+<summary>Evaluation tools and what they measure</summary>
+
+| Tool | Purpose and boundary |
+|---|---|
+| [Trap-suite](eval/runner.py) | 31 adversarial policy scenarios. The judge defaults to the executor; use a distinct judge to reduce self-judging bias. Policy adherence is not task superiority. |
+| [Task smoke](eval/task_runner.py) | Six coding tasks, including two impossible canaries, with deterministic `verify.py` oracles. A smoke check, not a statistical benchmark. |
+| [Trigger evals](eval/trigger_eval.py) | Skill activation routing: 92 co-located queries across 13 skills with `--queries auto`; an 80-query central corpus provides fallback coverage. |
+| [Results store](eval/results_io.py) and [trend](eval/trend.py) | Structured results, explicit live/dry-run modes, failure categories, and comparisons of recorded runs. |
+| [Telemetry](eval/telemetry.py) | Measures duration. Optional usage totals are user-reported, not independently measured token cost. |
+| [Ablation](eval/ablate.py) | Compares prompts with and without an inlined skill. Ambient skills remain uncontrolled; results are descriptive, not causal. |
+| [Rigor A/B](eval/rigor/) | Policy experiments with isolation probes and an acceptance gate that can reject a candidate. |
+
+Live evaluations require an executor and may incur provider charges.
+A neutral temporary working directory reduces repo-local instruction
+loading; global skills, credentials, and general filesystem access remain
+available. This is **not security isolation**.
+
+</details>
 
 ## Autonomous work (opt-in)
 
-Broad authorization to choose and continue useful work ("do useful work",
-"keep going without asking", "работай сам") loads skill `autonomous-work`.
-It is task opt-in: ordinary bounded requests keep their existing scope, and
-there is no `MODE:` override — `STRICT_AUDIT` and read-only tasks stay
-read-only. Outward, destructive, spending, and memory-writing actions still
-require explicit authorization.
+Requests such as “do useful work” or “keep going without asking” activate
+[autonomous-work](skills/autonomous-work/SKILL.md): evidence-backed work
+selection, verified progress, and immediate stop/revocation. Ordinary
+bounded requests do not become autonomous missions. Outward, destructive,
+spending, and memory-writing actions still need authorization.
 
-The skill covers work selection from evidence, verify-by-observation loops,
-durable mission/progress/handoff state, and immediate stop/revocation. For
-continuation across process boundaries (context compaction, terminal death)
-an optional foreground stdlib supervisor ships with the kit:
+An optional foreground Python [supervisor](scripts/tools/autonomous.py)
+supports continuation across process boundaries:
 
-```bash
-python scripts/tools/autonomous.py --workspace PATH --mission TEXT \
-  --executor COMMAND --verify COMMAND \
-  [--state-dir PATH] [--max-iterations 10] [--timeout 600]
+```text
+python scripts/tools/autonomous.py --help
 ```
 
-`--executor`/`--verify` are argv, never a POSIX shell (Windows `.cmd`/`.bat`
-need `cmd`). State defaults to `<workspace>/.autonomous` (`state.json` +
-`logs/`, atomic writes, resumable). The executor writes a checkpoint proposal
-(`checkpoint.json`, removed before each spawn; its absolute path is passed on
-stdin as `Checkpoint: <path>` and via `AUTONOMOUS_CHECKPOINT`). Checkpoints
-are untrusted claims, never commands: `complete` is accepted only after the
-independent `--verify` exits zero. Exit codes: `0` verified completion only,
-`1` failed/exhausted/blocked/stalled, `130` user stop; a `STOP` file in the
-state dir prevents a spawn and interrupts a live child. A filesystem
-workspace is not a security sandbox. Design and acceptance criteria:
-`docs/research/2026-09-08-autonomous-mode.md`.
+It accepts an executor and independent verifier, records resumable state,
+and reports completion only after verification succeeds. A `STOP` file
+prevents further spawning and interrupts a live child. Read the
+[supervisor contract](docs/research/2026-09-08-autonomous-mode.md) before
+configuring commands; a workspace is not a security sandbox.
 
-## Evals & Trend Loop
+## Inside the repository
 
-The kit includes evaluation harnesses targeting distinct questions (health checks, trigger activation routing, and behavioral adherence are evaluated separately from task success or cost claims):
-- **Trap-suite (`eval/runner.py`)**: 31 adversarial scenarios testing policy adherence to superpowers, YAGNI, and security invariants. Candidate answers are bounded and delimited as untrusted evidence. Omitted `--judge` defaults to the executor (self-judging carries inherent bias; recommend configuring a distinct `--judge` for gating). Adherence to rules does not prove task-level superiority.
-- **Task Smoke (`eval/task_runner.py`)**: 6 real coding tasks (incl. 2 impossible canaries) verified by deterministic `verify.py` test oracles (no LLM judge for pass/fail). Each attempt runs in an isolated sandbox cloned fresh from `eval/tasks/repo-fixture` (default `--tries 2`). This serves as a smoke canary, not a statistical benchmark.
-- **Trigger Evals (`eval/trigger_eval.py`)**: `--queries auto` validates 92 co-located queries across 13 skills (per-skill `evals/evals.json`), with `eval/trigger_queries.json` (80 queries, 10 skills) as the central fallback for skills lacking a co-located file — testing skill activation routing.
-- **Schema-v1 Results Store (`eval/results_io.py`)**: atomic append-only JSON storage under `eval/results/` with microsecond UTC timestamps, UUID `run_id`, separate `model` metadata, explicit `mode` (`"dry-run"` vs `"live"`), and standardized failure taxonomies.
-- **Trend Reporting (`eval/trend.py`)**: summarizes newest runs by `(kind, model)`, filters dry-runs and zero-result artifacts via explicit mode discriminators, reports baseline deltas, and produces structured Failure Evidence Packets with bounded trace tails for debugging.
-- **Telemetry (`eval/telemetry.py`)**: every result doc folds per-attempt wall-clock `duration_s` into `duration_s_total`/`duration_s_mean` across all three runners (trap/tasks/trigger). Optional `--usage-json` `{tokens_total, cost_usd}` records user-reported provider totals — the harness measures wall-clock only and never fabricates cost.
-- **Ablation (`eval/ablate.py`)**: experimental per-skill inlined-prompt contribution (pass-rate with vs. without the inlined skill body). Descriptive, not causal — ambient CLI skills are uncontrolled and small samples may be non-conclusive; it never deletes a skill. Requires a live `--executor`.
-- **Rigor A/B (`eval/rigor/`)**: controlled policy experiments with route/microtask/trap corpora, isolation + canary probes, and an acceptance gate that can reject its own candidate (it did — see docs/research/2026-09-03).
-- **Isolation**: executor subprocesses run from a neutral per-call temp `cwd`, which prevents automatic discovery of repo-local instruction/config files via the inherited `cwd`; ambient global skills and general filesystem access remain uncontrolled. HOME/auth environment is retained.
-Quick validation (no model, no live output):
+| Component | Entry point |
+|---|---|
+| Agent instructions and routing | [AGENTS.md](AGENTS.md) |
+| Operating contract | [OPS.md](OPS.md) |
+| Context-size modes | [SKILL_RUNTIME.md](SKILL_RUNTIME.md) |
+| Paths and skill manifest | [profile.yml](profile.yml) |
+| Workflow and domain skills | [skills/](skills/) |
+| Memory engine | [memory/db-tools/](memory/db-tools/) |
+| Evaluation tools | [eval/](eval/) |
+| Changes and contribution guide | [Changelog](docs/CHANGELOG.md) · [Contributing](CONTRIBUTING.md) |
 
-```bash
-python eval/ablate.py --help                          # ablation flags/contract
-python eval/runner.py --inline-skills                 # dry-run: validate scenarios + skills manifest (no executor prompts sent)
-python eval/task_runner.py --dry-run                  # validate task layout
-python eval/trigger_eval.py --queries eval/trigger_queries.json   # validate queries
-```
+Windows-first development; CI also runs on Ubuntu. The memory engine link
+is a junction on Windows and a symlink elsewhere.
 
-## Measured cost (historical external benchmark)
+## Credits and license
 
-Historical external A/B run (2026-09) on [DeepSWE](https://deepswe.datacurve.ai)
-(pier + mini-swe-agent in Docker, model `deepseek-v4-pro`, 10-task seed-0
-subset, 1 concurrent trial): the same agent with the kit (OPS.md + AGENTS.md +
-36-skill manifest inlined, ~5.4k tokens) vs. without it. Raw artifacts are
-retained outside this repository and are not bundled with the kit; this repo
-ships no reproduction script or composite-analysis command for these numbers —
-they are reported as run, not re-derivable from the repo.
-
-- **Pass rate: no difference** — 6/9 both arms. In this test, the kit did not increase solved-task counts for a strong model.
-- **Token cost is real**: +21% steps, +41% prompt tokens on identical outcomes
-  (99.5M vs 70.4M across 5 mutually-solved tasks). Cache absorbs the kit's
-  static ~5.4k-token overhead; the extra spend is the methodology's own
-  iterations (plan → TDD → verify). No causal claim of overall cost reduction can be made.
-- **Task-dependent flips**: kit won one task outright (24/24 vs 6/24 — process
-  discipline rescued a flailing attempt) and lost one small fiddly task
-  (2/5 vs 5/5 — ceremony overhead). n=9: descriptive observation, not a general verdict.
-
-Honest takeaway: on a strong model and well-specified tasks the kit is not a
-uniform win — the sample showed process discipline rescuing one hard task
-and ceremony costing one small task, at a measurable token premium; no general
-reliability claim follows from n=9. Negative results and confounded replays are recorded as negative evidence, not optimization wins. Budget accordingly.
-
-## Where your data lives
-
-The kit repo contains only methodology and engine. Your knowledge (Wiki posts, findings, indexes) lives in `~/.memory/` — personal, never committed, gitignored in every place it can appear.
-
-## Platform note
-
-Developed and tested Windows-first (CI also runs ubuntu-latest). The engine link
-is a junction on Windows, a symlink elsewhere — `install.py` picks automatically.
-
-## Credits & licensing
-
-Phase-workflow skills (`brainstorming`, `writing-plans`, `using-git-worktrees`,
-`requesting-code-review`, `receiving-code-review`, `verification-before-completion`,
-`systematic-debugging`, `dispatching-parallel-agents`, `finishing-a-development-branch`)
-are derived from
-[obra/superpowers](https://github.com/obra/superpowers) (MIT) © Jesse Vincent,
-reworked and extended for coding-kit. See `skills/superpowers/LICENSE`.
-`ponytail` is adapted from [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail)
-(MIT; see `skills/ponytail/LICENSE`).
-
-## License
-
-The repository root is MIT (see LICENSE). One conflict is unresolved:
-`skills/windows-encoding-fixes` declares `license: Proprietary` in its
-frontmatter, which is inconsistent with the root MIT grant. This README
-makes no rights determination in either direction and draws no
-author-identity or provenance conclusion — a frontmatter label is not
-proof of a grant or of an exclusion. The mismatch stays open until the
-owner resolves it; the skill is wired into `profile.yml`, the
-release-contract pin, `integrity-manifest.json`, and the trigger corpora,
-so it is not a drop-in deletion.
-
-MIT — see LICENSE.
+[MIT](LICENSE). Phase-workflow skills are derived from
+[obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent,
+reworked and extended for coding-kit; see the
+[superpowers license](skills/superpowers/LICENSE).
+The `ponytail` skill is adapted from
+[DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail);
+see its [license](skills/ponytail/LICENSE).
