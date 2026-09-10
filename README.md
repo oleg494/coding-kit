@@ -103,11 +103,13 @@ guides for their environment-specific setup.
 
 ### 3. Verify the connection
 
-From the clone, save and retrieve a small note:
+From the clone, enter the tools directory, save a note, and retrieve it:
 
 ```text
-python memory/db-tools/findings.py add "first-note" --text "hello from coding-kit" --project coding-kit --importance normal --source README.md
-python memory/db-tools/findings.py search "first-note" --project coding-kit
+cd memory/db-tools
+python findings.py add "first-note" --text "hello" --project coding-kit
+python findings.py search "first-note" --project coding-kit
+cd ../..
 ```
 
 Then start a **fresh agent session** and ask:
