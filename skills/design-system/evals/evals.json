@@ -1,0 +1,30 @@
+{
+  "skill_name": "design-system",
+  "evals": [
+    {
+      "id": "design-system-0",
+      "prompt": "Choose visual direction for a new landing page.",
+      "should_trigger": true
+    },
+    {
+      "id": "design-system-1",
+      "prompt": "Adapt this reference to our existing product UI.",
+      "should_trigger": true
+    },
+    {
+      "id": "design-system-2",
+      "prompt": "Refactor shared theme tokens and component states.",
+      "should_trigger": true
+    },
+    {
+      "id": "design-system-3",
+      "prompt": "Review our service architecture and database boundaries.",
+      "should_trigger": false
+    },
+    {
+      "id": "design-system-4",
+      "prompt": "Create a static illustrated poster.",
+      "should_trigger": false
+    }
+  ]
+}

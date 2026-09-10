@@ -5,6 +5,11 @@
 
 > **Claim discipline:** every "fixed"/"verified" claim below must cite evidence for its actual scope: regression, smoke run, rendered observation, or applicable doctor check. Reuse evidence only for the unchanged checked state. Sub-agent verdicts and static policy checks do not establish product improvement.
 
+- **Unreleased — conditional design references (2026-09-10):**
+  - Extended `design-system` with gap-driven reference selection, evidence-to-decision translation, external-content trust boundaries, and explicit unexecuted-verification reporting. `dashboard-design` delegates shared visual research without a duplicate catalog or decorative-removal quota.
+  - Added one four-source guide with public-text inspection scope and access caveats, five trigger cases, and seven trap-suite scenarios. Synced the repository skill mirrors only; machine-wide installations are unchanged.
+  - Evidence: `python -m pytest tests/test_evals_colocation.py tests/test_skill_lifecycle.py -q` — 16 passed. Text-only model probes exposed imagined reference observations, excessive token layering, and ambiguous verification claims; instructions were corrected. Six of seven judged responses passed before the final repair; the repaired evidence-reporting case and nearby local-fix case passed replay. Responses/verdicts are in local `eval/results/design-reference-probe.json`. The local-fix response still suggested optional unused-local-variable cleanup, so scope adherence is not guaranteed. No rendered UI comparison or improvement in visual quality is claimed.
+
 - **v4.5.1 (2026-09-10)** — policy contradiction calibration:
   - Reconciled core authorization, phase handoffs, review ownership, evidence reuse, and minimalism: complete authorized local work without repeated phase approval; preserve read-only scope, stop/revocation, and explicit authority for outward, destructive, spending, and memory actions.
   - Removed fixed-count research/retry rituals, mandatory extra workspaces and documents, and missing reviewer-template dependencies. Independent review findings block only changes that depend on unresolved information; reviewer signoff remains reviewer-owned.
