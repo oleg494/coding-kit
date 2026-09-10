@@ -3,14 +3,14 @@ name: test-driven-development
 description: Drives development with tests. Use when implementing any logic, fixing any bug, or changing any behavior. Use when you need to prove that code works, when a bug report arrives, or when you're about to modify existing functionality.
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Test-Driven Development
 
 ## Overview
 
-Write a failing test before writing the code that makes it pass. For bug fixes, reproduce the bug with a test before attempting a fix. Tests are proof — "seems right" is not done.
+Define acceptance and a behavior check before implementation. For bug fixes, reproduce the bug before changing its source, then show the reproduction passes. Existing contract tests, isolated smoke probes and actual rendered UI checks can provide appropriate evidence; a permanent test must defend a plausible failure.
 
 ## The TDD Cycle
 
@@ -24,13 +24,13 @@ Write a failing test before writing the code that makes it pass. For bug fixes, 
 ```
 
 ### Step 1: RED — Write a Failing Test
-Write the test first. It must fail. A test that passes immediately proves nothing.
+For a bug or new missing behavior, observe the check fail for the intended reason before the fix. A passing check can establish existing behavior, but cannot establish that it reproduced the reported bug. Do not manufacture failures in unrelated behavior.
 
 ### Step 2: GREEN — Make It Pass
-Write the minimum code to make the test pass. Don't over-engineer.
+Write the smallest correct implementation of the full request, not just the subset exercised by the current test. Don't over-engineer or drop acceptance criteria.
 
 ### Step 3: REFACTOR — Clean Up
-With tests green, improve the code without changing behavior. Extract shared logic, improve naming, remove duplication. Run tests after every refactor step.
+With checks green, remove task-related duplication or complexity only when it improves the implementation. Recheck affected behavior after changes; do not refactor unrelated code for ceremony.
 
 ## The Prove-It Pattern (Bug Fixes)
 
@@ -42,13 +42,13 @@ Bug report → test that reproduces bug → test FAILS → fix → test PASSES �
 
 ```
           ╱╲
-         ╱  ╲         E2E Tests (~5%)
+        ╱  ╲         E2E Tests
         ╱    ╲        Full user flows
        ╱──────╲
-      ╱        ╲      Integration Tests (~15%)
+      ╱        ╲      Integration Tests
      ╱          ╲     Component interactions, API boundaries
     ╱────────────╲
-   ╱              ╲   Unit Tests (~80%)
+  ╱              ╲   Unit Tests
   ╱                ╲  Pure logic, isolated, milliseconds
  ╱──────────────────╲
 ```
@@ -82,7 +82,8 @@ it('is idempotent — completing already-completed task is a no-op', ...);
 ```
 
 ## Verification
-- [ ] Test was RED before code was written
-- [ ] Test is GREEN after minimal implementation
-- [ ] Tests appropriate to the change pass — broaden when scope warrants (shared code touched, or a failure the targeted check exposed)
-- [ ] Test names read like a specification
+- [ ] Bug/new-behavior reproduction failed for the intended reason before the fix
+- [ ] The same behavior check passes after implementation
+- [ ] Applicable existing checks pass on the final state; broaden for shared code or exposed failures
+- [ ] Kept tests defend observable contracts rather than wording or internal wiring
+- [ ] Every requested capability is implemented and verified

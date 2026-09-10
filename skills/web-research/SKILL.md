@@ -3,19 +3,19 @@ name: web-research
 description: 'Use when you need a fact from the outside world: "find out", "look up", "what do they say about", "how it works", "compare", "find information". Protocol: web search → primary sources → cross-check → answer with sources. Do not use for searching the knowledge base (business-wiki) or for facts already in the Wiki.'
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Web Research — facts from the outside world
 
 ## Workflow
 
-1. **Formulate your search query.** What exactly do you need to find out? 2-3 wordings.
-2. **Web search.** Use the available tools (web_search, curl, browser).
-3. **Primary sources, not retellings.** Official docs > articles > forums. Don't trust retellings without a link to the original.
-4. **Cross-check.** Minimum 2 independent sources for each key fact. 1 source = not an answer.
-5. **Dating.** When is the data current? "As of August 2026..."
-6. **Answer with sources.** Every fact with a link. Mark unverified claims "verify".
+1. **Define the missing external fact.** Local code and established project facts do not need web corroboration.
+2. **Read known primary URLs directly; search when the source is unknown.** Use a browser only for interactive or dynamically rendered content.
+3. **Primary sources, not retellings.** Official docs, original research or source code; check the actual version and applicability.
+4. **Cross-check where material.** One authoritative source can establish a narrow fact; seek independent evidence for disputed, indirect or high-impact claims.
+5. **Dating.** Include the relevant version/date for time-sensitive facts.
+6. **Answer with sources.** Link external claims and identify remaining uncertainty. Do not invent facts when a source is unavailable.
 
 ## Source hierarchy & fallback (403/429/captcha)
 
@@ -24,15 +24,16 @@ metadata:
 3. **Direct HTTP fetch of the page** (`read` on the URL) — when search engines
    block you.
 
-On 403/429/captcha: switch to the next level immediately; never stop the task
-and never fill the gap by inventing a result. If every level fails: "not
-verified — sources unreachable", and name exactly what was tried.
+On 403/429/captcha, try another legitimate source or access method without
+bypassing access controls. If sources remain unreachable, name the unresolved
+fact and what was tried; finish the parts that available evidence supports.
 
 ## Research depth
 
-- **Quick fact** (date, number, definition) — 2-3 sources, one pass.
-- **Medium research** (comparison, "how it works") — 5-7 sources, primary sources + expert articles.
-- **Deep research** (strategy, technology choice, "what do they say about") — 10+ sources, breadth → depth: canonical repos, PRs, issues, ADRs, official guides.
+Use enough evidence to resolve the question, not a fixed number of queries or
+pages. A definition can need one source; a technology comparison may require
+multiple alternatives, benchmarks and counterexamples. Stop when further
+search cannot materially change the answer.
 
 ## What to look for
 
@@ -49,7 +50,7 @@ verified — sources unreachable", and name exactly what was tried.
 - **Result first line.** What was found, briefly.
 - **Details with sources.** Every fact with a link.
 - **Caveats.** What wasn't verified, what's in question.
-- **Offer to save.** "Save this in the Wiki?"
+- **Memory.** Save only durable findings within existing authorization; do not add a save-confirmation ritual to every answer.
 
 ## Gotchas
 

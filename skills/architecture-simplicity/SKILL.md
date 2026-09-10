@@ -4,7 +4,7 @@ description: 'Use when the user wants to: design/redesign modules and layers, ch
 license: MIT
 compatibility: any language and stack, architecture design/review phase
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Architecture & simplicity: design principles
@@ -17,17 +17,20 @@ metadata:
 4. **SHARED CORE, THIN ADAPTERS** — one business logic; Telegram/CLI/desktop is a shell (I/O + auth + UX). A polish bug is fixed in one place, both clients stay fine.
 5. **STOP WHEN THE NEXT ABSTRACTION DOESN'T PAY RENT THIS WEEK** — an abstraction must pay for itself now, not "someday".
 
+Simplicity must preserve the complete requested behavior. A smaller feature
+set is not a simpler implementation of the same requirement.
+
 ## 2. Config and evolution
 
 - **CONFIG OUTSIDE REPO, DEFAULTS IN CODE** — secrets and ops tuning never in git; safe defaults in code; override via env.
 - **SCHEMA EVOLUTION MUST NOT WIPE PROD** — deploy must not require DROP TABLE: CREATE IF NOT EXISTS + ALTER ADD COLUMN ignore-if-exists.
-- **FEATURE FLAG/ENV DEFAULT > REWRITE** — ops tuning via flag/env, not rewriting.
+- **FLAGS FOR REAL ROLLOUT NEEDS** — use config for operational variation, not to avoid a required cutover or add hypothetical compatibility paths.
 - **DETERMINISTIC REBUILD > STALE CACHE** — rebuilding deterministically beats living with a stale cache.
 
 ## 3. Code patterns
 
 - **EXPLICIT SPEND ORDER IN ONE FUNCTION** — the debiting order (free→bonus→paid) is one algorithm in one place.
-- **FALLBACK CHAIN FOR PROVIDERS** — one vendor = SPOF: ordered list; next on timeout/5xx; fail only when all are dead.
+- **PROVIDER FAILURE POLICY** — implement fallback only when the availability contract requires it and an authorized compatible provider exists; otherwise fail clearly. A second vendor is not a default feature.
 - **PURE FUNCTIONS FOR ASSEMBLE/EXPORT; IMPURE AT THE EDGES** — assembly/export are pure functions; I/O at the boundaries.
 - **MAKE ILLEGAL STATES UNREPRESENTABLE** — separate fields over boolean soup: `status: active|finished` instead of flags.
 - **COMMENTS EXPLAIN WHY AND CEILING** — not what the line does, but why and what ceiling.
@@ -38,7 +41,7 @@ metadata:
 ## Workflow (order of application)
 
 1. **Define module boundaries by change reason.** Different axes → different modules. No 3000-line god file.
-2. **Check every abstraction against YAGNI.** One consumer? → inline. Can a layer be removed? → remove it.
+2. **Check every abstraction against YAGNI.** Keep genuine change-isolation boundaries; remove layers without present value, not every single-consumer unit.
 3. **Check dependencies.** stdlib/platform first; a dep only if the pain is measurable.
 4. **Separate core and adapters.** One business logic; thin shells.
 5. **Check config and secrets.** Secrets out of git; defaults in code; override via env.
@@ -48,13 +51,13 @@ metadata:
 
 ## Architecture review checklist
 
-- [ ] no abstractions with a single consumer (YAGNI)
+- [ ] abstractions have present value or a genuine change-isolation boundary
 - [ ] dependency justified (stdlib first)
 - [ ] modules separated by change reason
 - [ ] one business core; thin adapters
 - [ ] secrets outside the repo; defaults in code
 - [ ] schema evolves without DROP
 - [ ] debiting order in one function
-- [ ] fallback chain for providers
+- [ ] provider failure behavior meets actual availability requirements
 - [ ] invalid states unrepresentable
 - [ ] dead code removed; WHY comments

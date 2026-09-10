@@ -3,14 +3,14 @@ name: spec-driven-development
 description: Creates specs before coding. Use when starting a new project, feature, or significant change and no specification exists yet. Use when requirements are unclear, ambiguous, or only exist as a vague idea. Use when a single requirement spans several independently testable capabilities.
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Spec-Driven Development
 
 ## Overview
 
-Write a structured specification before writing any code. The spec is the shared source of truth — it defines what we're building, why, and how we'll know it's done.
+Capture observable requirements before code. Reuse an existing spec or the user's explicit acceptance criteria; write only the missing design. Authorization follows AGENTS.md, not phase approval.
 
 ## When to Use
 
@@ -18,19 +18,15 @@ Write a structured specification before writing any code. The spec is the shared
 - Requirements are ambiguous or incomplete
 - The change touches multiple files or modules
 - You're about to make an architectural decision
-- The task would take more than 30 minutes to implement
 
 **When NOT to use:** Single-line fixes, typo corrections, or changes where requirements are unambiguous.
 
-## The Gated Workflow
+## Workflow
 
-```
-SPECIFY ──→ PLAN ──→ TASKS ──→ IMPLEMENT
-   │          │        │          │
-   ▼          ▼        ▼          ▼
- Human      Human    Human      Human
- reviews    reviews  reviews    reviews
-```
+Specify → plan → implement → verify. Review at meaningful uncertainty or
+integration boundaries, not as a mandatory human permission step after each
+phase. Continue already authorized implementation; plan-only requests end at
+the plan. Artifact size follows complexity, not a fixed template quota.
 
 ### Phase 0: Scope Check (multi-capability only)
 
@@ -58,7 +54,7 @@ ASSUMPTIONS I'M MAKING:
 → Correct me now or I'll proceed with these.
 ```
 
-**Spec template (6 core areas):**
+**Spec template:**
 
 ```markdown
 # Spec: [Project/Feature Name]
@@ -82,9 +78,9 @@ ASSUMPTIONS I'M MAKING:
 [Framework, test locations, coverage requirements, test levels]
 
 ## Boundaries
-- Always: [Run tests before commits, follow naming conventions, validate inputs]
-- Ask first: [DB schema changes, adding dependencies, changing CI config]
-- Never: [Commit secrets, edit vendor directories, remove failing tests]
+- Always: [Verify affected behavior, follow project conventions, validate trust boundaries]
+- Ask first: [Missing irreversible/outward authority or unavailable outcome-changing information]
+- Never: [Expose secrets, mutate production data as a test, suppress a real failure]
 
 ## Success Criteria
 [How we'll know this is done — specific, testable conditions]
@@ -116,7 +112,7 @@ Break plan into discrete tasks:
 - Each task completable in single focused session
 - Each task has explicit acceptance criteria
 - Tasks ordered by dependency
-- No task should touch more than ~5 files
+- Split by independent outcomes and explicit shared contracts, not file counts
 
 ```markdown
 - [ ] Task: [Description]
@@ -127,24 +123,23 @@ Break plan into discrete tasks:
 
 ### Phase 4: Implement
 
-Execute tasks one at a time, following test-driven-development and incremental-implementation.
+Execute dependency-ordered tasks with focused checks; parallelize independent ownership when useful. Complete all requested capabilities before reporting implementation complete.
 
 ## Keeping the Spec Alive
 
 - Update when decisions change
 - Update when scope changes
-- Commit the spec in version control
-- Reference the spec in PRs
+- Save durable specs when requested or required by the project; otherwise a concise task plan can suffice
+- Commits and PRs require authority under AGENTS.md
 
 ## Red Flags
-- Starting to write code without any written requirements
-- Implementing features not mentioned in any spec or task list
-- Making architectural decisions without documenting them
-- Skipping the spec because "it's obvious what to build"
+- Coding before acceptance or a check is defined
+- Adding unrequested features or omitting requested ones as an MVP
+- Inventing incompatible defaults when the user must choose the outcome
+- Demanding a spec file, human signoff or another menu for already authorized work
 
 ## Verification
-- [ ] Spec covers all six core areas
-- [ ] Human reviewed and approved
-- [ ] Success criteria are specific and testable
-- [ ] Boundaries (Always/Ask First/Never) defined
-- [ ] Spec saved to file in repository
+- [ ] Required behavior, constraints and important risks are explicit
+- [ ] Success criteria are observable and mapped to suitable checks
+- [ ] Any necessary user decision is resolved; ordinary details use repo conventions
+- [ ] The complete authorized implementation continues without phase stalls

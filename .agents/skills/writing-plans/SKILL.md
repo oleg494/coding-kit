@@ -3,174 +3,62 @@ name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching code
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Writing Plans
 
-## Overview
+Write enough of a plan to execute the complete request without rediscovering
+scope or inventing interfaces. Planning is part of authorized implementation,
+not a separate approval transaction. Plan-only requests remain plan-only.
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+## Scope and structure
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+- Start from the actual requirements or existing spec; identify what done means.
+- Inspect project conventions and affected paths before naming changes.
+- Split by independently testable outcomes, not file counts, elapsed time or
+  individual tool calls. Include setup, docs and failure paths in the task
+  whose deliverable needs them.
+- State dependencies and exact shared interfaces before parallel execution.
+  Keep related changes together; no unrelated refactoring.
+- Define behavior checks before implementation. Bug fixes need a failing
+  reproduction; do not prescribe tests that assert source text or wiring.
 
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+## Plan content
 
-**Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
+A useful plan contains:
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
-- (User preferences for plan location override this default)
+1. **Goal and boundaries:** full requested outcome, exclusions, constraints.
+2. **Approach:** existing patterns reused, important decisions and risks.
+3. **Changes:** exact files/symbols and required behavioral changes, ordered by
+   dependency. Include caller migration and obsolete-path removal when needed.
+4. **Contracts:** inputs, outputs, failure behavior and cross-task interfaces.
+5. **Verification:** scenario/command, observable expected result and isolation.
 
-## Scope Check
+Use the task tracker or chat when sufficient. Create a plan file only when
+requested or required by an applicable project workflow; the default location
+then is `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`. Link the existing
+spec rather than copying it. A fixed header, code for every line, or a commit
+step per task is not required. Commits follow AGENTS.md.
 
-If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
+## Self-review
 
-## File Structure
+Compare every requirement with its implementation task and check. Add missing
+paths; resolve contradictory signatures and platform requirements. Steps such
+as "handle errors" without named failure behavior are incomplete. The plan
+must be actionable, but should not duplicate the entire future implementation.
 
-Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
+## Execute
 
-- Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
-- You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Prefer smaller, focused files over large ones that do too much.
-- Files that change together should live together. Split by responsibility, not by technical layer.
-- In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
+When implementation is authorized, choose inline execution by default; use
+parallel workers for genuinely independent ownership when available and useful.
+Do not ask the user to choose an execution method or approve the completed plan
+again. If a worker cannot run, continue locally where possible rather than
+making worker setup a new prerequisite. Verify integrated behavior before the
+final report; an increment or checklist update is not the deliverable.
 
-This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
-
-## Task Right-Sizing
-
-A task is the smallest unit that carries its own test cycle and is worth a
-fresh reviewer's gate. When drawing task boundaries: fold setup,
-configuration, scaffolding, and documentation steps into the task whose
-deliverable needs them; split only where a reviewer could meaningfully
-reject one task while approving its neighbor. Each task ends with an
-independently testable deliverable.
-
-## Bite-Sized Task Granularity
-
-**Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
-- "Run the tests and make sure they pass" - step
-- "Commit" - step
-
-## Plan Document Header
-
-**Every plan MUST start with this header:**
-
-```markdown
-# [Feature Name] Implementation Plan
-
-> **For agentic workers:** implement this plan task-by-task with per-task checkpoints; for parallelizable tasks use `dispatching-parallel-agents`. Steps use checkbox (`- [ ]`) syntax for tracking.
-
-**Goal:** [One sentence describing what this builds]
-
-**Architecture:** [2-3 sentences about approach]
-
-**Tech Stack:** [Key technologies/libraries]
-
-**Spec:** [path to the spec/design doc this plan implements — the plan
-argues from the spec, so the spec travels with it; executors read both]
-
-## Global Constraints
-
-[The spec's project-wide requirements — version floors, dependency limits,
-naming and copy rules, platform requirements — one line each, with exact
-values copied verbatim from the spec. Every task's requirements implicitly
-include this section.]
-
----
-```
-
-## Task Structure
-
-````markdown
-### Task N: [Component Name]
-
-**Files:**
-- Create: `exact/path/to/file.py`
-- Modify: `exact/path/to/existing.py:123-145`
-- Test: `tests/exact/path/to/test.py`
-
-**Interfaces:**
-- Consumes: [what this task uses from earlier tasks — exact signatures]
-- Produces: [what later tasks rely on — exact function names, parameter
-  and return types. A task's implementer sees only their own task; this
-  block is how they learn the names and types neighboring tasks use.]
-
-- [ ] **Step 1: Write the failing test**
-
-```python
-def test_specific_behavior():
-    result = function(input)
-    assert result == expected
-```
-
-- [ ] **Step 2: Run test to verify it fails**
-
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
-
-- [ ] **Step 3: Write minimal implementation**
-
-```python
-def function(input):
-    return expected
-```
-
-- [ ] **Step 4: Run test to verify it passes**
-
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
-````
-
-## No Placeholders
-
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
-- "TBD", "TODO", "implement later", "fill in details"
-- "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
-- References to types, functions, or methods not defined in any task
-
-## Self-Review
-
-After writing the complete plan, look at the spec with fresh eyes and check the plan against it. This is a checklist you run yourself — not a subagent dispatch.
-
-**1. Spec coverage:** Skim each section/requirement in the spec. Can you point to a task that implements it? List any gaps.
-
-**2. Placeholder scan:** Search your plan for red flags — any of the patterns from the "No Placeholders" section above. Fix them.
-
-**3. Type consistency:** Do the types, method signatures, and property names you used in later tasks match what you defined in earlier tasks? A function called `clearLayers()` in Task 3 but `clearFullLayers()` in Task 7 is a bug.
-
-If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
-
-## Execution Handoff
-
-After saving the plan, offer execution choice:
-
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
-
-**1. Parallel Agents** - independent tasks dispatched to subagents (`dispatching-parallel-agents`), review between tasks
-
-**2. Inline Execution** - execute tasks in this session, batch execution with checkpoints
-
-**Which approach?"**
-
-**If Parallel Agents chosen:**
-- Fresh subagent per task + two-stage review
-
-**If Inline Execution chosen:**
-- Batch execution with checkpoints for review
+When only a plan was requested, deliver the plan and do not implement.
 
 ---
 
-> Source: obra/superpowers (MIT). Adapted for coding-kit: cross-references made local.
+Source: obra/superpowers (MIT). Adapted for coding-kit.

@@ -1,30 +1,30 @@
 ---
 name: testing-discipline
-description: 'Use when the user wants to: add/fix tests, understand what is covered, determine whether something is "done", reproduce a bug with a test, check limits/rate-limit/failures, or when tests are written against a real DB/network. Covers: isolation from the prod store, domain-first tests, test names as a spec, boundary cases, tests for money/limits/UI/copy, DoD (parse + import + test + live process). Do not use for debugging strategy (debug-incident-protocol).'
+description: 'Use when adding/fixing tests, reproducing bugs, checking limits or failures, or deciding what evidence establishes completion. Covers isolated storage, real domain logic, meaningful boundary regressions and verification of the affected runtime/UI surface. Debugging strategy lives in debug-incident-protocol.'
 license: MIT
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Testing discipline: tests as a spec and defining "done"
 
 ## 0. TDD gate (OPS §3 Phase 2 companion)
 
-Red test → green code → refactor. Test = spec. Test name = rule: `test_referral_no_self`, `test_payment_idempotent`. No code until a failing test exists.
+Define observable acceptance and a suitable check before changing behavior. Bug fixes require a failing reproduction followed by a passing result. Preserve meaningful existing tests; keep a new regression when a plausible recurring bug would fail it. Smoke probes and rendered UI interaction are valid evidence, not an obligation to add permanent test files.
 
 ## 1. Isolation and structure
 
-1. **NEVER TOUCH PROD STORE IN TESTS** — tests on throwaway storage: env path override + temp file + fresh import. Prod row count unchanged after the suite.
-2. **FRESH IMPORT FOR MODULE-LEVEL SIDE EFFECTS** — import-time connect/migrate breaks isolation: `sys.modules.pop` + importlib per test/fixture.
-3. **UNIT DOMAIN FIRST, HANDLER WIRING SECOND** — business rules without a framework; handlers are thin glue with fakes for I/O. Domain suite green offline in <2s.
-4. **FAKE THE EDGES, NOT THE CORE** — mock Telegram/HTTP/API; do NOT mock your own business logic "for convenience". Handler test touches the real temp DB.
+1. **NEVER TOUCH PROD STORE IN TESTS** — use throwaway storage selected before import: env override, temporary path and isolated fixture. Do not connect to production merely to compare row counts.
+2. **CONTROL IMPORT SIDE EFFECTS** — prefer explicit dependency injection or existing isolated fixtures; use a fresh import when a module actually captures storage at import time.
+3. **DOMAIN FIRST** — exercise business rules directly; integration checks cover meaningful I/O boundaries. No arbitrary runtime target or mandatory framework bypass.
+4. **FAKE THE EDGES, NOT THE CORE** — replace external Telegram/HTTP/API calls, not the business logic under test. Use a real temporary DB when persistence semantics are part of the behavior.
 
 ## 2. Names and boundaries
 
 - **TEST NAMES ARE THE SPEC** — `test_referral_no_self`, `test_crypto_idempotent` — name = rule. `pytest --collect-only` reads like a product checklist. NOT test_1, test_works.
 - **PRODUCT RULES AS NAMED TESTS** — the spec lives in tests: `test_free_spent_first`, `test_cannot_buy_while_paid_remains`. A new developer reads the tests = understands the product.
-- **ASSERT THE BOUNDARY CASES** — at minimum per function: happy + one edge + one abuse. free→0, paid edge, self-ref, double credit, empty username, overflow.
+- **ASSERT MATERIAL BOUNDARIES** — choose plausible failure modes: zero/exhausted value, self-referral, double credit, empty input, overflow. No happy/edge/abuse quota for every function.
 - **WRITE THE ABUSE CASE WHEN YOU WRITE THE GROWTH CASE** — referral/promo written with an anti-fraud test in the same PR.
 
 ## 3. Specific tests
@@ -32,37 +32,36 @@ Red test → green code → refactor. Test = spec. Test name = rule: `test_refer
 - **MONEY PATH**: double-submit → balance +X not +2X; provider error injection → balance unchanged; reject → `assert not user_exists(...)`.
 - **LIMITS (cap)**: test before implementation: cap exhausted → False, user not created; monkeypatch.setenv; `assert cap and invited >= cap`.
 - **RATE LIMIT**: two consecutive calls → second blocked without external API: mock API → assert len(calls) <= 1.
-- **UI: PRESENCE + ROUTING** — per UI addition: test_X_exists + test_X_routes_to_Y.
-- **USER-FACING COPY AS REGRESSION TESTS** — `assert "key phrase" in TEXT` — copy change = breaking change.
+- **UI** — exercise the actual rendered user flow, states and responsive behavior affected by the change. Permanent tests defend uncertain behavior, not component presence or routing echoes.
+- **COPY** — verify meaning, accessibility and any legal/protocol wording that is genuinely contractual. Ordinary editorial changes do not need substring-lock tests.
 - **PAYLOAD VALIDATION** — `assert len(body.encode("utf-8")) <= PLATFORM_LIMIT` before deploy.
 
 ## 4. DoD — defining "done"
 
-**"Committed" ≠ "works at runtime".** Checklist of 4 items:
+Completion covers every requested behavior, not merely passing tests.
 
-1. **Parse** — `python -m compileall -q` / syntax
-2. **Import** — module imports without errors
-3. **Test** — pytest green (domain offline; integration with fakes)
-4. **One live process** — real entrypoint run, log OK
+- Run syntax/import/build checks applicable to the changed implementation.
+- Run focused existing tests, broadening for shared code or exposed failures.
+- Exercise the changed entrypoint, API or rendered UI when runtime behavior is
+  the claim. A startup log alone does not prove the changed path.
+- A documentation or read-only task does not require an unrelated live service.
+  Missing runtime capability: use an isolated smoke probe where possible and
+  state exactly what remains unverified.
+- Reuse evidence valid for the final checked state; a chat turn alone does not
+  invalidate it. See `verification-before-completion`.
 
-Three-step verification: **ruff → compileall → pytest** — in this order, applied to the change under test. Broaden to suite-wide when scope warrants: the change touches shared code, or a targeted run fails.
+## Workflow
 
-## Workflow (order of application)
-
-1. **Isolate the store.** Tests on throwaway storage.
-2. **Define the test layer.** Domain logic — unit without a framework; handlers — thin glue with fakes.
-3. **Write tests from product rules.** Name = spec. `pytest --collect-only` = checklist.
-4. **Cover boundaries.** Per function: happy + edge + abuse.
-5. **Add specific tests.** Money, limits, rate-limit, UI, copy, payload.
-6. **Run three-step verification.** ruff → compileall → pytest.
-7. **DoD before "done".** parse + import + test + live process.
+1. Define consumer-visible acceptance and the failure being defended.
+2. Select the appropriate layer and isolate external side effects.
+3. Reproduce bugs before fixing them; for new behavior define a focused check.
+4. Implement the complete request, run the check and applicable existing suite.
+5. Verify the affected runtime surface and report the evidence's actual scope.
 
 ## Checklist
 
-- [ ] tests do not write to prod storage
-- [ ] domain logic tested without a framework
-- [ ] every rule has a named test (name = spec)
-- [ ] boundaries: happy + edge + abuse
-- [ ] money: double-submit, error-no-debit, no-side-effects-on-reject
-- [ ] limits and rate-limit covered
-- [ ] DoD: parse + import + test + live process
+- [ ] Storage and network effects are isolated from production
+- [ ] Checks exercise real domain behavior, boundaries or failure transitions
+- [ ] No source-text, wording, mock-echo or test-count padding
+- [ ] Money and limits retain idempotency and no-side-effects-on-reject coverage
+- [ ] Every acceptance criterion has appropriate observed evidence

@@ -3,7 +3,7 @@ name: code-review-and-quality
 description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 ## Overview
@@ -96,9 +96,9 @@ verdict: <VERIFIED | VERIFIED WITH CAVEATS | REFUTED>
 ## Dead Code Hygiene
 
 After any refactoring, check for orphaned code:
-1. Identify code that is now unreachable or unused
-2. List it explicitly
-3. **Ask before deleting:** "Should I remove these now-unused elements: [list]?"
+1. Verify no remaining callers, including dynamic and public entry points.
+2. In an authorized implementation task, remove code the task made obsolete.
+3. Ask before deleting unrelated user code; a review-only task reports findings without edits.
 
 ## Dependency Discipline
 

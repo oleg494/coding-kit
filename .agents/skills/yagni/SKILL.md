@@ -3,12 +3,16 @@ name: yagni
 description: 'Always-on. Law of minimalism: don''t build what wasn''t asked for. Abstraction must pay rent via present value or a genuine change-isolation boundary; hypothetical reuse → inline. New dependency → only if the pain is measurable. Dead code → delete. "For the future" → not a reason. Use for ANY code change.'
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # YAGNI — law of minimalism
 
 Always-on skill. Apply before every code change.
+
+Minimize implementation weight, not the requested outcome. Required formats,
+callers, compatibility, errors and quality are present needs. Do not ship a
+reduced MVP or demand a second request for the rest of the original scope.
 
 ## Rules
 
@@ -23,7 +27,7 @@ Always-on skill. Apply before every code change.
 
 ## Filter before every change
 
-- **DRY** — duplicated in 3+ places? → shared source. 2 places? → tolerate.
+- **DRY** — share genuinely identical knowledge when a single source reduces change risk; similar-looking code alone is not evidence of a shared abstraction.
 - **KISS** — does the simpler option close the task? → take the simple one. Complexity is justified only when the simple one doesn't cut it.
 - **YAGNI** — is this needed NOW? → no → don't do it.
 

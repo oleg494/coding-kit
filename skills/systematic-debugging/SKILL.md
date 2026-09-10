@@ -3,7 +3,7 @@ name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Systematic Debugging
@@ -191,28 +191,15 @@ You MUST complete each phase before proceeding to the next.
    - Issue actually resolved?
    - Use the `verification-before-completion` skill before claiming success
 
-4. **If Fix Doesn't Work**
-   - STOP
-   - Count: How many fixes have you tried?
-   - If < 3: Return to Phase 1, re-analyze with new information
-   - **If ≥ 3: STOP and question the architecture (step 5 below)**
-   - DON'T attempt Fix #4 without architectural discussion
+4. **If the Fix Fails**
+   - Stop speculative editing; inspect the new failure and return to root-cause investigation.
+   - Repeated failures call for a different hypothesis or better evidence, not an automatic hand-back at a fixed retry count.
+   - Continue an evidence-backed, authorized repair when its scope and intended behavior remain clear.
 
-5. **If 3+ Fixes Failed: Question Architecture**
-
-   **Pattern indicating architectural problem:**
-   - Each fix reveals new shared state/coupling/problem in different place
-   - Fixes require "massive refactoring" to implement
-   - Each fix creates new symptoms elsewhere
-
-   **STOP and question fundamentals:**
-   - Is this pattern fundamentally sound?
-   - Are we "sticking with it through sheer inertia"?
-   - Should we refactor architecture vs. continue fixing symptoms?
-
-   **Discuss with your human partner before attempting more fixes**
-
-   This is NOT a failed hypothesis - this is a wrong architecture.
+5. **When Evidence Points to Architecture**
+   - Look for shared-state coupling, fixes that require broad refactoring, or new symptoms at each boundary.
+   - Investigate those causes before adding another patch. Several failed attempts alone do not prove the architecture is wrong.
+   - Ask only if the repair introduces an unresolved product tradeoff or needs authority beyond the task. Otherwise finish the reachable repair and verify it.
 
 ## Red Flags - STOP and Follow Process
 
@@ -226,12 +213,12 @@ If you catch yourself thinking:
 - "Pattern says X but I'll adapt it differently"
 - "Here are the main problems: [lists fixes without investigation]"
 - Proposing solutions before tracing data flow
-- **"One more fix attempt" (when already tried 2+)**
+- **Repeating a failed fix without new evidence**
 - **Each fix reveals new problem in different place**
 
 **ALL of these mean: STOP. Return to Phase 1.**
 
-**If 3+ fixes failed:** Question the architecture (see Phase 4.5)
+**Repeated failures:** reconsider the hypothesis and scope using evidence (see Phase 4.5); do not stop merely because a counter reached three.
 
 ## your human partner's Signals You're Doing It Wrong
 
@@ -255,7 +242,7 @@ If you catch yourself thinking:
 | "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
 | "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
 | "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
-| "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
+| "One more fix attempt" without new evidence | Return to investigation. A new trace can justify another bounded fix; a retry count cannot prove an architectural defect. |
 
 ## Quick Reference
 

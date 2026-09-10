@@ -3,7 +3,7 @@ name: security-and-hardening
 description: Hardens code against vulnerabilities. Use when handling user input, authentication, data storage, or external integrations. Use when building any feature that accepts untrusted data, manages user sessions, or interacts with third-party services. Use when personal data or privacy compliance (GDPR, CCPA) is involved.
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Security and Hardening
@@ -44,13 +44,14 @@ Security-first development practices. Treat every external input as hostile, eve
 - Set security headers (CSP, HSTS, X-Frame-Options)
 - Use httpOnly, secure, sameSite cookies for sessions
 
-### Ask First (Requires Human Approval)
-- Adding new authentication flows
-- Storing new categories of sensitive data
-- Adding new external service integrations
-- Changing CORS configuration
-- Adding file upload handlers
-- Modifying rate limiting
+### Resolve Missing Authority or Scope
+Authentication flows, sensitive-data categories, external integrations, CORS,
+uploads and rate limits require explicit requirements and security review,
+not automatic reapproval. Implement and verify already-requested local changes.
+Ask only when available evidence cannot resolve a consequential scope choice
+or when the next action lacks authority under AGENTS.md, such as transmitting
+real personal data, changing live permissions or activating an external service.
+Keep authorization for implementation separate from authorization for deployment.
 
 ### Never Do
 - Never commit secrets to version control

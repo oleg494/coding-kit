@@ -16,23 +16,23 @@ PLAN → TDD → IMPLEMENT → VERIFY → REPORT
 ### 2. PLAN
 - Define "what done means" — concretely, observably.
 - Name the scope: files you touch, files you do NOT touch.
-- Complex task (>3 files) → split into atomic tasks.
+- Decompose by independent deliverables and shared interfaces, not file counts.
 
 ### 3. TDD
 - Red test → green code → refactor.
-- No code without a failing test.
-- Bug fix → Prove-It Pattern: a test reproducing the bug FIRST.
+- Define a behavior check before code; smoke probes and rendered UI checks are valid proof where appropriate.
+- Bug fix → Prove-It Pattern: reproduce FIRST, then verify the fix; keep regressions for plausible recurring bugs.
 
 ### 4. IMPLEMENT
-- The minimal change that makes the test green.
-- YAGNI: nothing beyond the test.
+- The smallest correct implementation of the complete requested behavior.
+- YAGNI removes unnecessary implementation weight, never acceptance criteria.
 - Match surrounding style.
 
 ### 5. VERIFY
 - Test green? → observed.
 - Tests appropriate to the change green? → ran them; broaden when scope
   warrants (shared code touched, or a failure the targeted check exposed).
-- Build intact? → checked.
+- Check applicable build/runtime paths, not an unrelated live process or production store.
 - Bug fix → TWINS: searched for the same pattern in the codebase.
 
 ### 6. REPORT
@@ -72,15 +72,15 @@ Boundary rule: portable → `~/.memory/Wiki/`; project-specific → `WORK/<proje
 
 ## Irreducible Core & Exceptions
 
-- **Authorization rules:** User instructions outrank kit skills. Commits happen only if requested by user or repo convention. Destructive commands require user confirmation. Reversible local changes proceed without approval stall.
-- **Uncertainty & stop conditions:** Label low-confidence facts honestly; don't guess. Stop when blocked by environment, permissions, or 3 failed cycles.
+- **Authorization rules:** AGENTS.md is the source of truth. Requested local changes proceed through design and implementation without approval stalls. Commits and outward/destructive actions require the authority defined there.
+- **Uncertainty & stop conditions:** Stop tool actions immediately on user revocation. Otherwise inspect evidence and finish reachable work; report a concrete missing prerequisite, not a phase or fixed retry-count gate.
 - **Applicability exceptions (When NOT to use full cycle):**
-  - One-line fix, typo → verify is enough.
+  - Typo or other non-behavioral edit → verify is enough. A one-line behavior fix still needs a reproduction and a relevant check.
   - Pure documentation → plan + verify.
   - Read-only investigation/review → findings and recommendation only; no side-effect memory or file writes unless asked.
 
 ## Never
-- Write code without a plan and a test
+- Change behavior without defined acceptance and a suitable check
 - Build abstractions without present value / clear change boundary
 - Add dependencies without measuring the pain
 - Claim "done" without evidence

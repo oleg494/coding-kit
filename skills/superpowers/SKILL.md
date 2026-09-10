@@ -1,9 +1,9 @@
 ---
 name: superpowers
-description: 'Always-on. The main development method: Plan → TDD → Implement → Verify → Report. Use for ANY non-trivial task. Do not write code without a plan and a test. Complex tasks (>3 files) → split into atomic tasks. Bug fix → Prove-It Pattern (reproduce with a test before the fix).'
+description: 'Always-on development method: plan, check, implement, verify, report. Use for non-trivial tasks. Define observable acceptance before code, reproduce bugs before fixes, and complete the requested outcome without procedural permission gates.'
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Superpowers — main development method
@@ -37,7 +37,7 @@ Kit v2: each phase has a granular skill helper. A phase is not replaced, but dee
 - What should be true when the task is done?
 - Which files do you touch? Which do you NOT touch?
 - What assumptions do you make?
-- Complex task (>3 files / >5 changes) → split into atomic tasks.
+- Split by independently verifiable outcomes and shared interfaces, not file or step counts.
 
 **Scope discipline:** touch only what the task requires. Not "I'll clean up along the way".
 
@@ -45,8 +45,8 @@ Kit v2: each phase has a granular skill helper. A phase is not replaced, but dee
 
 **Red test → green code → refactoring.**
 
-- No code without a failing test.
-- Test = spec. Test name = rule: `test_payment_idempotent`, `test_referral_no_self`.
+- Define an observable check before changing behavior; reproduce a bug before its fix.
+- Test names express consumer rules, not implementation details. Keep a permanent regression only where a plausible bug would fail it; a throwaway probe or rendered UI interaction can provide the appropriate proof.
 - A test verifies behavior, not implementation.
 
 ### Prove-It Pattern (bug fix)
@@ -57,11 +57,11 @@ Bug report → test reproducing the bug → test FAILS → fix → test GREEN
 
 ## Phase 3: IMPLEMENT
 
-**Minimal change that makes the test green.**
+**Smallest correct implementation of the full request.**
 
-- YAGNI: don't add anything beyond what the test requires.
-- Style — as in the surrounding code. Don't refactor someone else's code without asking.
-- DRY: duplicated in 3+ places? → shared source.
+- Do not reduce requested scope to fit the current test or increment.
+- Match existing patterns. Repair in-scope gaps; avoid unrelated cleanup.
+- Share a source where duplication is genuinely the same knowledge, not merely similar text.
 
 ## Phase 4: VERIFY
 
@@ -73,26 +73,25 @@ Bug report → test reproducing the bug → test FAILS → fix → test GREEN
   Re-running an unchanged check with no new changes, failures, or
   unresolved concerns is ceremony, not verification.
 - [ ] No test that merely mirrors a reversible low-impact change? → skipped it.
-- [ ] Build not broken? → checked. Linter clean on what changed? → ran.
+- [ ] Build/lint checks applicable to affected paths pass; no unrelated runtime or production-store demand.
 - [ ] Bug fix → TWINS: searched for the same pattern in the codebase.
 
-### SDD contract gates (v3.9.0)
+### Completion and ownership
 
-Three contract rules — not advice. Violating one invalidates the phase.
+1. **Resolve material ambiguity.** Inspect code, config and requirements;
+   decide ordinary implementation details. Ask only for information that
+   remains unavailable and changes the outcome. Planning is not an approval gate.
+2. **Separate tracking from signoff.** Update your execution checklist from
+   evidence. Never toggle a separately owned reviewer approval or claim their
+   acceptance. Missing signoff does not prohibit authorized implementation.
+3. **Converge by repair.** Before reporting, compare the deliverable against
+   every requested requirement. Add missed work, fix in-scope gaps and verify
+   them. Record out-of-scope findings without silently expanding the task.
+   A review-only request produces findings, not edits. A single small change's
+   direct verification can be the audit; no extra review ceremony is required.
 
-1. **Clarify before plan.** Outcome-changing ambiguity? Resolve it into
-   the spec BEFORE a plan exists; details you can decide, decide and
-   record. A plan built on an unclarified spec is waste.
-2. **Checklist sovereignty.** Reviewer-owned `- [ ]` markers in a plan
-   or task list: the implementer NEVER toggles one. Counts unchecked,
-   reports the number, asks the owner.
-3. **Converge pass.** Before REPORT, when a reviewer-owned checklist or
-   multi-item task list exists: a strictly append-only anti-false-done
-   audit. Its ONLY write is ADDING missed work to the task list; findings
-   are severity-graded (critical/warning/suggestion). Re-checking a box,
-   editing done work, or declaring "converged, nothing to add" without the
-   audit is a false done. For a single small change, the verification
-   evidence is the audit.
+Continue through these steps without yielding at a phase boundary. Stop only
+for user revocation or a concrete unavailable prerequisite under AGENTS.md.
 
 ## Phase 5: REPORT
 

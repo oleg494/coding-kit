@@ -3,115 +3,66 @@ name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Requesting Code Review
 
-Dispatch a code reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history.
+Review the complete change at a coherent verification boundary. Follow the
+host's delegation rules; use an available reviewer when independent review
+is required or materially useful. A skill does not create a missing agent
+capability or authorize commits, publication, or a merge.
 
-## What NOT to Flag
+## When to review
 
-The same review protocol binds the reviewer you dispatch — put this in
-the template context:
+- Review major features and changes before merge, covering their requirements
+  and affected execution paths.
+- For parallel work, review every contribution and the integrated behavior;
+  one integrated review may cover coupled tasks. Do not require a separate
+  blocking review after every worker or microstep.
+- Seek a fresh perspective when evidence stalls, a complex defect persists,
+  or the change has a consequential trust or compatibility boundary.
+- For a small bounded change, proportionate inline review is sufficient unless
+  the host, user, or applicable merge policy requires independent signoff.
 
-- No theoretical risks — no exploit path in THIS change's reality.
-- No defense-in-depth when the primary control suffices.
-- No issues in unchanged code (lines outside the diff).
-- No "consider library X" — no new-dependency suggestions.
+## Prepare a self-contained review brief
 
-Findings come back as 3-value severity with machine-checkable counts
-(`counts: critical: N | warning: N | suggestion: N`); the verdict is
-recomputed from the counts (`verdict_from_counts`, canonical in
-`scripts/tools/review_protocol.py`) — not from the reviewer's mood.
+Use the reviewer's actual host-provided name and capabilities. No external
+prompt template is required. Supply:
 
-**Core principle:** Review early, review often.
+- **Goal:** requested behavior, acceptance criteria and explicit non-goals.
+- **Scope:** diff-review or whole-system audit, changed files, coupled interfaces,
+  and relevant source context. Use the scope rules in `code-review-and-quality`.
+- **Compared states:** the actual baseline and candidate. For uncommitted work,
+  provide the working-tree diff or before/after snapshots; do not invent SHAs
+  or create commits just to fill a review template.
+- **Evidence:** commands and observed results, checked state, reproduction steps,
+  and any verification gaps. Never present a dry-run as a behavior result.
+- **Output:** actionable findings with severity, file/line, contract impact and
+  supporting evidence. Use `critical`, `warning`, `suggestion` and the canonical
+  report/verdict rules in `code-review-and-quality` and `fable-judge`.
 
-## When to Request Review
+The reviewer needs the work product and relevant constraints, not an entire
+session transcript. In diff-review, suppress hypothetical or unrelated findings;
+whole-system audits retain their broader invariant scope.
 
-**Mandatory:**
-- After each task in parallel agent batches
-- After completing major feature
-- Before merge to main
+If independent review is unavailable, finish reachable implementation and
+verification, report the unavailable signoff, and do not claim it was obtained.
+Do not cross a merge or approval boundary that requires that signoff.
 
-**Optional but valuable:**
-- When stuck (fresh perspective)
-- Before refactoring (baseline check)
-- After fixing complex bug
+## Act on findings
 
-## How to Request
-
-**1. Get git SHAs:**
-```bash
-BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
-HEAD_SHA=$(git rev-parse HEAD)
-```
-
-**2. Dispatch code reviewer subagent:**
-
-Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md](code-reviewer.md)
-
-**Placeholders:**
-- `{DESCRIPTION}` - Brief summary of what you built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
-- `{HEAD_SHA}` - Ending commit
-
-**3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
-
-## Example
-
-```
-[Just completed Task 2: Add verification function]
-
-You: Let me request code review before proceeding.
-
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
-HEAD_SHA=$(git rev-parse HEAD)
-
-[Dispatch code reviewer subagent]
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
-
-[Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
-
-You: [Fix progress indicators]
-[Continue to Task 3]
-```
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "I'll just review the diff myself instead of dispatching a reviewer" | You're the coordinator — reviewing the diff inline burns the context window you need to keep driving the work. Dispatch a reviewer subagent: the diff and the evaluation live in its context, and only the findings come back to you. |
-| "The reviewer needs my whole session history to understand the change" | Hand it precisely crafted context, never your session's history. That keeps the reviewer on the work product, not your thought process. |
-
-## Red Flags
-
-**Never:**
-- Skip review because "it's simple"
-- Ignore Critical issues
-- Proceed with unfixed Important issues
-- Argue with valid technical feedback
-
-**If reviewer wrong:**
-- Push back with technical reasoning
-- Show code/tests that prove it works
-- Request clarification
-
-See template at: [code-reviewer.md](code-reviewer.md)
+- Check each finding against the actual contract and source; push back with
+  evidence when it is incorrect.
+- Repair material in-scope defects and verify the repair. Suggestions do not
+  become automatic blockers or new requirements.
+- Resolve outcome-changing ambiguity before dependent changes; continue
+  independent authorized fixes. Follow `receiving-code-review`.
+- Keep execution tracking separate from reviewer-owned approval. Reuse valid
+  evidence, but obtain new checks or review when changes invalidate it.
+- Report remaining material gaps rather than silently approving, fabricating
+  review, or marking the reviewer's checkboxes yourself.
 
 ---
 
-> Source: obra/superpowers (MIT). Adapted for coding-kit: cross-references made local.
+> Source: obra/superpowers (MIT). Adapted for coding-kit: host-aware review dispatch and coherent change boundaries.

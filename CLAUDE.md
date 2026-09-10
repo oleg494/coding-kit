@@ -15,24 +15,19 @@ You run from `.github/workflows/claude.yml` on `ubuntu-latest`, triggered by an
   the base, do not record findings. Say so in one line rather than failing the
   step.
 - There is no `.override.md` here, so the default contract applies.
-- The model behind this session is not an Anthropic model. Behaviour differences
-  are yours to work around, not to report.
+- Report observed model/tool limitations when they affect verification; do not conceal failures or attribute unmeasured behavior to a provider.
 
 ## Verifying a change
 
-`scripts/doctor.py` is the gate, and it is the whole verification story:
+Run checks matching the affected contract. `python -m pytest tests -q` is the
+repository-wide check when shared policy/runtime changes warrant it; focused
+checks suffice for isolated changes. `scripts/doctor.py` diagnoses installation
+health, not model behavior or every feature's correctness.
 
-```bash
-python -m pip install pytest
-python scripts/install.py    # bootstrap memory engine, self-test
-python scripts/doctor.py     # 14 checks; must end "All systems GREEN"
-python -m pytest tests -q
-```
-
-Doctor's `memory+db` and `backup freshness` checks read `~/.memory`, which does
-not exist yet on a fresh runner — `scripts/install.py` creates it, so run that
-first. If doctor still fails only on backup freshness, that check is WARN-tier
-and does not block.
+For an installation/bootstrap task on a disposable runner, install prerequisites,
+run `scripts/install.py`, then doctor. Do not bootstrap or mutate a real user
+memory root merely to verify an unrelated edit. Report environmental failures
+separately from failures caused by the change.
 
 Before pushing anything, respect these repo rules:
 
@@ -51,6 +46,5 @@ Before pushing anything, respect these repo rules:
 - The repo's language is English for code, comments, and commit messages.
 - Conventional commits, matching the existing log: `fix(policy): ...`,
   `docs: ...`, `test: ...`.
-- Work on a branch and open a pull request. Never push to `master` directly.
-- Report what you verified with the actual command output. A claim of "done"
-  without a fresh run is forbidden here the same as anywhere else.
+- Local implementation does not authorize a commit, push or pull request; follow AGENTS.md. If publication is authorized, use a branch/PR rather than pushing to `master`.
+- Report exact commands, checked state and coverage. Reuse still-valid evidence; never claim broader coverage than was exercised.

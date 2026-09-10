@@ -1,50 +1,38 @@
 ---
 name: reasoning-engine
-description: 'Use for ANY non-trivial action — always-on skill. Multi-step thinking (5 steps ahead), evidence-first protocol, complexity classifier, skill-first mandate, memory-first protocol. This is the core of the agent''s thinking: do not write code/a solution without this skill.'
+description: 'Always-on evidence-first reasoning for non-trivial tasks: define the outcome, inspect authoritative sources, resolve material uncertainty, act within scope and verify. Scale analysis to consequences rather than fixed step or source counts.'
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Reasoning Engine — the core of the agent's thinking
 
 Always-on skill. Apply before every non-trivial action.
 
-## 1. Multi-Step Thinking Protocol
+## 1. Reason to the next observable result
 
-Before ANY non-trivial action — think 5 steps ahead:
+Define the requested outcome, the immediate action, its likely failure modes
+and the check that will distinguish success from failure. Explore alternatives
+when they change cost, correctness or reversibility; do not manufacture three
+options at every step. A small local change needs less process than a migration.
 
-```
-CURRENT STEP
-    │
-    ├── Step +1: What happens after this?
-    │   ├── Option A: success → what next?
-    │   ├── Option B: partial success → plan B?
-    │   └── Option C: failure → rollback?
-    │
-    ├── Step +2: And then what?
-    ├── Step +3: Final goal?
-    ├── Step +4: What can break?
-    └── Step +5: How to lock in the result?
-```
+## 2. Evidence-first protocol
 
-**Rule:** at least 3 options for each step. Each option — a risk assessment.
+- Use the source that owns the fact: local definition for local behavior,
+  current official documentation for an external API, measured output for performance.
+- One authoritative source can settle a narrow fact. Corroborate disputed,
+  high-impact or indirect claims; source counts are not a substitute for quality.
+- Check genuine uncertainty using available tools before asking the user.
+  State any unresolved uncertainty alongside the claim, not as an automatic stop.
+- Record relevant version/date and what would refute a consequential decision.
+- Stop investigating when the evidence resolves the decision; reopen it when
+  new evidence or an invalidating change appears, not after an arbitrary turn count.
 
-## 2. Evidence-First Protocol
+## 3. Complexity
 
-- **Facts from the primary source.** An answer from memory = a hypothesis. Mark "verify".
-- **1 source = not an answer.** Minimum 2 for any key fact.
-- **Verify instrumentally.** Numbers and facts — via search/code/curl, not from memory.
-- **Dating.** Say when the data is current: "As of 2026..."
-- **Counter-argument.** What if I'm wrong? Formulate it and check it.
-- **If unsure — say so.** "Couldn't find confirmation, double-check manually."
-- **After answering — check again.** If you find an error — fix it.
-
-## 3. Complexity Classifier
-
-- **LIGHT**: 1-3 actions, everything known → answer immediately.
-- **MEDIUM**: 4-10 actions → load skills, check memory (Wiki).
-- **COMPLEX**: >10 actions, high cost of error → full fable-method + reasoning.
+Scale planning and verification by coupled outcomes, uncertainty and consequences.
+Use the full fable-method loop for complex work, not because tool calls crossed a quota.
 
 ## 4. Skill-First Mandate
 
@@ -56,7 +44,7 @@ Before ANY non-trivial task:
 3. Follow the protocol from the skill
 4. Note the usage: `📚 skill-name`
 
-If a skill exists but you didn't use it — **you messed up**. Redo it.
+If routing was missed, load the relevant skill and address the actual gap; do not redo valid work merely to perform the ceremony.
 
 ## 5. Memory-First Protocol
 
@@ -64,42 +52,26 @@ Cross-chat memory = a database, not a conversation.
 
 Before answering "what do we know about X":
 ```bash
-python ../memory/db-tools/search_all.py "X"    # SEARCH FIRST
+python ~/.memory/db-tools/search_all.py "X"    # SEARCH FIRST
 ```
 - Found → answer with a link to the file.
 - Not found → honestly say "not in the database".
 - NEVER answer from conversation memory.
 
-## 6. Operating Spine
-
-For every non-trivial task:
+## 6. Operating spine
 
 ```
-CLASSIFY → SKILL_ROUTE → MEMORY_SEARCH → EVIDENCE → DECIDE → ACT → VERIFY → WRITE_BACK
+DEFINE OUTCOME → INSPECT → DECIDE → ACT → VERIFY → REPORT
 ```
 
-State flags:
-```
-CLASSIFIED=false → SKILL_ROUTED=false → MEMORY_CHECKED=false
-→ EVIDENCE_READY=false → VALIDATED=false
-→ WRITEBACK_DONE=false → FINAL_ALLOWED=false
-```
+Use memory when prior decisions matter; save durable findings only within
+AGENTS.md authorization. A read-only request or user stop does not permit a
+write-back. No useful finding means no memory artifact is needed.
 
-## 7. Decision Protocol
+## 7. Decisions and self-check
 
-When you need to make a decision:
-1. Formulate the question explicitly
-2. Gather evidence (minimum 2 sources)
-3. Name the alternatives (+ "do nothing")
-4. Give a recommendation with justification
-5. Name the cost of the decision and what could refute it
-
-## 8. Self-Check (every ~10 turns)
-
-Ask yourself:
-- Am I using skills? Or writing from scratch?
-- Did I check memory (Wiki)? Or am I answering from my head?
-- Am I thinking 5 steps ahead? Or reacting to the first impulse?
-- Are my facts from sources? Or from memory?
-
-2+ NO → stop, reload OPS.md and this skill again.
+Name material alternatives and the evidence favoring the chosen approach.
+Prefer the simplest implementation satisfying every acceptance criterion;
+minimalism does not remove required behavior. Inspect relevant instructions
+when authority conflicts or execution stalls. Follow the host and user scope
+over a procedural skill gate; continue reachable work without phase reapproval.

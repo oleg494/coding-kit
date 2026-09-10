@@ -3,7 +3,7 @@ name: receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Code Review Reception
@@ -43,11 +43,11 @@ WHEN receiving code review feedback:
 ## Handling Unclear Feedback
 
 ```
-IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
-
-WHY: Items may be related. Partial understanding = wrong implementation.
+IF an item is unclear:
+  Inspect the code, requirements and review context first.
+  If the answer remains outcome-changing, ask about that item.
+  Pause only work that depends on the missing answer.
+  Continue independent, understood and authorized fixes; do not guess.
 ```
 
 **Example:**
@@ -55,8 +55,8 @@ WHY: Items may be related. Partial understanding = wrong implementation.
 your human partner: "Fix 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
 
-❌ WRONG: Implement 1,2,3,6 now, ask about 4,5 later
-✅ RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before proceeding."
+If 4 and 5 can change the other fixes, resolve them before dependent edits.
+If independent, fix and verify 1,2,3,6; ask only about 4 and 5.
 ```
 
 ## Source-Specific Handling
@@ -79,11 +79,12 @@ BEFORE implementing:
 IF suggestion seems wrong:
   Push back with technical reasoning
 
-IF can't easily verify:
-  Say so: "I can't verify this without [X]. Should I [investigate/ask/proceed]?"
+IF evidence is insufficient:
+  Investigate with available tools; name any concrete unavailable prerequisite.
+  Hold the affected change, not independent verified work.
 
-IF conflicts with your human partner's prior decisions:
-  Stop and discuss with your human partner first
+IF a suggestion conflicts with the user's prior decisions:
+  Resolve the conflict with the user before that change; continue independent work.
 ```
 
 **your human partner's rule:** "External feedback - be skeptical, but check carefully"
@@ -94,8 +95,9 @@ IF conflicts with your human partner's prior decisions:
 IF reviewer suggests "implementing properly":
   grep codebase for actual usage
 
-  IF unused: "This endpoint isn't called. Remove it (YAGNI)?"
-  IF used: Then implement properly
+  IF unused: Verify dynamic/public callers and whether removal is in task scope.
+    Remove task-obsoleted code; ask before deleting unrelated user code.
+  IF used: Implement the requested behavior, not speculative improvements.
 ```
 
 **your human partner's rule:** "You and reviewer both report to me. If we don't need this feature, don't add it."
@@ -104,8 +106,8 @@ IF reviewer suggests "implementing properly":
 
 ```
 FOR multi-item feedback:
-  1. Clarify anything unclear FIRST
-  2. Then implement in this order:
+  1. Resolve material uncertainty and identify actual dependencies.
+  2. Implement reachable authorized fixes in this order:
      - Blocking issues (breaks, security)
      - Simple fixes (typos, imports)
      - Complex fixes (refactoring, logic)
@@ -173,8 +175,8 @@ State the correction factually and move on.
 | Batch without testing | One at a time, test each |
 | Assuming reviewer is right | Check if breaks things |
 | Avoiding pushback | Technical correctness > comfort |
-| Partial implementation | Clarify all items first |
-| Can't verify, proceed anyway | State limitation, ask for direction |
+| Guessing unclear dependencies | Resolve the dependency; continue independent work |
+| Can't verify, proceed anyway | Investigate; state the concrete missing prerequisite |
 
 ## Real Examples
 
@@ -193,19 +195,19 @@ Reviewer: "Remove legacy code"
 **YAGNI (Good):**
 ```
 Reviewer: "Implement proper metrics tracking with database, date filters, CSV export"
-✅ "Grepped codebase - nothing calls this endpoint. Remove it (YAGNI)? Or is there usage I'm missing?"
+Verified no remaining callers: remove helpers obsoleted by this task; do not expand scope to unrelated endpoints.
 ```
 
 **Unclear Item (Good):**
 ```
 your human partner: "Fix items 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
-✅ "Understand 1,2,3,6. Need clarification on 4 and 5 before implementing."
+If independent: fix and verify 1,2,3,6; ask about 4,5. If dependent: resolve 4,5 first.
 ```
 
 ## GitHub Thread Replies
 
-When replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment.
+When the user authorized posting review replies, reply to an inline comment in its thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment. A local code-review task alone does not authorize posting.
 
 ---
 

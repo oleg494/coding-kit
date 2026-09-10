@@ -1,36 +1,40 @@
 ---
 name: production-first-decisions
-description: 'Use for ANY "how to do it" decision: choosing an approach/tool/library/standard, designing, "what if", adopting a new mechanism — when the answer must not come out of your head. Covers: the production-first order (formulate the question → web search as the industry does → verify your hypothesis → do it the industry way), the "everyone does it" criterion (measured, not felt), test-before-integration spike→ADR, research depth per task, and the three decision principles DRY/KISS/YAGNI.'
+description: 'Use for consequential choices of tools, libraries, standards or production mechanisms. Check existing project constraints first, research unresolved external facts in primary sources, and test unfamiliar mechanisms before integration. No web-search quota for local facts or established repository patterns.'
 license: MIT
 compatibility: any project
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
-# Production-first: decisions by industry practice, not from your head
+# Production-first: decisions grounded in relevant evidence
 
-The source of truth is the industry; knowledge is a hypothesis until verified.
+## Workflow
 
-## Workflow (order of application)
+1. Define the decision and acceptance criteria. Read the existing implementation,
+   project constraints and known decisions before inventing a second convention.
+2. If those sources settle an ordinary local choice, reuse the existing pattern.
+   Do not require web research for a local definition or a known stdlib operation.
+3. Research unresolved external facts through current primary documentation,
+   source code and relevant production experience. Cross-check disputed or
+   high-impact claims. No fixed source/query count or popularity gate.
+4. Choose by fit, correctness, maintenance and measured constraints. Widespread
+   adoption is evidence, not proof that an approach fits this project.
 
-1. **Formulate the question "how is this done in production?"** — explicitly, before any action.
-2. **Web search**: 5-10 queries from different angles — manuals, official guides, GitHub, practitioner articles, ADRs. Primary sources, not retellings.
-3. **Cross-check YOUR hypothesis against what you found.** Your own knowledge is only an assumption; web search is source of truth #1. "Thought it through" without searching = a guess, not a decision.
-4. **Do it the industry way.** Readiness criterion for a decision: "everyone does it this way, not just me alone." Not confirmed by sources → it's a hypothesis: verify by search before writing code.
+## Test-before-integration
 
-## Test-before-integration (spike → ADR)
+For an unfamiliar dependency or mechanism, run a task-sized sandbox probe of
+the uncertain behavior before integrating. Benchmark only when performance
+motivates the choice; compare a simpler existing option when material.
+Installation, paid calls and outward actions still follow AGENTS.md authority.
+Record consequential decisions in the existing project record or authorized
+memory; an ADR is not a mandatory artifact for every implementation detail.
 
-A new tool/library/approach — FIRST benchmark, THEN integration:
+## Research depth
 
-1. **Question:** what are we checking — functionality, fit to the stack?
-2. **Benchmark in a sandbox:** install it, run a real case, compare with alternatives AND with "doing nothing" (doing nothing is always an option).
-3. **Record the conclusion in Wiki/decisions/:** what was chosen, what was rejected, the benchmarks.
-4. **Integrate only after proof.** Without a benchmark, integration is a guess.
-
-## Research depth — by task
-
-- **Reference** (syntax, command) — 2-3 sources, one pass.
-- **Decision/choice** — DEEP research: breadth (5-10 queries in parallel), then depth; canonical repos, PRs, issues, ADRs; "everyone does it" — measure (how many production projects actually do), not feel.
+- Narrow authoritative fact: read the owning source and stop when resolved.
+- Consequential or uncertain choice: compare relevant alternatives, seek
+  counterevidence and test the remaining risk. Broaden only when it could change the decision.
 
 ## Three decision principles (filter before code)
 
@@ -42,8 +46,8 @@ A decision that violates at least one principle without a clear reason → recon
 
 ## Checklist before a decision
 
-- [ ] the "how in production?" question is formulated
-- [ ] 5-10 queries from different angles, primary sources
-- [ ] hypothesis cross-checked against what was found (not "I think so")
-- [ ] new tool — benchmarked in sandbox + doing nothing
-- [ ] conclusion recorded (what was chosen, what was rejected, why)
+- [ ] Existing project constraints and patterns considered
+- [ ] Material external uncertainty checked against appropriate primary sources
+- [ ] Unfamiliar behavior exercised before integration; performance claims measured
+- [ ] Chosen approach meets the full request without unnecessary machinery
+- [ ] Remaining uncertainty and consequential tradeoffs reported

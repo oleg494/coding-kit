@@ -3,7 +3,7 @@ name: verification-before-completion
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
 license: MIT
 metadata:
-  version: "4.5.0"
+  version: "4.5.1"
 ---
 
 # Verification Before Completion
@@ -28,7 +28,7 @@ If no valid evidence exists for the current checked state, you cannot claim it p
 ## The Gate Function
 
 ```
-BEFORE claiming any status or expressing satisfaction:
+BEFORE claiming a verified result:
 
 1. IDENTIFY: What command proves this claim?
 2. RUN: Execute that command fresh and completely when no valid evidence
@@ -61,12 +61,12 @@ check exposed.
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
 | Regression test works | Red-green cycle verified | Test passes once |
-| Agent completed | VCS diff shows changes | Agent reports "success" |
+| Agent completed | Inspect changed artifacts and exercise the claimed behavior | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 
-## Red Flags - STOP
+## Red Flags - Investigate Before Claiming Success
 
-- Using "should", "probably", "seems to"
+- Presenting "should", "probably" or "seems to" as proof, rather than explicitly labeled uncertainty
 - Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
 - About to commit/push/PR without verification
 - Trusting agent success reports
@@ -98,7 +98,7 @@ check exposed.
 
 **Regression tests (TDD Red-Green):**
 ```
-✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
+PASS: Observe the bug fail in isolation before the fix; apply the fix; observe the same check pass. If the fix already exists, demonstrate the failure in a disposable pre-fix copy, not by reverting the user's working tree.
 ❌ "I've written a regression test" (without red-green verification)
 ```
 
@@ -116,25 +116,17 @@ check exposed.
 
 **Agent delegation:**
 ```
-✅ Agent reports success → Check VCS diff → Verify changes → Report actual state
+PASS: Agent reports success -> inspect the changed artifacts -> verify the claimed behavior -> report actual state
 ❌ Trust agent report
 ```
 
 ## When To Apply
 
-**ALWAYS before:**
-- ANY variation of success/completion claims
-- ANY expression of satisfaction
-- ANY positive statement about work state
-- Committing, PR creation, task completion
-- Moving to next task
-- Delegating to agents
-
-**Rule applies to:**
-- Exact phrases
-- Paraphrases and synonyms
-- Implications of success
-- ANY communication suggesting completion/correctness
+Apply before a completion or correctness claim, commit, PR or integration.
+Planning, delegation and a task transition do not themselves require running
+unrelated checks. Reuse evidence only while it covers the checked state;
+an independent judge may rerun it to establish independent observation.
+Calibrated uncertainty is valid reporting, never a substitute for proof.
 
 ---
 
