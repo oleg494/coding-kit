@@ -21,6 +21,7 @@ live run's dirt never reddens this suite.
 """
 import json
 import re
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -36,13 +37,28 @@ _PERSONAL = (
     re.compile(rb"Users\\\\\\\\oleg2"),
 )
 
-
 def _tracked_result_files() -> list[Path]:
-    """Result files git actually tracks (flat + subdirectory packages)."""
-    out = subprocess.run(
+    """Tracked result artifacts (flat + subdirectory packages).
+
+    Degrades outside a git checkout (distributed tarballs): git ls-files
+    fails -> fall back to every results file, as in a repo the untracked
+    ones are staging dirt only a live run just wrote.
+    """
+    if shutil.which("git") is None:
+        return _fallback_result_files()
+    proc = subprocess.run(
         ["git", "-C", str(KIT), "ls-files", "--", "eval/results"],
-        capture_output=True, check=True).stdout.decode("utf-8").splitlines()
-    return sorted(KIT / rel for rel in out if rel.endswith(".json"))
+        capture_output=True, check=False)  # returncode handled below
+    if proc.returncode != 0:  # not a git work tree (e.g. dist tarball)
+        return _fallback_result_files()
+    out = proc.stdout.decode("utf-8").splitlines()
+    return sorted(KIT / rel for rel in out
+                  if rel.endswith((".json", ".txt", ".md")))
+
+
+def _fallback_result_files() -> list[Path]:
+    return sorted(p for p in RESULTS.rglob("*")
+                  if p.is_file() and p.suffix in (".json", ".txt", ".md"))
 
 
 class ResultHygieneTest(unittest.TestCase):
@@ -62,26 +78,51 @@ class ResultHygieneTest(unittest.TestCase):
 
     def test_tracked_results_still_parse(self):
         # Byte surgery on evidence artifacts (path scrubs) must not break
-        # parsing: every tracked result JSON loads, and the two shapes the
-        # 2026-09-13 packages use survive with their semantic keys intact.
-        for p in _tracked_result_files():
-            with self.subTest(result=str(p.relative_to(KIT))):
-                data = json.loads(p.read_text(encoding="utf-8"))
-        probe = RESULTS / "autonomous-knowledge-20260913" / "native-adapter-result.json"
-        if probe.is_file():
-            doc = json.loads(probe.read_text(encoding="utf-8"))
+        # parsing. Every tracked JSON must load to something (null means
+        # the scrub corrupted the document); arrays are legitimate shapes
+        # here (recovery logs, case lists).
+        tracked = _tracked_result_files()
+        rels = {p.relative_to(KIT).as_posix() for p in tracked}
+        for p in tracked:
+            with self.subTest(result=p.relative_to(KIT).as_posix()):
+                if p.suffix != ".json":
+                    continue
+                doc = json.loads(p.read_text(encoding="utf-8"))
+                self.assertIsNotNone(doc, f"{p.name}: parses to null")
+
+        # Shape probes are guarded by package membership: inside a package
+        # that ships these artifacts the probes are unconditional — a
+        # renamed/moved file fails loudly instead of skipping green.
+        # Trees without the 2026-09-13 packages (e.g. the 4.5.1 tarball)
+        # do not assert them.
+        native = ("eval/results/autonomous-knowledge-20260913/"
+                  "native-adapter-result.json")
+        if native in rels:
+            doc = json.loads((KIT / native).read_text(encoding="utf-8"))
             self.assertEqual(doc["rc"], 0)
             inner = json.loads(doc["stdout"])
             self.assertEqual(len(inner["checks"]), 9)
-        for name, expected_cases in (("recovery-before.json", 6),
-                                     ("recovery-after.json", 6)):
-            probe = RESULTS / "knowledge-procedure-20260913" / name
-            if probe.is_file():
-                doc = json.loads(probe.read_text(encoding="utf-8"))
-                self.assertEqual(len(doc), expected_cases)
-                self.assertEqual([d["case"] for d in doc],
-                                 ["foreign", "crlf", "binary",
-                                  "anchor_failure", "legacy", "preview"])
+
+        cases = ["foreign", "crlf", "binary", "anchor_failure", "legacy",
+                 "preview"]
+        docs = {}
+        for name in ("recovery-before.json", "recovery-after.json"):
+            rel = f"eval/results/knowledge-procedure-20260913/{name}"
+            if rel not in rels:
+                continue
+            docs[name] = json.loads((KIT / rel).read_text(encoding="utf-8"))
+        # Semantic core of the recovery evidence: the before-probe ran
+        # against the broken adapter (0/6), the after-probe against the
+        # repaired one (6/6). Identical vectors would mean one of the two
+        # files lost its meaning in a scrub. Both files are required —
+        # one without the other skips.
+        if len(docs) == 2:
+            for name, doc in docs.items():
+                self.assertEqual([d["case"] for d in doc], cases)
+            self.assertEqual([d["pass"] for d in docs["recovery-before.json"]],
+                             [False] * 6)
+            self.assertEqual([d["pass"] for d in docs["recovery-after.json"]],
+                             [True] * 6)
 
 
 if __name__ == "__main__":
