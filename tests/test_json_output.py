@@ -437,65 +437,16 @@ def test_trigger_dry_run_cli_no_json_does_not_create_files(tmp_path):
             p.unlink(missing_ok=True)
 
 
-def test_runner_resolve_cmd_windows_paths(monkeypatch):
-    monkeypatch.setattr(sys, "platform", "win32")
-    monkeypatch.setattr(
-        runner.shutil,
-        "which",
-        lambda x: r"C:\Users\test\AppData\npm\claude.cmd" if x == "claude" else None,
-    )
-
-    # Empty / whitespace
-    assert runner.resolve_cmd("") == []
-    assert runner.resolve_cmd("   ") == []
-
-    # Unquoted backslash path to exe
-    assert runner.resolve_cmd(r"C:\tools\agent.exe --flag") == [r"C:\tools\agent.exe", "--flag"]
-
-    # Quoted path with spaces to exe
-    cmd_exe = runner.resolve_cmd(r'"C:\Program Files\My Agent\agent.exe" --model gpt-4')
-    assert cmd_exe == [r"C:\Program Files\My Agent\agent.exe", "--model", "gpt-4"]
-
-    # Quoted path with spaces to .cmd -> cmd /c with quotes removed
-    cmd_batch = runner.resolve_cmd(r'"C:\Program Files\npm\claude.cmd" run --arg "val with space"')
-    assert cmd_batch == ["cmd", "/c", r"C:\Program Files\npm\claude.cmd", "run", "--arg", "val with space"]
-
-    # Unquoted .bat
-    assert runner.resolve_cmd(r"C:\bin\agent.bat --flag") == ["cmd", "/c", r"C:\bin\agent.bat", "--flag"]
-
-    # Single-quoted path with spaces to .bat
-    assert runner.resolve_cmd(r"'C:\Program Files\tool.bat' arg") == ["cmd", "/c", r"C:\Program Files\tool.bat", "arg"]
-
-    # Command resolved via which to .cmd
-    assert runner.resolve_cmd("claude --flag") == ["cmd", "/c", r"C:\Users\test\AppData\npm\claude.cmd", "--flag"]
-
-
-def test_executor_env_keeps_runtime_paths_and_drops_secrets(monkeypatch):
-    monkeypatch.setenv("PATH", r"C:\safe-bin")
-    monkeypatch.setenv("USERPROFILE", r"C:\Users\safe")
-    monkeypatch.setenv("GITHUB_TOKEN", "github-secret")
-    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-secret")
-
-    env = runner.executor_env()
-
-    assert env["PATH"] == r"C:\safe-bin"
-    assert env["USERPROFILE"] == r"C:\Users\safe"
-    assert "GITHUB_TOKEN" not in env
-    assert "OPENAI_API_KEY" not in env
-    assert "ANTHROPIC_API_KEY" not in env
 
 
 def test_run_prompt_raises_on_nonzero_exit(monkeypatch):
-    class FakeCompleted:
-        returncode = 1
-        stdout = "partial answer text"
-        stderr = "executor trace tail"
+    from rigor import container
 
-    monkeypatch.setattr(runner.subprocess, "run",
-                        lambda *a, **k: FakeCompleted())
+    monkeypatch.setattr(container, "run_confined", lambda *a, **k: {
+        "rc": 1, "stdout": "partial answer text",
+        "stderr": "executor trace tail", "timed_out": False})
     with pytest.raises(runner.ExecutorError) as ei:
-        runner.run_prompt(["fake"], "prompt")
+        runner.run_prompt(runner.resolve_cmd("docker:python:3.12-alpine python"), "prompt")
     assert "code 1" in str(ei.value)
     assert ei.value.stdout == "partial answer text"
     assert ei.value.stderr == "executor trace tail"

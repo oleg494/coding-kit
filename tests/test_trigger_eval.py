@@ -16,6 +16,11 @@ import trigger_eval
 import runner
 import behavior_oracles
 
+MOCK_SPEC = "docker:python:3.12-alpine python"
+# resolve_cmd is a pure parse (no backend probing), so the mocked-run_prompt
+# tests need no live docker daemon; run_prompt itself is always faked here.
+_MOCK_RECORD = runner.resolve_cmd(MOCK_SPEC)
+
 
 class ValidateTest(unittest.TestCase):
     def test_ok_queries_pass(self):
@@ -94,7 +99,7 @@ class TimeoutPassthroughTest(unittest.TestCase):
         trigger_eval.run_prompt = fake_run_prompt
         try:
             _, passed = trigger_eval.run_query(
-                ["x"], {"skill": "yagni", "query": "q"}, 1, timeout=42)
+                _MOCK_RECORD, {"skill": "yagni", "query": "q"}, 1, timeout=42)
         finally:
             trigger_eval.run_prompt = orig
         self.assertTrue(passed)
@@ -122,7 +127,7 @@ class LiveNoJsonCompletionTest(unittest.TestCase):
             test_argv = [
                 "trigger_eval.py",
                 "--queries", str(queries_file),
-                "--executor", "mock_cli",
+                "--executor", MOCK_SPEC,
             ]
             orig_argv = sys.argv
             orig_run = trigger_eval.run_prompt
@@ -147,7 +152,7 @@ class ModelExecutorSeparationTest(unittest.TestCase):
 
         class Args:
             json = "auto"
-            executor = "my-custom-cli --token secret"
+            executor = MOCK_SPEC
             model = "gemini-2.5-pro"
 
         with unittest.mock.patch("results_io.save_result", fake_save_result):
@@ -156,7 +161,7 @@ class ModelExecutorSeparationTest(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(calls[0]["kind"], "trigger")
         self.assertEqual(calls[0]["model"], "gemini-2.5-pro")
-        self.assertEqual(calls[0]["executor_spec"], "my-custom-cli --token secret")
+        self.assertEqual(calls[0]["executor_spec"], MOCK_SPEC)
         self.assertEqual(calls[0]["payload"]["passed"], 10)
         self.assertEqual(calls[0]["payload"]["fired"], 10)
 
@@ -168,7 +173,7 @@ class ModelExecutorSeparationTest(unittest.TestCase):
 
         class Args:
             json = "auto"
-            executor = "my-cli"
+            executor = MOCK_SPEC
             model = None
 
         with unittest.mock.patch("results_io.save_result", fake_save_result):
@@ -188,7 +193,7 @@ class TelemetryEmitTest(unittest.TestCase):
 
         class Args:
             json = "auto"
-            executor = "my-cli"
+            executor = MOCK_SPEC
             model = "gemini-2.5-pro"
 
         rows = [
@@ -240,7 +245,7 @@ class RowAttemptEvidenceTest(unittest.TestCase):
         trigger_eval.run_prompt = fake_run_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"], {"skill": "yagni", "should": True, "query": "write simple code"}, runs=3, timeout=50
+                _MOCK_RECORD, {"skill": "yagni", "should": True, "query": "write simple code"}, runs=3, timeout=50
             )
         finally:
             trigger_eval.run_prompt = orig
@@ -270,7 +275,7 @@ class RowAttemptEvidenceTest(unittest.TestCase):
         trigger_eval.run_prompt = alternating_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"], {"skill": "yagni", "should": True, "query": "yagni query"}, runs=3
+                _MOCK_RECORD, {"skill": "yagni", "should": True, "query": "yagni query"}, runs=3
             )
         finally:
             trigger_eval.run_prompt = orig
@@ -292,7 +297,7 @@ class ErrorCaptureTest(unittest.TestCase):
         trigger_eval.run_prompt = failing_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"], {"skill": "yagni", "should": True, "query": "query"}, runs=2
+                _MOCK_RECORD, {"skill": "yagni", "should": True, "query": "query"}, runs=2
             )
         finally:
             trigger_eval.run_prompt = orig
@@ -313,7 +318,7 @@ class ErrorCaptureTest(unittest.TestCase):
         trigger_eval.run_prompt = timeout_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"], {"skill": "yagni", "should": True, "query": "query"}, runs=1, timeout=25
+                _MOCK_RECORD, {"skill": "yagni", "should": True, "query": "query"}, runs=1, timeout=25
             )
         finally:
             trigger_eval.run_prompt = orig
@@ -345,7 +350,7 @@ class TopLevelFiredVsPassedSemanticsTest(unittest.TestCase):
             test_argv = [
                 "trigger_eval.py",
                 "--queries", str(queries_file),
-                "--executor", "mock_cli",
+                "--executor", MOCK_SPEC,
                 "--model", "mock-model",
                 "--json", "auto",
             ]
@@ -388,7 +393,7 @@ class TopLevelFiredVsPassedSemanticsTest(unittest.TestCase):
             test_argv = [
                 "trigger_eval.py",
                 "--queries", str(queries_file),
-                "--executor", "mock_cli",
+                "--executor", MOCK_SPEC,
                 "--model", "mock-model",
                 "--json", "auto",
             ]
@@ -430,7 +435,7 @@ class TopLevelFiredVsPassedSemanticsTest(unittest.TestCase):
             test_argv = [
                 "trigger_eval.py",
                 "--queries", str(queries_file),
-                "--executor", "mock_cli",
+                "--executor", MOCK_SPEC,
                 "--model", "mock-model",
                 "--json", "auto",
             ]
@@ -460,7 +465,7 @@ class ShouldNotErrorFailsRowTest(unittest.TestCase):
         trigger_eval.run_prompt = failing_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"], {"skill": "yagni", "should": False, "query": "query"}, runs=2
+                _MOCK_RECORD, {"skill": "yagni", "should": False, "query": "query"}, runs=2
             )
         finally:
             trigger_eval.run_prompt = orig
@@ -482,7 +487,7 @@ class ShouldNotErrorFailsRowTest(unittest.TestCase):
         trigger_eval.run_prompt = nonzero_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"], {"skill": "yagni", "should": False, "query": "query"}, runs=1
+                _MOCK_RECORD, {"skill": "yagni", "should": False, "query": "query"}, runs=1
             )
         finally:
             trigger_eval.run_prompt = orig
@@ -515,7 +520,7 @@ class LiveJsonModelGateTest(unittest.TestCase):
             test_argv = [
                 "trigger_eval.py",
                 "--queries", str(queries_file),
-                "--executor", "mock_cli",
+                "--executor", MOCK_SPEC,
                 "--json", "auto",
             ]
             orig_argv = sys.argv
@@ -592,7 +597,7 @@ class BehaviorOracleTest(unittest.TestCase):
         trigger_eval.run_prompt = fake_run_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"],
+                _MOCK_RECORD,
                 {"skill": "dev-wiki", "should": True, "query": "what do we know"},
                 runs=1)
         finally:
@@ -611,7 +616,7 @@ class BehaviorOracleTest(unittest.TestCase):
         trigger_eval.run_prompt = fake_run_prompt
         try:
             row = trigger_eval.run_query_detailed(
-                ["mock"],
+                _MOCK_RECORD,
                 {"skill": "yagni", "should": True, "query": "add a cache?"},
                 runs=1)
         finally:
@@ -619,6 +624,40 @@ class BehaviorOracleTest(unittest.TestCase):
 
         self.assertEqual(row["mode"], "name")
         self.assertTrue(row["fired"])
+
+class HostExecutorRejectionTest(unittest.TestCase):
+    """A host executor spec must fail closed at the CLI: readable nonzero
+    error, no traceback, no query executed."""
+
+    def _queries_file(self, tmp):
+        qf = Path(tmp) / "q.json"
+        qf.write_text(json.dumps([
+            {"skill": "yagni", "should": True, "query": "add a cache?"},
+            {"skill": "yagni", "should": False, "query": "two plus two"},
+        ]), encoding="utf-8")
+        return qf
+
+    def test_cli_rejects_host_executor_spec_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            qf = self._queries_file(tmp)
+            r = subprocess.run(
+                [sys.executable, str(ROOT / "eval" / "trigger_eval.py"),
+                 "--queries", str(qf), "--executor", "gemini -p -"],
+                capture_output=True, text=True, encoding="utf-8")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("host prompt execution refused", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+
+    def test_cli_rejects_malformed_docker_spec_without_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            qf = self._queries_file(tmp)
+            r = subprocess.run(
+                [sys.executable, str(ROOT / "eval" / "trigger_eval.py"),
+                 "--queries", str(qf), "--executor", "docker:img"],
+                capture_output=True, text=True, encoding="utf-8")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("docker:", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
 
 if __name__ == "__main__":
     unittest.main()

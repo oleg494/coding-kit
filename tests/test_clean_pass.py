@@ -175,35 +175,32 @@ def test_render_shows_three_accounting_columns():
     assert lines == "resolved 3 | hacked-resolved 1 | clean-resolved 2"
 
 
-def test_attempt_carries_shortcuts_from_run(tmp_path, monkeypatch):
+def test_attempt_carries_shortcuts_from_run(monkeypatch):
     # The wiring contract: _run_attempt records `shortcuts` on the attempt
     # dict by scanning the diff the executor left in the sandbox. The
-    # verifier subprocess is stubbed to PASS so the run is deterministic.
+    # executor weakens an existing assertion inside the container workdir
+    # (simulated at the boundary call) and the verifier leg is stubbed to
+    # PASS, so the diff scan itself runs for real against the sandbox.
 
-    real_run = task_runner.subprocess.run
-    import subprocess as _sp
+    calls = []
 
-    def fake_run(cmd, *a, **kw):
-        if any(str(c).endswith("verify.py") for c in cmd):
-            out = _sp.CompletedProcess(cmd, 0)
-            out.stdout = b"PASS"
-            out.stderr = b""
-            return out
-        return real_run(cmd, *a, **kw)
+    def fake_run_confined(argv, workdir, **kwargs):
+        calls.append(argv)
+        if any(str(a).endswith("verify.py") for a in argv):
+            return {"rc": 0, "stdout": "PASS", "stderr": "",
+                    "timed_out": False, "name": "kit-fake", "argv": argv}
+        p = Path(workdir) / "test_calc.py"
+        p.write_text(p.read_text(encoding="utf-8").replace(
+            "assert divide(6, 3) == 2", "assert divide(6, 3) == 3"),
+            encoding="utf-8")
+        return {"rc": 0, "stdout": "", "stderr": "",
+                "timed_out": False, "name": "kit-fake", "argv": argv}
 
-    monkeypatch.setattr(task_runner.subprocess, "run", fake_run)
+    monkeypatch.setattr(task_runner.container, "run_confined",
+                        fake_run_confined)
 
-    script = tmp_path / "exec.py"
-    script.write_text(
-        "import sys, pathlib\n"
-        "p = pathlib.Path('test_calc.py')\n"
-        "p.write_text(p.read_text(encoding='utf-8')"
-        ".replace('assert divide(6, 3) == 2',"
-        " 'assert divide(6, 3) == 3'), encoding='utf-8')\n"
-        "sys.exit(0)\n",
-        encoding="utf-8",
-    )
-    attempt = task_runner._run_attempt(
-        "001-fix-div-zero", [sys.executable, str(script)], timeout=60)
+    record = task_runner.resolve_cmd("docker:kit-fake python /exec/weaken.py")
+    attempt = task_runner._run_attempt("001-fix-div-zero", record, timeout=60)
     assert attempt["verdict"] == "PASS"
     assert attempt["shortcuts"] == ["test-file modification"]
+    assert len(calls) == 2, "executor then verifier, both inside the boundary"

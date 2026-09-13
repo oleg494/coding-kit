@@ -23,9 +23,10 @@ config mismatch, 130 stop (STOP file or Ctrl+C).
 """
 import argparse
 import ctypes
-import importlib.util
 import json
 import os
+import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -57,22 +58,32 @@ TERMINAL_MAX_TIMEOUT = 86_400
 
 
 # --------------------------------------------------------------------------
-# Reuse the shared CLI-string parser instead of inventing a second dialect.
+# Host CLI-string parser. The supervisor is a deliberate host process (it
+# spawns the user's own executor/verifier CLIs with the full environment),
+# so it must NOT share the eval harness's confined `docker:` spec parser —
+# a `docker:<image>` string here is just argv[0] like any other. No shell.
 # --------------------------------------------------------------------------
-def _load_resolve_cmd():
-    """Load `resolve_cmd` from eval/task_runner.py, robust to direct invocation."""
-    root = Path(__file__).resolve().parents[2]
-    path = root / "eval" / "task_runner.py"
-    if not path.is_file():
-        raise SystemExit(f"autonomous: cannot find {path} (resolve_cmd source)")
-    spec = importlib.util.spec_from_file_location("_coding_kit_task_runner", path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    try:
-        spec.loader.exec_module(module)
-    except Exception as exc:  # pragma: no cover - import-time environment issue
-        raise SystemExit(f"autonomous: cannot import resolve_cmd: {exc}")
-    return module.resolve_cmd
+def _unquote(token: str) -> str:
+    if len(token) >= 2 and ((token.startswith('"') and token.endswith('"'))
+                            or (token.startswith("'") and token.endswith("'"))):
+        return token[1:-1]
+    return token
+
+
+def _resolve_host_cmd(spec: str) -> list[str]:
+    """CLI string -> argv list. No shell; .cmd/.bat run through cmd /c."""
+    if not spec or not spec.strip():
+        return []
+    is_win = sys.platform == "win32"
+    parts = shlex.split(spec, posix=not is_win)
+    if not parts:
+        return []
+    if is_win:
+        parts = [_unquote(p) for p in parts]
+    exe = shutil.which(parts[0]) or parts[0]
+    if is_win and exe.lower().endswith((".cmd", ".bat")):
+        return ["cmd", "/c", exe, *parts[1:]]
+    return [exe, *parts[1:]]
 
 
 def _positive_int(text: str) -> int:
@@ -527,9 +538,8 @@ def main(argv: list[str] | None = None) -> int:
     log_dir = state_dir / LOG_DIR_NAME
     supervisor_log = log_dir / "supervisor.log"
 
-    resolve_cmd = _load_resolve_cmd()
-    executor_argv = resolve_cmd(args.executor)
-    verifier_argv = resolve_cmd(args.verify)
+    executor_argv = _resolve_host_cmd(args.executor)
+    verifier_argv = _resolve_host_cmd(args.verify)
     if not executor_argv:
         print("autonomous: --executor resolved to an empty command", file=sys.stderr)
         return 1

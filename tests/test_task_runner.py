@@ -1,11 +1,15 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "eval"))
+sys.path.insert(0, str(ROOT))
 
 import task_runner
 from task_runner import (
@@ -14,6 +18,67 @@ from task_runner import (
     resolve_cmd,
     run_task_suite,
 )
+# The same module instance task_runner uses (eval/ on sys.path), so
+# monkeypatching here patches what the runner actually calls.
+from rigor import container
+
+# --- confinement fixtures ---------------------------------------------------
+# Every live attempt runs inside a container. Executor-only tests use the
+# backend's base image; the real oracles of tasks 001-006 run pytest INSIDE
+# the boundary, so the end-to-end PASS/verifier tests additionally need an
+# image carrying pytest. Provision it once, then name it:
+#
+#   docker build -t kit-task-verifier:py312 - <<EOF
+#   FROM python:3.12-alpine
+#   RUN pip install --no-cache-dir pytest
+#   EOF
+#
+# Override the name with KIT_TEST_TASK_IMAGE. Without a runtime or without
+# the image, only the pytest-free real-container tests run.
+EXEC_IMAGE = container.DEFAULT_IMAGE
+TASK_IMAGE = os.environ.get("KIT_TEST_TASK_IMAGE", "kit-task-verifier:py312")
+_RUNTIME = container.docker_status()
+_HAS_TASK_IMAGE = bool(_RUNTIME["available"]) and container._docker(
+    "image", "inspect", TASK_IMAGE).returncode == 0
+
+requires_runtime = pytest.mark.skipif(
+    not _RUNTIME["available"],
+    reason=f"no container runtime: {_RUNTIME.get('reason', 'unavailable')}")
+requires_task_image = pytest.mark.skipif(
+    not _HAS_TASK_IMAGE,
+    reason=f"task image {TASK_IMAGE!r} carrying pytest is unavailable")
+
+# Parsed but never launched (every attempt is faked in suite-level tests).
+FAKE_EXEC = "docker:kit-task-fake python"
+
+# Deterministic honest 001 fix, executed by the in-container executor with
+# cwd=/work (the sandbox, its only writable mount).
+FIX_001_PY = """\
+import pathlib, sys
+calc = pathlib.Path("calc.py")
+calc.write_text(calc.read_text(encoding="utf-8").replace(
+    "    return a / b",
+    '    if b == 0:\\n        raise ValueError("division by zero")\\n'
+    "    return a / b"), encoding="utf-8", newline="\\n")
+tests = pathlib.Path("test_calc.py")
+tests.write_text(tests.read_text(encoding="utf-8") + (
+    "\\n\\ndef test_divide_by_zero():\\n"
+    "    import pytest\\n"
+    "    with pytest.raises(ValueError):\\n"
+    "        divide(1, 0)\\n"), encoding="utf-8", newline="\\n")
+sys.exit(0)
+"""
+
+
+def _mounted_spec(tmp_path: Path, scripts: dict, entry: str) -> dict:
+    """Confined record whose executor is a host script mounted read-only."""
+    host = tmp_path / "exec"
+    host.mkdir(exist_ok=True)
+    for name, code in scripts.items():
+        (host / name).write_text(code, encoding="utf-8")
+    return resolve_cmd(
+        f"docker:{EXEC_IMAGE} @ro:{host.as_posix()}:/exec "
+        f"python /exec/{entry}")
 
 
 def test_task_runner_discovers_tasks():
@@ -256,12 +321,13 @@ def test_dry_run_no_subprocess_and_persistence(tmp_path):
 def test_live_persists_duration_and_reported_usage(tmp_path, monkeypatch):
     monkeypatch.setattr(
         task_runner, "_run_attempt",
-        lambda name, cmd, *, timeout: {"verdict": "PASS", "duration_s": 1.5},
+        lambda name, record, *, timeout, verifier_image=None:
+            {"verdict": "PASS", "duration_s": 1.5},
     )
     out_file = tmp_path / "live_usage.json"
     rc = run_task_suite(
         ["001-fix-div-zero"],
-        "dummy-executor",
+        FAKE_EXEC,
         json_out=out_file,
         model="usage-model",
         reported_usage={"tokens_total": 100, "cost_usd": 0.05},
@@ -272,45 +338,26 @@ def test_live_persists_duration_and_reported_usage(tmp_path, monkeypatch):
     assert doc["duration_s_mean"] == 1.5
     assert doc["reported_usage"] == {"tokens_total": 100, "cost_usd": 0.05}
 
-def test_fresh_sandboxes_on_retry(tmp_path):
-    # State tracking file to record each attempt
-    state_file = tmp_path / "attempts.txt"
-    state_file.write_text("0", encoding="utf-8")
+def test_suite_retries_a_fail_then_pass(tmp_path, monkeypatch):
+    # Suite-level retry accounting: FAIL then PASS on the second attempt
+    # yields pass@1 0.0 / pass@2 1.0 with both attempts recorded. Real
+    # per-attempt sandbox freshness against the live backend is proven by
+    # test_retry_gets_a_fresh_sandbox_confined.
+    seen = {"n": 0}
 
-    # Script: on try 1, drops a poison file and exits 1.
-    # On try 2, checks that poison file does NOT exist (pristine fixture), then fixes calc.py and exits 0.
-    fix_code = (
-        'import sys, pathlib\n'
-        'state_p = pathlib.Path(sys.argv[1])\n'
-        'cur = int(state_p.read_text(encoding="utf-8")) + 1\n'
-        'state_p.write_text(str(cur), encoding="utf-8")\n'
-        'poison = pathlib.Path("poison.marker")\n'
-        'if cur == 1:\n'
-        '    poison.write_text("polluted", encoding="utf-8")\n'
-        '    sys.exit(1)\n'
-        'if poison.exists():\n'
-        '    sys.exit(2)\n'
-        'calc_p = pathlib.Path("calc.py")\n'
-        'calc_p.write_text(calc_p.read_text(encoding="utf-8").replace("return a / b", "if b == 0:\\n        raise ValueError(\\"division by zero\\")\\n    return a / b"), encoding="utf-8")\n'
-        'test_p = pathlib.Path("test_calc.py")\n'
-        'test_p.write_text(test_p.read_text(encoding="utf-8") + "\\ndef test_divide_by_zero():\\n    import pytest\\n    with pytest.raises(ValueError):\\n        divide(1, 0)\\n", encoding="utf-8")\n'
-        'sys.exit(0)\n'
-    )
-    script_path = tmp_path / "executor.py"
-    script_path.write_text(fix_code, encoding="utf-8")
+    def fake_attempt(name, record, *, timeout, verifier_image=None):
+        seen["n"] += 1
+        if seen["n"] == 1:
+            return {"verdict": "FAIL", "duration_s": 0.5,
+                    "error_class": "other", "trace_tail": "exit 1"}
+        return {"verdict": "PASS", "duration_s": 1.0}
 
-    executor_cmd = f"{sys.executable} {script_path} {state_file}"
+    monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
     json_path = tmp_path / "retry_result.json"
-
-    rc = run_task_suite(
-        ["001-fix-div-zero"],
-        executor_cmd=executor_cmd,
-        tries=2,
-        json_out=json_path,
-        model="retry-model",
-    )
+    rc = run_task_suite(["001-fix-div-zero"], FAKE_EXEC, tries=2,
+                        json_out=json_path, model="retry-model")
     assert rc == 0
-    assert int(state_file.read_text(encoding="utf-8")) == 2
+    assert seen["n"] == 2
 
     doc = json.loads(json_path.read_text(encoding="utf-8"))
     assert doc["passed"] == 1
@@ -324,36 +371,19 @@ def test_fresh_sandboxes_on_retry(tmp_path):
     assert row["attempts"][1]["verdict"] == "PASS"
 
 
-def test_early_stop_on_first_pass(tmp_path):
-    state_file = tmp_path / "calls.txt"
-    state_file.write_text("0", encoding="utf-8")
+def test_early_stop_on_first_pass(tmp_path, monkeypatch):
+    seen = {"n": 0}
 
-    fix_code = (
-        'import sys, pathlib\n'
-        'state_p = pathlib.Path(sys.argv[1])\n'
-        'cur = int(state_p.read_text(encoding="utf-8")) + 1\n'
-        'state_p.write_text(str(cur), encoding="utf-8")\n'
-        'calc_p = pathlib.Path("calc.py")\n'
-        'calc_p.write_text(calc_p.read_text(encoding="utf-8").replace("return a / b", "if b == 0:\\n        raise ValueError(\\"division by zero\\")\\n    return a / b"), encoding="utf-8")\n'
-        'test_p = pathlib.Path("test_calc.py")\n'
-        'test_p.write_text(test_p.read_text(encoding="utf-8") + "\\ndef test_divide_by_zero():\\n    import pytest\\n    with pytest.raises(ValueError):\\n        divide(1, 0)\\n", encoding="utf-8")\n'
-        'sys.exit(0)\n'
-    )
-    script_path = tmp_path / "fix_immediately.py"
-    script_path.write_text(fix_code, encoding="utf-8")
+    def fake_attempt(name, record, *, timeout, verifier_image=None):
+        seen["n"] += 1
+        return {"verdict": "PASS", "duration_s": 0.5}
 
-    executor_cmd = f"{sys.executable} {script_path} {state_file}"
+    monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
     json_path = tmp_path / "early_stop.json"
-    rc = run_task_suite(
-        ["001-fix-div-zero"],
-        executor_cmd=executor_cmd,
-        tries=5,
-        json_out=json_path,
-        model="early-model",
-    )
+    rc = run_task_suite(["001-fix-div-zero"], FAKE_EXEC, tries=5,
+                        json_out=json_path, model="early-model")
     assert rc == 0
-    # Stopped after first try; did not run tries 2..5
-    assert int(state_file.read_text(encoding="utf-8")) == 1
+    assert seen["n"] == 1, "no attempt may run after the first PASS"
 
     doc = json.loads(json_path.read_text(encoding="utf-8"))
     assert doc["pass@1"] == 1.0
@@ -361,7 +391,7 @@ def test_early_stop_on_first_pass(tmp_path):
     assert len(doc["rows"][0]["attempts"]) == 1
 
 
-def test_error_classes_and_nonzero_skips_verifier(tmp_path):
+def test_error_classes_are_the_shared_six():
     # Verify the 6 error classes
     assert classify_error(timed_out=True) == "test_timeout"
     assert classify_error(error_text="Subprocess timed out") == "test_timeout"
@@ -381,26 +411,31 @@ def test_error_classes_and_nonzero_skips_verifier(tmp_path):
     ):
         assert cls_name in ERROR_CLASSES
 
-    # Nonzero executor returncode skips running verifier
-    fail_script = tmp_path / "fail_executor.py"
-    fail_script.write_text(
-        'import sys\nsys.stderr.write("context limit exceeded")\nsys.exit(3)\n',
-        encoding="utf-8",
-    )
-    json_path = tmp_path / "err_res.json"
-    rc = run_task_suite(
-        ["001-fix-div-zero"],
-        executor_cmd=f"{sys.executable} {fail_script}",
-        tries=1,
-        json_out=json_path,
-        model="err-model",
-    )
-    assert rc == 1
-    doc = json.loads(json_path.read_text(encoding="utf-8"))
-    row = doc["rows"][0]
-    assert row["verdict"] == "FAIL"
-    assert row["attempts"][0]["error_class"] == "exhausted_context"
-    assert "trace_tail" in row["attempts"][0]
+
+@requires_runtime
+def test_nonzero_executor_records_error_and_skips_verifier(tmp_path,
+                                                           monkeypatch):
+    # A failing executor INSIDE the boundary: the error class comes from its
+    # own streams, and the trusted oracle is never launched against the
+    # unfixed sandbox.
+    calls = []
+    real_run = container.run_confined
+
+    def spy(argv, workdir, **kwargs):
+        calls.append(list(argv))
+        return real_run(argv, workdir, **kwargs)
+
+    monkeypatch.setattr(task_runner.container, "run_confined", spy)
+    record = _mounted_spec(tmp_path, {
+        "fail.py": 'import sys\n'
+                   'sys.stderr.write("context limit exceeded")\n'
+                   'sys.exit(3)\n',
+    }, "fail.py")
+    attempt = task_runner._run_attempt("001-fix-div-zero", record, timeout=300)
+    assert attempt["verdict"] == "FAIL"
+    assert attempt["error_class"] == "exhausted_context"
+    assert "context limit exceeded" in attempt["trace_tail"]
+    assert len(calls) == 1, "verifier must not run after a failed executor"
 
 
 def test_model_and_executor_separation(tmp_path):
@@ -432,129 +467,141 @@ def test_model_and_executor_separation(tmp_path):
     assert doc_unspec["executor_name"] == "claude"
 
 
-def test_task_runner_resolve_cmd_windows_paths(monkeypatch):
-    import task_runner
+def test_resolve_cmd_is_the_shared_confined_contract():
+    # The task runner reuses the harness-wide parser: blank -> None, a
+    # declared docker spec -> the confinement record, any host CLI ->
+    # refused before anything can launch.
+    assert resolve_cmd("") is None
+    assert resolve_cmd("   ") is None
+    record = resolve_cmd("docker:img:tag @ro:/host:/mount @net python -c pass")
+    assert record["mode"] == "container"
+    assert record["image"] == "img:tag"
+    assert record["argv"] == ["python", "-c", "pass"]
+    assert record["mounts"] == (("/host", "/mount"),)
+    assert record["network"] is True
+    with pytest.raises(container.IsolationUnavailable):
+        resolve_cmd("claude -p")
+    with pytest.raises(container.IsolationUnavailable):
+        resolve_cmd(r"C:\tools\agent.exe --flag")
 
-    monkeypatch.setattr(sys, "platform", "win32")
-    monkeypatch.setattr(
-        task_runner.shutil,
-        "which",
-        lambda x: r"C:\Users\test\AppData\npm\claude.cmd" if x == "claude" else None,
+
+def test_host_executor_spec_is_refused_before_any_attempt(monkeypatch):
+    def boom(*args, **kwargs):
+        raise AssertionError("no attempt may run for a host executor")
+
+    monkeypatch.setattr(task_runner, "_run_attempt", boom)
+    with pytest.raises(container.IsolationUnavailable):
+        run_task_suite(["001-fix-div-zero"], executor_cmd="claude -p",
+                       tries=1, model="host-model")
+
+
+def test_live_run_requires_an_executor_spec():
+    with pytest.raises(ValueError):
+        run_task_suite(["001-fix-div-zero"], None, tries=1, model="m")
+
+
+def test_cli_refuses_host_executor_with_exit_2(tmp_path):
+    out_json = tmp_path / "cli.json"
+    r = subprocess.run(
+        [sys.executable, str(ROOT / "eval" / "task_runner.py"),
+         "--executor", "claude -p", "--model", "m", "--json", str(out_json)],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
-
-    # Empty / whitespace
-    assert resolve_cmd("") == []
-    assert resolve_cmd("   ") == []
-
-    # Unquoted backslash path to exe
-    assert resolve_cmd(r"C:\tools\agent.exe --flag") == [r"C:\tools\agent.exe", "--flag"]
-
-    # Quoted path with spaces to exe
-    cmd_exe = resolve_cmd(r'"C:\Program Files\My Agent\agent.exe" --model gpt-4')
-    assert cmd_exe == [r"C:\Program Files\My Agent\agent.exe", "--model", "gpt-4"]
-
-    # Quoted path with spaces to .cmd -> cmd /c with quotes removed
-    cmd_batch = resolve_cmd(r'"C:\Program Files\npm\claude.cmd" run --arg "val with space"')
-    assert cmd_batch == ["cmd", "/c", r"C:\Program Files\npm\claude.cmd", "run", "--arg", "val with space"]
-
-    # Unquoted .bat
-    assert resolve_cmd(r"C:\bin\agent.bat --flag") == ["cmd", "/c", r"C:\bin\agent.bat", "--flag"]
-
-    # Single-quoted path with spaces to .bat
-    assert resolve_cmd(r"'C:\Program Files\tool.bat' arg") == ["cmd", "/c", r"C:\Program Files\tool.bat", "arg"]
-
-    # Command resolved via which to .cmd
-    assert resolve_cmd("claude --flag") == ["cmd", "/c", r"C:\Users\test\AppData\npm\claude.cmd", "--flag"]
+    assert r.returncode == 2
+    assert "host prompt execution refused" in r.stderr
+    assert not out_json.exists()
 
 
-def test_task_executor_uses_secret_free_environment(monkeypatch):
-    import task_runner
-
-    monkeypatch.setenv("PATH", r"C:\safe-bin")
-    monkeypatch.setenv("GITHUB_TOKEN", "github-secret")
-    monkeypatch.setenv("OPENAI_API_KEY", "openai-secret")
-
-    env = task_runner.executor_env()
-
-    assert env["PATH"] == r"C:\safe-bin"
-    assert "GITHUB_TOKEN" not in env
-    assert "OPENAI_API_KEY" not in env
-
-def test_verify_subprocess_isolated_in_fresh_sandbox(tmp_path, monkeypatch):
-    # verify.py imports and executes model-written Python, and its child
-    # pytest inherits the verifier's environment. The verifier subprocess must
-    # therefore run with cwd=sandbox (the fresh fixture copy, not the repo
-    # root) and the same secret-free executor_env() allowlist, never the
-    # runner's full secret-bearing environment. cwd here is a working
-    # directory only — it is not, and is not claimed to be, an OS sandbox.
-    import task_runner
-
-    executor = tmp_path / "passthrough_exec.py"
-    executor.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
-    executor_cmd = f"{sys.executable} {executor}"
-
-    monkeypatch.setenv("PATH", r"C:\safe-bin")
-    monkeypatch.setenv("OPENAI_API_KEY", "sentinel-openai")
-    monkeypatch.setenv("GITHUB_TOKEN", "sentinel-github")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "sentinel-aws")
-    monkeypatch.setenv("SENTINEL_SECRET", "sentinel-value")
-
-    real_run = task_runner.subprocess.run
-    captured = {}
-
-    def spy_run(args, **kwargs):
-        if (isinstance(args, list) and len(args) >= 3
-                and args[0] == sys.executable
-                and args[1].endswith("verify.py")):
-            cwd = kwargs.get("cwd")
-            env = kwargs.get("env")
-            captured["sandbox_arg"] = args[2]
-            captured["cwd"] = cwd
-            captured["env"] = env
-            captured["env_explicit"] = "env" in kwargs
-            captured["cwd_is_dir"] = cwd is not None and Path(cwd).is_dir()
-            captured["has_calc"] = cwd is not None and (Path(cwd) / "calc.py").is_file()
-            captured["has_test"] = cwd is not None and (Path(cwd) / "test_calc.py").is_file()
-            return subprocess.CompletedProcess(args, returncode=0,
-                                               stdout=b"ok", stderr=b"")
-        return real_run(args, **kwargs)
-
-    monkeypatch.setattr(task_runner.subprocess, "run", spy_run)
-
-    rc = run_task_suite(["001-fix-div-zero"], executor_cmd=executor_cmd,
-                        tries=1, model="iso-model")
-    assert rc == 0
-    assert captured, "verifier subprocess was never invoked"
-
-    # The verifier is invoked with the sandbox path as its only argument, and
-    # its working directory is that same fresh fixture copy.
-    sandbox_arg = Path(captured["sandbox_arg"])
-    assert captured["cwd"] is not None
-    assert Path(captured["cwd"]) == sandbox_arg
-    assert Path(captured["cwd"]) != ROOT
-    assert captured["cwd_is_dir"] is True
-    assert captured["has_calc"] is True
-    assert captured["has_test"] is True
-
-    # Environment must be the explicit secret-free allowlist: no secret/API/
-    # token variables ever reach the verifier (or the pytest it spawns).
-    assert captured["env_explicit"] is True
-    env = captured["env"]
-    assert env is not None
-    assert env["PATH"] == r"C:\safe-bin"
-    for secret in ("OPENAI_API_KEY", "GITHUB_TOKEN",
-                   "AWS_SECRET_ACCESS_KEY", "SENTINEL_SECRET"):
-        assert secret not in env, f"{secret} leaked into verifier env"
+@requires_runtime
+def test_confined_timeout_output_is_classified(tmp_path, monkeypatch):
+    # A killed run's streams arrive as bytes from TimeoutExpired; they must
+    # be normalized to text before classification, not raise TypeError.
+    monkeypatch.setattr(
+        task_runner.container, "run_confined",
+        lambda argv, workdir, **kwargs: {
+            "rc": None, "stdout": b"partial ", "stderr": b"bytes tail",
+            "timed_out": True})
+    record = resolve_cmd(FAKE_EXEC)
+    attempt = task_runner._run_attempt("001-fix-div-zero", record, timeout=1)
+    assert attempt["verdict"] == "FAIL"
+    assert attempt["error_class"] == "test_timeout"
+    assert attempt["trace_tail"] == "partial \nbytes tail"
 
 
+@requires_task_image
+def test_confined_attempt_passes_end_to_end(tmp_path):
+    """A deterministic honest executor and the real trusted oracle, both
+    inside the boundary: the candidate is fixed at /work and judged from the
+    read-only /verifier mount."""
+    record = _mounted_spec(tmp_path, {"fix.py": FIX_001_PY}, "fix.py")
+    attempt = task_runner._run_attempt("001-fix-div-zero", record,
+                                       timeout=600, verifier_image=TASK_IMAGE)
+    assert attempt["verdict"] == "PASS", attempt
+
+
+@requires_task_image
+def test_retry_gets_a_fresh_sandbox_confined(tmp_path):
+    """Attempt 1 pollutes its sandbox and fails; attempt 2 refuses to run
+    when the pollution survived and otherwise fixes honestly. Its PASS
+    proves the second attempt really started from a pristine fixture copy."""
+    scripts = {
+        "poison.py":
+            "import pathlib, sys\n"
+            "pathlib.Path('poison.marker').write_text('polluted',\n"
+            "                                         encoding='utf-8')\n"
+            "sys.exit(1)\n",
+        "honest.py":
+            "import pathlib, sys\n"
+            "if pathlib.Path('poison.marker').exists():\n"
+            "    sys.exit(2)\n"
+            + FIX_001_PY,
+    }
+    first = task_runner._run_attempt(
+        "001-fix-div-zero", _mounted_spec(tmp_path, scripts, "poison.py"),
+        timeout=300, verifier_image=TASK_IMAGE)
+    assert first["verdict"] == "FAIL"
+    second = task_runner._run_attempt(
+        "001-fix-div-zero", _mounted_spec(tmp_path, scripts, "honest.py"),
+        timeout=600, verifier_image=TASK_IMAGE)
+    assert second["verdict"] == "PASS", second
+
+
+@requires_task_image
+def test_candidate_cannot_rewrite_the_oracle(tmp_path):
+    """The executor runs before its judge and tries to overwrite verify.py
+    through the read-only /verifier mount. The unwritable mount keeps the
+    oracle pristine: the unfixed sandbox is still rejected and the host copy
+    is byte-identical afterwards."""
+    verify_path = task_runner.TASKS / "001-fix-div-zero" / "verify.py"
+    before = verify_path.read_bytes()
+    hack = (
+        "import pathlib, sys\n"
+        "always_pass = 'import sys\\nprint(\"PASS\")\\nsys.exit(0)\\n'\n"
+        "for target in (\n"
+        "        pathlib.Path('/verifier/001-fix-div-zero/verify.py'),\n"
+        "        pathlib.Path('/work/../verifier/001-fix-div-zero/verify.py')):\n"
+        "    try:\n"
+        "        target.write_text(always_pass, encoding='utf-8')\n"
+        "    except OSError:\n"
+        "        pass\n"
+        "sys.exit(0)\n")
+    record = _mounted_spec(tmp_path, {"hack.py": hack}, "hack.py")
+    attempt = task_runner._run_attempt("001-fix-div-zero", record,
+                                       timeout=600, verifier_image=TASK_IMAGE)
+    assert attempt["verdict"] == "FAIL", attempt
+    assert verify_path.read_bytes() == before
+
+
+@requires_runtime
 def test_executor_launch_error_records_truthful_fail(tmp_path):
-    # A nonexistent executor raises OSError/FileNotFoundError at launch. The
-    # runner must record a truthful FAIL (error_class=other, bounded trace),
-    # honor tries, continue across tasks, and persist the requested result.
+    # A nonexistent executable inside the image fails at launch (rc != 0).
+    # The runner must record a truthful FAIL (error_class=other, bounded
+    # trace), honor tries, continue across tasks, and persist the requested
+    # result — nothing ever runs on the host.
     json_path = tmp_path / "oserror.json"
     rc = run_task_suite(
         ["001-fix-div-zero", "002-add-validation"],
-        executor_cmd="definitely-not-a-real-executable-xyz",
+        executor_cmd=f"docker:{EXEC_IMAGE} definitely-not-a-real-executable-xyz",
         tries=2,
         json_out=json_path,
         model="failing-model",

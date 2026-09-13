@@ -22,22 +22,23 @@ Method (ported as ideas from the agentskills.io methodology):
   the skill's mandated reflex commands/paths (see behavior_oracles.py), not
   merely acknowledge the request.
 
-The model backend plugs in exactly like eval/runner.py: `--executor CMD`
-reads the prompt from stdin, prints the answer to stdout (e.g.
-`gemini -p -`, `claude -p`). Without `--executor` the queries file is only
-validated (dry-run). The executor spec is developer-owned config, never
-user input; parsed with shlex, run WITHOUT shell=True.
+The model backend plugs in exactly like eval/runner.py: the executor runs
+inside a declared container — `--executor "docker:<image>
+[@ro:<host>:<container>]... [@net] <argv...>"` reads the prompt from stdin
+and prints the answer to stdout. A bare host CLI is refused before any query
+runs. Without `--executor` the queries file is only validated (dry-run). The
+executor spec is developer-owned config, never user input; it is parsed
+without a shell.
 
 Usage:
     python eval/trigger_eval.py --queries eval/trigger_queries.json        # validate
     python eval/trigger_eval.py --queries eval/trigger_queries.json        \\
-        --executor "gemini -p -" --model gemini-2.5-pro --runs 3 --parallel 4 --json auto
+        --executor "docker:agent-image agent -p" --model gemini-2.5-pro --runs 3 --parallel 4 --json auto
     python eval/trigger_eval.py --queries q.json --only yagni              # one skill
 """
 import argparse
 import json
 import re
-import shlex
 import subprocess
 import sys
 import time
@@ -224,7 +225,7 @@ def prompt_for(query: str) -> str:
     return prelude + "User request: " + query + "\n"
 
 
-def run_query_detailed(cmd: list[str], q: dict, runs: int,
+def run_query_detailed(cmd: dict, q: dict, runs: int,
                        timeout: int = TIMEOUT_DEFAULT) -> dict:
     """Runs one query `runs` times; records per-attempt timings and errors.
 
@@ -298,7 +299,7 @@ def run_query_detailed(cmd: list[str], q: dict, runs: int,
     return row
 
 
-def run_query(cmd: list[str], q: dict, runs: int,
+def run_query(cmd: dict, q: dict, runs: int,
               timeout: int = TIMEOUT_DEFAULT) -> tuple[str, bool]:
     """Runs one query `runs` times; majority vote decides triggered."""
     res = run_query_detailed(cmd, q, runs, timeout=timeout)
@@ -329,8 +330,10 @@ def main() -> int:
     ap.add_argument("--queries", required=True,
                     help="JSON file with {skill, should, query}, or 'auto' "
                          "for per-skill evals.json + central fallback")
-    ap.add_argument("--executor", help='CLI reading prompt from stdin, '
-                     'printing answer to stdout (e.g. "gemini -p -")')
+    ap.add_argument("--executor", help='confined executor: docker:<image> '
+                     '[@ro:<host>:<container>]... [@net] <argv...> '
+                     '(prompt on stdin, answer on stdout; a bare host CLI '
+                     'is refused)')
     ap.add_argument("--model", default=None,
                     help="model identifier (e.g. gpt-4o, claude-3-5-sonnet); "
                          "required for a live --json run (dry --json may omit)")
@@ -385,7 +388,14 @@ def main() -> int:
                        passed=0, fired=0, misses=[], rows=[])
         return 0
     reported_usage = load_reported_usage(args.usage_json)
-    cmd = resolve_cmd(args.executor)
+    try:
+        cmd = resolve_cmd(args.executor)
+    except (RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if not cmd:
+        print("error: --executor resolved to no command", file=sys.stderr)
+        return 2
     selected = [q for q in queries
                 if not args.only or q["skill"] == args.only]
     if args.only and not selected:

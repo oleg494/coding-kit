@@ -11,8 +11,13 @@ This is an experimental, descriptive measure. Ambient global skills loaded by
 the host harness are NOT controlled here; the numbers are raw and may be
 non-conclusive on small samples.
 
+Executor and judge run inside a declared container exactly like eval/runner.py:
+`docker:<image> [@ro:<host>:<container>]... [@net] <argv...>` (prompt on stdin,
+answer on stdout). A bare host CLI is refused before anything runs.
+
 Usage:
-    python eval/ablate.py --executor "gemini -p -" --model gpt-4o --json auto
+    python eval/ablate.py --executor "docker:agent-image agent -p" \
+        --model gpt-4o --json auto
 """
 import argparse
 import sys
@@ -187,9 +192,13 @@ def run_ablation(executor, judge, scenario_files, skills_root, repeat=1,
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--executor", required=True,
-                    help="model CLI (reads prompt on stdin)")
+                    help="confined model executor: docker:<image> "
+                         "[@ro:<host>:<container>]... [@net] <argv...> "
+                         "(reads the prompt on stdin, prints the answer to "
+                         "stdout; a bare host CLI is refused)")
     ap.add_argument("--judge", default=None,
-                    help="judge CLI (default = --executor)")
+                    help="judge executor spec (same docker:<image> ... form; "
+                         "default = --executor)")
     ap.add_argument("--model", default=None,
                     help="model label; required for --json persistence")
     ap.add_argument("--repeat", type=int, default=1,
@@ -212,11 +221,15 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         return 2
 
-    executor = resolve_cmd(args.executor)
+    try:
+        executor = resolve_cmd(args.executor)
+        judge = resolve_cmd(args.judge) if args.judge else executor
+    except (RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     if not executor:
         print("error: --executor resolved to no command", file=sys.stderr)
         return 2
-    judge = resolve_cmd(args.judge) if args.judge else executor
 
     files = sorted(SCENARIOS.glob("*.md"))
     if args.scenario:

@@ -119,40 +119,6 @@ def test_cli_rejects_missing_skills_root(tmp_path):
     assert "skills root not found" in r.stderr
 
 
-def test_run_prompt_uses_neutral_cwd(monkeypatch):
-    captured = {}
-
-    class FakeCompleted:
-        returncode = 0
-        stdout = "ok"
-        stderr = ""
-
-    def fake_run(cmd, **kwargs):
-        cwd = kwargs.get("cwd")
-        captured["cwd"] = cwd
-        captured["cwd_is_dir"] = Path(cwd).is_dir()
-        captured["outside_repo"] = (
-            Path(cwd) != runner.ROOT
-            and not str(cwd).startswith(str(runner.ROOT)))
-        return FakeCompleted()
-
-    monkeypatch.setattr(runner.subprocess, "run", fake_run)
-    out = runner.run_prompt(["fake"], "prompt")
-    assert out == "ok"
-    assert captured["cwd_is_dir"] is True
-    assert captured["outside_repo"] is True
-    # per-call temp dir, cleaned up after the subprocess returns
-    assert not Path(captured["cwd"]).exists()
-
-
-def test_executor_env_preserves_auth_home(monkeypatch):
-    monkeypatch.setenv("HOME", r"C:\Users\someone")
-    monkeypatch.setenv("USERPROFILE", r"C:\Users\someone")
-    monkeypatch.setenv("APPDATA", r"C:\Users\someone\AppData\Roaming")
-    env = runner.executor_env()
-    assert env.get("HOME") == r"C:\Users\someone"
-    assert env.get("USERPROFILE") == r"C:\Users\someone"
-    assert env.get("APPDATA") == r"C:\Users\someone\AppData\Roaming"
 
 
 def test_runner_dry_run_usage_json_not_loaded(tmp_path):

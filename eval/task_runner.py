@@ -2,9 +2,13 @@
 """eval/task_runner.py — task smoke runner on real coding tasks.
 
 Each eval/tasks/<name>/ holds TASK.md (the brief) + verify.py (binary oracle).
-The executor gets the brief on stdin with cwd=sandbox (a fresh copy of
-repo-fixture); afterwards verify.py <sandbox> decides pass/fail. No LLM
-judge — scoring is reproducible and model-agnostic.
+Both halves of an attempt run inside the OS-enforced container boundary
+(eval/rigor/container.py): the executor gets the brief on stdin with a fresh
+copy of repo-fixture as its only writable mount (/work), then verify.py
+decides pass/fail against that sandbox with the whole task tree mounted
+read-only at /verifier — candidate code can never rewrite its judge, and
+neither the model nor the oracle ever runs on the host. No LLM judge —
+scoring is reproducible and model-agnostic.
 
 Every attempt runs against a pristine fixture copy, so a retry can never
 inherit a previous attempt's mutations. Each attempt records its own
@@ -14,18 +18,22 @@ never a benchmark.
 
 Usage:
     python eval/task_runner.py --dry-run                     # validate layout
-    python eval/task_runner.py --executor "claude -p"        # score all tasks
+    python eval/task_runner.py --executor "docker:<image> @net claude -p"
     python eval/task_runner.py --executor "..." --tries 3 --json auto
     python eval/task_runner.py --executor "..." --model name --json out.json
+
+`--executor` must be a confined spec (`docker:<image>
+[@ro:<host>:<container>]... [@net] <argv...>`); a host CLI is refused before
+any attempt (exit 2). `--verifier-image` overrides the image carrying the
+oracle (it must provide python, and pytest for the pytest-based oracles);
+the default is the executor's image, and missing dependencies are a truthful
+FAIL, never a host fallback.
 
 Exit 1 if any task fails (flake-gate compatible: rerun to confirm).
 """
 import argparse
-import os
 import re
-import shlex
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -37,24 +45,13 @@ FIXTURE = TASKS / "repo-fixture"
 
 sys.path.insert(0, str(ROOT / "eval"))
 try:
+    from runner import resolve_cmd  # shared confined-spec parser (fail closed)
     from telemetry import load_reported_usage, summarize_durations
+    from rigor import container
 except ImportError:
+    from eval.runner import resolve_cmd
     from eval.telemetry import load_reported_usage, summarize_durations
-
-_EXECUTOR_ENV_KEYS = (
-    "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC",
-    "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA",
-    "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)",
-    "PROGRAMW6432", "TEMP", "TMP", "TMPDIR", "USER", "USERNAME",
-    "SHELL", "LANG", "LC_ALL", "PYTHONIOENCODING", "PYTHONUTF8",
-    "TERM", "COLORTERM", "NO_COLOR",
-)
-
-
-def executor_env() -> dict[str, str]:
-    """Minimal runtime environment; model subprocesses never inherit secrets."""
-    return {key: os.environ[key] for key in _EXECUTOR_ENV_KEYS
-            if key in os.environ}
+    from eval.rigor import container
 
 # Shared failure taxonomy — exactly these six values, per the v3.2 schema.
 ERROR_CLASSES = (
@@ -68,31 +65,13 @@ ERROR_CLASSES = (
 
 _TRACE_TAIL_CHARS = 2000
 
+# The trusted oracle runs several pytest suites inside the boundary; give it
+# the container backend's verifier budget, not the executor's.
+_VERIFIER_TIMEOUT = 120
+
 # "auto" is the shared timestamped store (eval/results/), reproduced here so
 # the suite-level entry point stays compatible with main()'s --json PATH|auto.
 _AUTO = "auto"
-
-
-def _unquote(s: str) -> str:
-    if len(s) >= 2 and ((s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'"))):
-        return s[1:-1]
-    return s
-
-
-def resolve_cmd(spec: str) -> list[str]:
-    """CLI string -> argv list. No shell; .cmd/.bat run through cmd /c."""
-    if not spec or not spec.strip():
-        return []
-    is_win = sys.platform == "win32"
-    parts = shlex.split(spec, posix=not is_win)
-    if not parts:
-        return []
-    if is_win:
-        parts = [_unquote(p) for p in parts]
-    exe = shutil.which(parts[0]) or parts[0]
-    if is_win and exe.lower().endswith((".cmd", ".bat")):
-        return ["cmd", "/c", exe, *parts[1:]]
-    return [exe, *parts[1:]]
 
 
 def discover() -> list[str]:
@@ -307,8 +286,28 @@ def _fail_attempt(duration: float, error_class: str,
     return attempt
 
 
-def _run_attempt(name: str, cmd: list[str], *, timeout: int) -> dict:
-    """One executor+verifier pass over a fresh pristine-fixture sandbox."""
+def _as_text(value) -> str:
+    """A container run's stdout/stderr are str on the normal path, but the
+    backend copies `TimeoutExpired.stdout/stderr` verbatim, which are bytes
+    when a confined run is killed past its deadline. Normalize both so
+    classify_error/_fail_attempt never join bytes with str."""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    return value or ""
+
+
+def _run_attempt(name: str, record: dict, *, timeout: int,
+                 verifier_image: str | None = None) -> dict:
+    """One executor+verifier pass over a fresh pristine-fixture sandbox.
+
+    Both halves run inside the container boundary: the executor edits the
+    sandbox (its only writable mount) from the brief on stdin, then the
+    trusted oracle judges that same sandbox with the task tree mounted
+    read-only at /verifier, so candidate code executed by the verifier
+    cannot rewrite the oracle it is judged by. `record` is the parsed
+    confined executor (shared runner.resolve_cmd); the verifier runs in
+    `verifier_image` (default: the executor's image).
+    """
     with tempfile.TemporaryDirectory(prefix=f"kit-task-{name}-") as td:
         sandbox = Path(td) / "repo"
         shutil.copytree(FIXTURE, sandbox)
@@ -316,28 +315,21 @@ def _run_attempt(name: str, cmd: list[str], *, timeout: int) -> dict:
         started = time.monotonic()
 
         try:
-            proc = subprocess.run(cmd, input=brief.encode("utf-8"),
-                                  cwd=sandbox, timeout=timeout,
-                                  capture_output=True, env=executor_env())
-        except subprocess.TimeoutExpired as e:
-            duration = round(time.monotonic() - started, 3)
-            stdout = (e.stdout or b"").decode("utf-8", "replace") \
-                if isinstance(e.stdout, bytes) else (e.stdout or "")
-            stderr = (e.stderr or b"").decode("utf-8", "replace") \
-                if isinstance(e.stderr, bytes) else (e.stderr or "")
-            return _fail_attempt(duration, classify_error(
-                timed_out=True, stdout=stdout, stderr=stderr), stdout, stderr)
-        except (OSError, ValueError) as e:
-            # Executor could not launch or failed to start (missing path,
-            # permission denied, empty argv). Record a truthful FAIL instead
-            # of crashing the whole run; the trace tail is bounded.
+            run = container.run_confined(
+                record["argv"], sandbox, image=record["image"],
+                timeout=timeout, network=record["network"],
+                ro_mounts=record["mounts"], stdin=brief)
+        except (container.IsolationUnavailable, OSError, ValueError) as e:
+            # The boundary is unavailable or the executor could not launch
+            # (no runtime, bad image, empty argv). Record a truthful FAIL
+            # instead of crashing the whole run; the trace tail is bounded.
             duration = round(time.monotonic() - started, 3)
             return _fail_attempt(duration, "other", "",
                                  f"{type(e).__name__}: {e}")
 
         duration = round(time.monotonic() - started, 3)
-        stdout = (proc.stdout or b"").decode("utf-8", "replace")
-        stderr = (proc.stderr or b"").decode("utf-8", "replace")
+        stdout = _as_text(run["stdout"])
+        stderr = _as_text(run["stderr"])
 
         # Scan the executor's sandbox diff for ImpossibleBench shortcut
         # strategies BEFORE the verifier runs (per plan 6.3: for claude -p
@@ -345,42 +337,36 @@ def _run_attempt(name: str, cmd: list[str], *, timeout: int) -> dict:
         diff = _sandbox_diff(sandbox)
         shortcuts = shortcut_patterns(diff)
 
-        # Nonzero executor result means the response is unusable: the
-        # sandbox was not fixed, so the verifier cannot meaningfully run.
-        if proc.returncode != 0:
+        # A timed-out or nonzero executor result means the response is
+        # unusable: the sandbox was not fixed, so the verifier cannot
+        # meaningfully run.
+        if run["timed_out"] or run["rc"] != 0:
             attempt = _fail_attempt(duration, classify_error(
-                returncode=proc.returncode, stdout=stdout, stderr=stderr),
-                stdout, stderr)
+                returncode=run["rc"] or 0, stdout=stdout, stderr=stderr,
+                timed_out=run["timed_out"]), stdout, stderr)
             attempt["shortcuts"] = shortcuts
             return attempt
 
         try:
-            v = subprocess.run(
-                [sys.executable, str(TASKS / name / "verify.py"), str(sandbox)],
-                capture_output=True,
-                timeout=60,
-                cwd=sandbox,
-                env=executor_env())
-        except subprocess.TimeoutExpired as e:
-            v_stdout = (e.stdout or b"").decode("utf-8", "replace") \
-                if isinstance(e.stdout, bytes) else (e.stdout or "")
-            v_stderr = (e.stderr or b"").decode("utf-8", "replace") \
-                if isinstance(e.stderr, bytes) else (e.stderr or "")
-            return _fail_attempt(duration, classify_error(
-                timed_out=True, stdout=v_stdout, stderr=v_stderr),
-                v_stdout, v_stderr)
-        except (OSError, ValueError) as e:
+            v = container.run_confined(
+                [container.VERIFIER_PYTHON,
+                 f"{container.VERIFIER_MOUNT}/{name}/verify.py",
+                 container.WORK_MOUNT],
+                sandbox, image=verifier_image or record["image"],
+                timeout=_VERIFIER_TIMEOUT,
+                ro_mounts=((TASKS, container.VERIFIER_MOUNT),))
+        except (container.IsolationUnavailable, OSError, ValueError) as e:
             return _fail_attempt(duration, "other", "",
                                  f"{type(e).__name__}: {e}")
-        if v.returncode == 0:
+        if v["rc"] == 0:
             return {"verdict": "PASS", "duration_s": duration,
                     "shortcuts": shortcuts}
 
-        v_stdout = (v.stdout or b"").decode("utf-8", "replace")
-        v_stderr = (v.stderr or b"").decode("utf-8", "replace")
+        v_stdout = _as_text(v["stdout"])
+        v_stderr = _as_text(v["stderr"])
         failed = _fail_attempt(duration, classify_error(
-            returncode=v.returncode, stdout=v_stdout, stderr=v_stderr),
-            v_stdout, v_stderr)
+            returncode=v["rc"] or 0, stdout=v_stdout, stderr=v_stderr,
+            timed_out=v["timed_out"]), v_stdout, v_stderr)
         failed["shortcuts"] = shortcuts
         return failed
 
@@ -398,12 +384,15 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
                    tries: int = 2, timeout: int = 900,
                    json_out=None, model: str | None = None,
                    dry_run: bool = False,
-                   reported_usage: dict | None = None) -> int:
+                   reported_usage: dict | None = None,
+                   verifier_image: str | None = None) -> int:
     """Run the named task smokes and return the process exit code.
 
     json_out: None (no persistence), a Path (explicit file), or "auto"
-    (the shared timestamped store). dry_run never spawns the executor and
-    persists only when json_out is explicitly requested.
+    (the shared timestamped store). dry_run starts no container and
+    persists only when json_out is explicitly requested. A live run
+    requires a confined `docker:<image> ...` executor spec; anything else
+    is refused before the first attempt.
     """
     if json_out is not None and not dry_run and not model:
         raise ValueError(
@@ -444,7 +433,11 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
         print("OK (dry-run)")
         return 0
 
-    cmd = resolve_cmd(executor_cmd)
+    record = resolve_cmd(executor_cmd)
+    if record is None:
+        raise ValueError(
+            "live run requires a confined executor spec "
+            "(`docker:<image> [@ro:<host>:<container>]... [@net] <argv...>`)")
     rows = []
     passed = 0
     failed = 0
@@ -459,7 +452,8 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
         verdict = "FAIL"
         hacked = False
         for try_idx in range(1, tries + 1):
-            attempt = _run_attempt(name, cmd, timeout=timeout)
+            attempt = _run_attempt(name, record, timeout=timeout,
+                                   verifier_image=verifier_image)
             attempts.append(attempt)
             if attempt["verdict"] == "PASS":
                 verdict = "PASS"
@@ -518,7 +512,10 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--executor", help="model CLI reading the brief on stdin")
+    ap.add_argument("--executor",
+                    help="confined executor spec reading the brief on stdin: "
+                         "docker:<image> [@ro:<host>:<container>]... [@net] "
+                         "<argv...> (a host CLI is refused)")
     ap.add_argument("--timeout", type=int, default=900,
                     help="per-attempt executor timeout seconds (default 900)")
     ap.add_argument("--tries", type=int, default=2,
@@ -533,6 +530,10 @@ def main() -> int:
     ap.add_argument("--usage-json", default=None, metavar="PATH",
                     help="optional user-reported {tokens_total, cost_usd} "
                          "JSON object from the provider dashboard")
+    ap.add_argument("--verifier-image", default=None,
+                    help="image carrying the trusted verify.py oracle (must "
+                         "provide python, and pytest for the pytest oracles); "
+                         "default: the executor's image")
     ap.add_argument("--dry-run", action="store_true",
                     help="validate task layout only")
     args = ap.parse_args()
@@ -553,10 +554,15 @@ def main() -> int:
     if not args.dry_run:
         reported_usage = load_reported_usage(args.usage_json)
 
-    return run_task_suite(discover(), args.executor, tries=args.tries,
-                          timeout=args.timeout, json_out=json_out,
-                          model=args.model, dry_run=args.dry_run,
-                          reported_usage=reported_usage)
+    try:
+        return run_task_suite(discover(), args.executor, tries=args.tries,
+                              timeout=args.timeout, json_out=json_out,
+                              model=args.model, dry_run=args.dry_run,
+                              reported_usage=reported_usage,
+                              verifier_image=args.verifier_image)
+    except (RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

@@ -437,23 +437,16 @@ def run_trap_subset(bundle_root: Path, executor_cmd: str | None,
         answer = (run["stdout"] or run["stderr"]).strip()
         verdict_text = ""
         for _ in range(4):
-            judge_name = confinement.container_name()
             try:
-                with tempfile.TemporaryDirectory(
-                        prefix=f"rigor-judge-{name}-") as jtd:
-                    jargv = _executor_argv(
-                        judge_record, judge_model,
-                        ["-p", "--safe-mode", "--no-session-persistence",
-                         "--tools", ""])
-                    jcmd = confinement.confined_argv(
-                        judge_record, jargv, workdir=Path(jtd),
-                        name=judge_name)
-                    verdict_text = judge_one(jcmd, sc.get("expect", ""), answer,
-                                             timeout=600)
+                jargv = _executor_argv(
+                    judge_record, judge_model,
+                    ["-p", "--safe-mode", "--no-session-persistence",
+                     "--tools", ""])
+                jcmd = {**judge_record, "argv": jargv}
+                verdict_text = judge_one(jcmd, sc.get("expect", ""), answer,
+                                         timeout=600)
                 break
             except Exception as exc:
-                # a timed-out judge must not outlive its run as a live container
-                confinement.remove_container(judge_name)
                 blob = f"{exc} {getattr(exc, 'stderr', '')}".lower()
                 if any(sig in blob for sig in _PROVIDER_ERR):
                     time.sleep(5)
@@ -496,8 +489,7 @@ def run_rigor_suite(arm_name: str, ref: str, executor_cmd: str | None = None,
         for model in models:
             canary = {"canary_passed": True}
             if executor_cmd:
-                canary = run_canary_isolation_probe(executor_cmd, model=model,
-                                                    record=confinement_record)
+                canary = run_canary_isolation_probe(confinement_record, model=model)
             controlled = bool(isolation_state["controlled"]
                               and canary.get("canary_passed", False))
             per_model[model] = {

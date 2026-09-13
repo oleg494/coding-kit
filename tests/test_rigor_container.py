@@ -130,10 +130,6 @@ def test_host_executor_is_refused_even_with_docker_available(monkeypatch):
     assert record["mode"] == "dry-run"
 
 
-def test_live_rigor_run_is_refused_before_any_model_call():
-    with pytest.raises(runner_container.IsolationUnavailable) as excinfo:
-        run_rigor_suite("baseline", "worktree", executor_cmd="claude -p")
-    assert "live run refused" in str(excinfo.value)
 
 
 @pytest.mark.skipif(not _RUNTIME["available"], reason=_SKIP_REASON)
@@ -161,19 +157,16 @@ def test_timeout_leaves_no_container_or_descendant():
 
 @pytest.mark.skipif(not _RUNTIME["available"], reason=_SKIP_REASON)
 def test_judge_launch_plumbing_inside_the_boundary(tmp_path):
-    """The judge command is a `docker run` argv consumed by the shared helper.
+    """A confined judge receives stdin and returns its verdict.
 
-    Stand-in judge, no model: it proves the boundary argv works with
-    `judge_one`/`run_prompt` (stdin carries the judge prompt, stdout the
-    verdict, the host cwd is irrelevant).
+    The shared helper owns container lifetime, including timeout cleanup.
     """
     from eval.runner import judge_one
 
     code = "import sys; print('PASS' if 'EXPECT:' in sys.stdin.read() else 'FAIL')"
     record = container.parse_executor_spec(
         f"docker:{container.DEFAULT_IMAGE} python")
-    jcmd = container.confined_argv(record, ["python", "-c", code],
-                                   workdir=tmp_path)
+    jcmd = {**record, "argv": ["python", "-c", code]}
     assert judge_one(jcmd, "the expectation", "the answer").startswith("PASS")
 
 

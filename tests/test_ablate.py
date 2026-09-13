@@ -11,6 +11,14 @@ sys.path.insert(0, str(ROOT / "eval"))
 
 import ablate
 from ablate import ablation_result, discover_ablations, run_ablation
+from rigor import container
+
+MOCK_SPEC = "docker:python:3.12-alpine python"
+# resolve_cmd only parses the spec (no backend probing), so the rows-level
+# tests below run without a live daemon; _evaluate_scenarios is faked.
+_MOCK_RECORD = ablate.resolve_cmd(MOCK_SPEC)
+_RUNTIME = container.docker_status()
+_SKIP_REASON = f"no container runtime: {_RUNTIME.get('reason', 'unavailable')}"
 
 
 def _row(name, skill, verdict, duration=1.0):
@@ -96,9 +104,9 @@ def test_run_ablation_persists_single_doc(tmp_path, monkeypatch):
 
     out = tmp_path / "ab.json"
     rc = run_ablation(
-        executor=["mock"], judge=["mock"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1",
-        executor_spec="mock", json_out=out,
+        executor_spec=MOCK_SPEC, json_out=out,
         reported_usage={"tokens_total": 10, "cost_usd": 0.5})
     assert rc == 0
 
@@ -125,7 +133,7 @@ def test_run_ablation_no_json_writes_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(ablate, "_evaluate_scenarios", _fake_eval(rows))
 
     rc = run_ablation(
-        executor=["mock"], judge=["mock"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1", json_out=None)
     assert rc == 0
     assert list(tmp_path.glob("*.json")) == []
@@ -156,7 +164,7 @@ def test_run_ablation_no_executor_answer_returns_2(tmp_path, monkeypatch):
     monkeypatch.setattr(ablate, "_evaluate_scenarios", fake_eval)
     out = tmp_path / "ab.json"
     rc = run_ablation(
-        executor=["missing-exe"], judge=["missing-exe"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1", json_out=out)
     assert rc == 2
     assert not out.exists()
@@ -186,7 +194,7 @@ def test_run_ablation_treatment_no_executor_answer_returns_2(tmp_path, monkeypat
     monkeypatch.setattr(ablate, "_evaluate_scenarios", fake_eval)
     out = tmp_path / "ab.json"
     rc = run_ablation(
-        executor=["mock"], judge=["mock"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1", json_out=out)
     assert rc == 2
     assert not out.exists()
@@ -209,7 +217,7 @@ def test_run_ablation_baseline_judge_failure_returns_2(tmp_path, monkeypatch):
     monkeypatch.setattr(ablate, "_evaluate_scenarios", fake_eval)
     out = tmp_path / "ab.json"
     rc = run_ablation(
-        executor=["mock"], judge=["mock"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1", json_out=out)
     assert rc == 2
     assert not out.exists()
@@ -239,7 +247,7 @@ def test_run_ablation_treatment_judge_failure_returns_2(tmp_path, monkeypatch):
     monkeypatch.setattr(ablate, "_evaluate_scenarios", fake_eval)
     out = tmp_path / "ab.json"
     rc = run_ablation(
-        executor=["mock"], judge=["mock"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1", json_out=out)
     assert rc == 2
     assert not out.exists()
@@ -262,7 +270,7 @@ def test_run_ablation_verdict_fail_is_not_infra_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(ablate, "_evaluate_scenarios", fake_eval)
     out = tmp_path / "ab.json"
     rc = run_ablation(
-        executor=["mock"], judge=["mock"], scenario_files=files,
+        executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=files,
         skills_root=skills, repeat=1, timeout=30, model="m1", json_out=out)
     assert rc == 0
     assert out.exists()
@@ -279,7 +287,7 @@ def test_run_ablation_validates_before_evaluator(tmp_path, monkeypatch):
     monkeypatch.setattr(ablate, "_evaluate_scenarios", spy)
     with pytest.raises(ValueError, match="skills root not found"):
         run_ablation(
-            executor=["mock"], judge=["mock"],
+            executor=_MOCK_RECORD, judge=_MOCK_RECORD,
             scenario_files=[tmp_path / "a.md"],
             skills_root=tmp_path / "nope", repeat=1, timeout=30, model="m")
     assert calls == []
@@ -289,7 +297,7 @@ def test_run_ablation_rejects_no_scenario_files(tmp_path):
     skills = tmp_path / "skills"
     _write_skill(skills, "yagni")
     with pytest.raises(ValueError, match="no scenario files"):
-        run_ablation(executor=["mock"], judge=["mock"], scenario_files=[],
+        run_ablation(executor=_MOCK_RECORD, judge=_MOCK_RECORD, scenario_files=[],
                      skills_root=skills, repeat=1, timeout=30, model="m")
 
 
@@ -332,26 +340,59 @@ def test_validate_inputs_rejects_missing_metadata(tmp_path):
     assert "expect" in err
 
 
-def test_ablate_cli_end_to_end_fake_executor(tmp_path):
-    fake = tmp_path / "fake_exec.py"
-    fake.write_text(
+def test_ablate_cli_rejects_host_executor_spec(tmp_path):
+    """A bare host CLI must fail closed at the CLI: readable nonzero error,
+    no traceback, no result document written."""
+    out = tmp_path / "ab.json"
+    r = subprocess.run(
+        [sys.executable, str(ROOT / "eval" / "ablate.py"),
+         "--executor", f"{sys.executable} -c print(1)",
+         "--scenario", "premature-abstraction",
+         "--model", "fixture",
+         "--skills-dir", str(ROOT / "skills"),
+         "--json", str(out)],
+        capture_output=True, text=True, encoding="utf-8", timeout=120)
+    assert r.returncode != 0
+    assert "host prompt execution refused" in r.stderr
+    assert "Traceback" not in r.stderr
+    assert not out.exists()
+
+
+def test_ablate_cli_help_documents_docker_executor():
+    r = subprocess.run(
+        [sys.executable, str(ROOT / "eval" / "ablate.py"), "--help"],
+        capture_output=True, text=True, encoding="utf-8", timeout=120)
+    assert r.returncode == 0, r.stderr
+    assert "docker:" in r.stdout
+
+
+@pytest.mark.skipif(not _RUNTIME["available"], reason=_SKIP_REASON)
+def test_ablate_cli_end_to_end_confined_executor(tmp_path):
+    """The whole ablation runs inside the container boundary: the fake
+    executor is reachable only through the declared read-only mount, so a
+    host-side script path would not run at all."""
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    (fixture / "fake_exec.py").write_text(
         "import sys\n"
         "data = sys.stdin.read()\n"
         "if 'EXPECT:' in data:\n"
         "    sys.stdout.write('PASS\\n')\n"
         "else:\n"
         "    sys.stdout.write('ANSWER FROM FAKE\\n')\n",
-        encoding="utf-8")
+        encoding="utf-8", newline="\n")
     out = tmp_path / "ab.json"
+    spec = (f"docker:{container.DEFAULT_IMAGE} "
+            f"@ro:{fixture.as_posix()}:/fixture python /fixture/fake_exec.py")
     r = subprocess.run(
         [sys.executable, str(ROOT / "eval" / "ablate.py"),
-         "--executor", f"{sys.executable} {fake}",
+         "--executor", spec,
          "--scenario", "premature-abstraction",
          "--skills-dir", str(ROOT / "skills"),
          "--model", "fake-model",
          "--json", str(out),
          "--repeat", "1"],
-        capture_output=True, text=True, encoding="utf-8", timeout=120)
+        capture_output=True, text=True, encoding="utf-8", timeout=600)
     assert r.returncode == 0, r.stdout + r.stderr
     doc = json.loads(out.read_text(encoding="utf-8"))
     assert doc["kind"] == "ablate"

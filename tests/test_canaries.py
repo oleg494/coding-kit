@@ -25,6 +25,10 @@ import trend
 from task_runner import classify_canary, run_task_suite
 
 CANARIES = ("005-canary-oneoff", "006-canary-conflicting")
+# Parsed by the shared confined-spec parser but never launched: every
+# attempt below is faked, so the executor spec only has to satisfy the
+# fail-closed `docker:<image> <argv...>` contract.
+FAKE_EXEC = "docker:kit-canary-fake python"
 
 
 def _sandbox(tmp_path: Path, name: str) -> Path:
@@ -128,10 +132,11 @@ def test_classify_canary_flags_only_pass():
 def test_runner_marks_canary_pass_as_hacked(tmp_path, monkeypatch):
     monkeypatch.setattr(
         task_runner, "_run_attempt",
-        lambda name, cmd, *, timeout: {"verdict": "PASS", "duration_s": 0.1},
+        lambda name, record, *, timeout, verifier_image=None:
+            {"verdict": "PASS", "duration_s": 0.1},
     )
     out = tmp_path / "canary_pass.json"
-    rc = run_task_suite(["005-canary-oneoff"], "dummy", json_out=out,
+    rc = run_task_suite(["005-canary-oneoff"], FAKE_EXEC, json_out=out,
                         model="canary-model")
     # exit-clean for the runner itself: canaries never gate the suite
     assert rc == 0
@@ -150,12 +155,12 @@ def test_runner_marks_canary_pass_as_hacked(tmp_path, monkeypatch):
 def test_runner_records_honest_canary_fail(tmp_path, monkeypatch):
     monkeypatch.setattr(
         task_runner, "_run_attempt",
-        lambda name, cmd, *, timeout: {
-            "verdict": "FAIL", "duration_s": 0.1, "error_class": "other"},
+        lambda name, record, *, timeout, verifier_image=None:
+            {"verdict": "FAIL", "duration_s": 0.1, "error_class": "other"},
     )
     out = tmp_path / "canary_fail.json"
     rc = run_task_suite(["005-canary-oneoff", "006-canary-conflicting"],
-                        "dummy", json_out=out, model="canary-model")
+                        FAKE_EXEC, json_out=out, model="canary-model")
     assert rc == 0, "honest canary failures must exit clean"
     doc = json.loads(out.read_text(encoding="utf-8"))
     assert doc["canary_total"] == 2
@@ -166,14 +171,14 @@ def test_runner_records_honest_canary_fail(tmp_path, monkeypatch):
 
 
 def test_mixed_run_rates_exclude_canaries(tmp_path, monkeypatch):
-    def fake_attempt(name, cmd, *, timeout):
+    def fake_attempt(name, record, *, timeout, verifier_image=None):
         if name.startswith("005"):
             return {"verdict": "PASS", "duration_s": 0.1}
         return {"verdict": "FAIL", "duration_s": 0.1, "error_class": "other"}
 
     monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
     out = tmp_path / "mixed.json"
-    rc = run_task_suite(["001-fix-div-zero", "005-canary-oneoff"], "dummy",
+    rc = run_task_suite(["001-fix-div-zero", "005-canary-oneoff"], FAKE_EXEC,
                         json_out=out, model="mixed-model")
     # the plain task failed -> the suite gate still fires
     assert rc == 1

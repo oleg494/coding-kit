@@ -251,9 +251,12 @@ model's behavior.
 | [Rigor A/B](eval/rigor/) | Policy experiments with isolation probes and an acceptance gate that can reject a candidate. |
 
 Live evaluations require an executor and may incur provider charges.
-A neutral temporary working directory reduces repo-local instruction
-loading; global skills, credentials, and general filesystem access remain
-available. This is **not security isolation**.
+Prompt evaluations require `docker:<image> <argv...>`; bare host commands
+are refused. The image must contain the executor. Only explicitly declared
+read-only mounts are visible alongside a disposable writable task directory;
+host credentials are not inherited. Network is off by default. `@net` enables
+unrestricted bridge networking, not endpoint allowlisting: live-model CK-03
+acceptance remains open until credential and network restrictions are verified.
 
 </details>
 

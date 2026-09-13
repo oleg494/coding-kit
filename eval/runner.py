@@ -7,22 +7,19 @@ being fed to a judge model along with the `expect` line. When `--judge` is omitt
 the executor self-judges, which carries self-evaluation bias; a distinct judge is
 recommended for gating. The judge returns PASS/FAIL with reasoning.
 
-The model backend plugs in via `--executor CMD` (reads prompt from stdin,
-prints answer to stdout — e.g. `gemini -p -`). Without `--executor`, scenarios
-are only validated (dry-run). The executor spec is developer-owned config,
-never user input; it is parsed with shlex and run WITHOUT shell=True
-(.cmd/.bat targets are wrapped in `cmd /c` so Windows batch launchers work).
+The model backend runs inside a declared container via
+`--executor "docker:<image> <argv...>"` (stdin prompt, stdout answer).
+Without an executor, scenarios are only validated (dry-run).
+Host commands are refused; image contents and read-only mounts are trusted
+configuration. Network access is disabled unless explicitly requested.
 
 Usage:
     python eval/runner.py                        # dry-run: validate scenarios
-    python eval/runner.py --executor "gemini -p -"        # run via Gemini CLI
+    python eval/runner.py --executor "docker:agent-image agent -p"
     python eval/runner.py --executor "…" --repeat 3       # flake gate: all N must PASS
 """
 import argparse
-import os
 import re
-import shlex
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -32,20 +29,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCENARIOS = ROOT / "eval" / "scenarios"
 
-_EXECUTOR_ENV_KEYS = (
-    "PATH", "PATHEXT", "SYSTEMROOT", "WINDIR", "COMSPEC",
-    "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "APPDATA",
-    "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)",
-    "PROGRAMW6432", "TEMP", "TMP", "TMPDIR", "USER", "USERNAME",
-    "SHELL", "LANG", "LC_ALL", "PYTHONIOENCODING", "PYTHONUTF8",
-    "TERM", "COLORTERM", "NO_COLOR",
-)
-
-
-def executor_env() -> dict[str, str]:
-    """Minimal runtime environment; model subprocesses never inherit secrets."""
-    return {key: os.environ[key] for key in _EXECUTOR_ENV_KEYS
-            if key in os.environ}
 sys.path.insert(0, str(ROOT / "eval"))
 try:
     from prompt_assembly import assemble_prompt, skill_manifest
@@ -57,26 +40,19 @@ except ImportError:
     from eval.telemetry import load_reported_usage, summarize_durations
 
 
-def _unquote(s: str) -> str:
-    if len(s) >= 2 and ((s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'"))):
-        return s[1:-1]
-    return s
 
 
-def resolve_cmd(spec: str) -> list[str]:
-    """CLI string -> argv list. No shell; .cmd/.bat run through cmd /c."""
+def resolve_cmd(spec: str) -> dict | None:
+    """Parse a declared container executor without launching it."""
+    from rigor import container
+
     if not spec or not spec.strip():
-        return []
-    is_win = sys.platform == "win32"
-    parts = shlex.split(spec, posix=not is_win)
-    if not parts:
-        return []
-    if is_win:
-        parts = [_unquote(p) for p in parts]
-    exe = shutil.which(parts[0]) or parts[0]
-    if is_win and exe.lower().endswith((".cmd", ".bat")):
-        return ["cmd", "/c", exe, *parts[1:]]
-    return [exe, *parts[1:]]
+        return None
+    record = container.parse_executor_spec(spec)
+    if record["mode"] != "container":
+        raise container.IsolationUnavailable(
+            "host prompt execution refused; use docker:<image> <argv...>")
+    return record
 
 
 _EXEC_OUTPUT_BOUND = 4000
@@ -93,20 +69,26 @@ class ExecutorError(RuntimeError):
         self.stderr = stderr
 
 
-def run_prompt(cmd: list[str], prompt: str, timeout: int = 600) -> str:
+def run_prompt(cmd: dict, prompt: str, timeout: int = 600) -> str:
+    from rigor import container
+
+    if not isinstance(cmd, dict) or cmd.get("mode") != "container":
+        raise container.IsolationUnavailable(
+            "host prompt execution refused; use docker:<image> <argv...>")
     with tempfile.TemporaryDirectory(prefix="kit-eval-") as neutral:
-        r = subprocess.run(
-            cmd, input=prompt, capture_output=True, text=True, timeout=timeout,
-            encoding="utf-8", errors="replace", env=executor_env(),
-            cwd=neutral,
-        )
-    if r.returncode != 0:
+        r = container.run_confined(
+            cmd["argv"], Path(neutral), image=cmd["image"],
+            network=cmd["network"], ro_mounts=cmd["mounts"],
+            stdin=prompt, timeout=timeout)
+    if r["timed_out"]:
+        raise subprocess.TimeoutExpired(cmd, timeout, output=r["stdout"], stderr=r["stderr"])
+    if r["rc"] != 0:
         raise ExecutorError(
-            f"subprocess exited with code {r.returncode}",
-            stdout=(r.stdout or "")[-_EXEC_OUTPUT_BOUND:],
-            stderr=(r.stderr or "")[-_EXEC_OUTPUT_BOUND:],
+            f"subprocess exited with code {r['rc']}",
+            stdout=(r["stdout"] or "")[-_EXEC_OUTPUT_BOUND:],
+            stderr=(r["stderr"] or "")[-_EXEC_OUTPUT_BOUND:],
         )
-    return (r.stdout or r.stderr).strip()
+    return (r["stdout"] or r["stderr"]).strip()
 
 
 def parse(text: str) -> dict:
@@ -119,7 +101,7 @@ def parse(text: str) -> dict:
     return out
 
 
-def judge_one(judge_cmd: list[str], expect: str, answer: str, timeout: int = 600) -> str:
+def judge_one(judge_cmd: dict, expect: str, answer: str, timeout: int = 600) -> str:
     bounded_answer = (answer or "")[:JUDGE_INPUT_MAX_CHARS]
     prompt = (
         f"The scenario expects the following behavior:\nEXPECT: {expect}\n\n"
@@ -166,8 +148,8 @@ def validate_inline_skills(skills_root: Path,
 
 
 def _evaluate_scenarios(
-    executor: list[str] | None,
-    judge: list[str] | None,
+    executor: dict | None,
+    judge: dict | None,
     scenario_files: list[Path],
     repeat: int,
     timeout: int,
@@ -308,8 +290,8 @@ def _evaluate_scenarios(
 
 
 def run_scenarios(
-    executor: list[str] | None,
-    judge: list[str] | None,
+    executor: dict | None,
+    judge: dict | None,
     scenario_files: list[Path],
     repeat: int = 1,
     json_out: str | Path | None = None,
@@ -365,12 +347,12 @@ def run_scenarios(
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--executor", help="model CLI (prompt on stdin)")
+    ap.add_argument("--executor", help="docker:<image> <argv...> (prompt on stdin; host commands refused)")
     ap.add_argument("--model", default=None,
                     help="model identifier (e.g. gpt-4o, claude-3-5-sonnet); "
                          "required for a live --json run (dry --json may omit)")
     ap.add_argument("--judge", default=None,
-                    help="judge CLI (default = --executor; self-judging is biased — recommend a distinct judge for gating)")
+                    help="container judge spec (default = --executor; self-judging is biased)")
     ap.add_argument("--scenario", help="single scenario name (no .md)")
     ap.add_argument("--repeat", type=int, default=1,
                     help="flake gate: scenario must PASS N times in a row")
@@ -410,8 +392,12 @@ def main() -> int:
             print(f"error: {err}", file=sys.stderr)
             return 2
 
-    executor = resolve_cmd(args.executor) if args.executor else None
-    judge = resolve_cmd(args.judge) if args.judge else executor
+    try:
+        executor = resolve_cmd(args.executor) if args.executor else None
+        judge = resolve_cmd(args.judge) if args.judge else executor
+    except (RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     files = sorted(SCENARIOS.glob("*.md"))
     if args.scenario:
