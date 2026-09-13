@@ -57,6 +57,12 @@ _TREE_SCOPE = ("scripts", "memory/db-tools", "memory/scripts")
 
 def in_scope(rel: str) -> bool:
     """True when rel (posix) belongs to the control plane."""
+    # eval/results is a mutable evidence archive: new artifacts land there
+    # on every validation run — pinning them would flag ADDED drift and
+    # block deploys (deploy.integrity_gate exits 3). Everything else under
+    # eval/ that executes or steers stays pinned.
+    if rel.startswith("eval/results/"):
+        return False
     if rel in _FILE_SCOPE:
         return True
     if rel.endswith(".py"):

@@ -61,6 +61,10 @@ def _seed(root: Path):
     # out-of-scope files: never hashed
     _write(root / "README.md", "readme\n")
     _write(root / "eval" / "results" / "x.json", "{}\n")
+    _write(root / "eval" / "results" / "model-run" / "solution.py", "y = 1\n")
+    # eval/results stays unpinned entirely — including .py artifacts
+    # written by validation runs (scope docstring contract).
+    _write(root / "eval" / "results" / "deep" / "candidate.py", "z = 2\n")
     _write(root / "skills" / "demo" / "reference.md", "ref\n")
     # .agents/skills deploy mirror: same content, never hashed
     _write(root / ".agents" / "skills" / "demo" / "SKILL.md",
