@@ -27,6 +27,36 @@ manufacturing a task for the user and without pretending completion.
 - If no useful in-scope work remains, say so plainly and stop. Idle is an
   honest outcome; invented work is not.
 
+### Agree boundaries once on activation
+
+Before selecting or executing autonomous work, establish one explicit boundary
+agreement with the user. This happens on autonomous activation, not session
+startup, ordinary bounded requests, or every iteration.
+
+- Read the current request and any still-valid explicit user grants first.
+  If they already cover the agreement, acknowledge them briefly and proceed;
+  do not ask the user to repeat an answer.
+- Otherwise ask one compact, grouped question covering the missing boundaries:
+  project/mission and exclusions; duration (propose today, in the user's local
+  date); local edits and verification; commits and ordinary push (repository
+  and branch); dependency installs and memory writes; paid experiments and an
+  explicit spending/quota limit. Use known project context rather than asking
+  for facts available in the repository. Offer conservative defaults, not an
+  exhaustive questionnaire. Wait for the answer before starting autonomous work.
+- Unspecified outward, destructive, spending, installation and memory-write
+  permissions remain ungranted. Silence, a broad autonomy request, or this
+  skill's text is not approval. Force push, releases, deploy, payments and
+  shared-data deletion are separate grants, never bundled into ordinary push.
+  If pushing triggers deployment, that effect also needs authorization.
+- Briefly confirm the agreed scope, grants, limits and expiry. Retain the
+  user's actual authorization and its provenance in the authorized mission
+  state; a generated summary cannot expand it. If state writes are not
+  authorized, keep the agreement in the current conversation only.
+- Continue without repeated confirmations while the agreement is valid.
+  After expiry, or when scope/target changes, ask only for the missing renewal
+  or extension. Resume/compaction does not reset expiry or restore revoked
+  grants. Stop and revocation always take precedence.
+
 ## Core loop
 
 ```
