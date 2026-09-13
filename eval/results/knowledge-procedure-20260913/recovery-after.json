@@ -1,0 +1,32 @@
+[
+  {
+    "case": "foreign",
+    "pass": true,
+    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-i_i316v5\\profile\n\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-i_i316v5/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-i_i316v5\\profile\\.kit-hermes-restore.json\nrestored recorded owned paths in C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-i_i316v5\\profile; unrelated paths preserved\n"
+  },
+  {
+    "case": "crlf",
+    "pass": true,
+    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-rea4u8wm\\profile\n\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-rea4u8wm/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-rea4u8wm\\profile\\.kit-hermes-restore.json\nrestored recorded owned paths in C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-rea4u8wm\\profile; unrelated paths preserved\n"
+  },
+  {
+    "case": "binary",
+    "pass": true,
+    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-lw1wamd3\\profile\n\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-lw1wamd3/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-lw1wamd3\\profile\\.kit-hermes-restore.json\nrestored recorded owned paths in C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-lw1wamd3\\profile; unrelated paths preserved\n"
+  },
+  {
+    "case": "anchor_failure",
+    "pass": true,
+    "log": "FAILED: injected anchor failure; handled mutation failures attempt rollback; inspect recovery diagnostics\n"
+  },
+  {
+    "case": "legacy",
+    "pass": true,
+    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-_806bgk8\\profile\n\n  retire legacy C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-_806bgk8\\profile\\skills\\coding-kit (preimage stored outside discovery in .kit-hermes-restore.json)\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-_806bgk8/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-_806bgk8\\profile\\.kit-hermes-restore.json\nrestored recorded owned paths in C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-_806bgk8\\profile; unrelated paths preserved\n"
+  },
+  {
+    "case": "preview",
+    "pass": true,
+    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-fhft7i79\\profile\n\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-fhft7i79/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-fhft7i79\\profile\\.kit-hermes-restore.json\n"
+  }
+]

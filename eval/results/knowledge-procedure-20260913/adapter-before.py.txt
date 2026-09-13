@@ -1,0 +1,504 @@
+#!/usr/bin/env python3
+"""hermes_adapter.py — Hermes-only coding-kit integration (plan H2, 2026-09-12).
+
+Three owned surfaces in a Hermes profile (HERMES_HOME):
+  1. <home>/kit-skills/coding-kit/<skill>/   — generated projection of kit skills
+  2. skills.external_dirs entry in <home>/config.yaml pointing at <home>/kit-skills
+  3. a delimited kit block inside <home>/SOUL.md (routing only, not a soul copy)
+
+Everything else in the profile is foreign and never touched. Default action is a
+read-only preview; apply is explicit. Apply is idempotent, diff-driven, and rolls
+back on handled failures (via the kit's DeployTransaction). restore reverses to
+the exact prior state recorded at apply time.
+
+Evidence behind the design: docs/research/2026-09-13-hermes-h1-evidence.md
+(external root = full visibility + curator write protection; local copies are
+archivable by the curator when their names are bundled; missing external roots
+are silently skipped by Hermes, so this tool validates existence itself).
+
+Usage:
+    python hermes_adapter.py --kit <kit-root> --hermes-home <profile> preview
+    python hermes_adapter.py --kit <kit-root> --hermes-home <profile> apply
+    python hermes_adapter.py --kit <kit-root> --hermes-home <profile> apply --retire-legacy
+    python hermes_adapter.py --kit <kit-root> --hermes-home <profile> restore
+
+    --ext-root <dir> overrides the default <home>/kit-skills location.
+"""
+import re
+import sys
+from pathlib import Path
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+try:
+    from ._deploy_fs import (is_link, has_link_ancestor, is_safe_under_boundary,
+                             safe_write_text, safe_rmtree)
+    from ._deploy_tx import DeployTransaction
+except (ImportError, ValueError):
+    import importlib.util
+
+    _here = Path(__file__).resolve().parent
+    for _name in ("_deploy_fs", "_deploy_tx"):
+        _spec = importlib.util.spec_from_file_location(_name, _here / (_name + ".py"))
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        globals()[_name] = _mod
+    is_link = _deploy_fs.is_link
+    has_link_ancestor = _deploy_fs.has_link_ancestor
+    is_safe_under_boundary = _deploy_fs.is_safe_under_boundary
+    safe_write_text = _deploy_fs.safe_write_text
+    safe_rmtree = _deploy_fs.safe_rmtree
+    DeployTransaction = _deploy_tx.DeployTransaction
+
+CATEGORY = "coding-kit"
+EXT_DIR_NAME = "kit-skills"
+MARK_BEGIN = "<!-- kit:begin v{version} -->"
+MARK_END = "<!-- kit:end -->"
+STATE_NAME = ".kit-hermes-state.json"
+RESTORE_NAME = ".kit-hermes-restore.json"
+
+last_report_text = ""
+
+
+def _report(text):
+    global last_report_text
+    last_report_text = text
+    print(text)
+
+
+SOUL_BLOCK = """{begin}
+coding-kit {version}: methodology skills live under `{ext_root}/{category}/`
+(load via `skill_view coding-kit/<name>`; bare names may collide with local skills).
+Project memory: `python ~/.memory/db-tools/search_all.py "<topic>"` (findings/Wiki;
+check [superseded]/[unverified] badges). Past conversations: `session_search`.
+Native MEMORY.md is bounded (~2,200 chars): when full, offload durable facts with
+`findings.py add`. Kit updates: python scripts/tools/hermes_adapter.py ... apply.
+{end}"""
+
+
+class Conflict(Exception):
+    pass
+
+
+def kit_version(kit: Path) -> str:
+    v = kit / "VERSION"
+    if not v.is_file():
+        raise Conflict(f"kit VERSION not found: {v}")
+    return v.read_text(encoding="utf-8").strip()
+
+
+def kit_skills(kit: Path) -> list[Path]:
+    root = kit / "skills"
+    if not root.is_dir():
+        raise Conflict(f"kit skills/ not found: {root}")
+    return sorted((d for d in root.iterdir() if (d / "SKILL.md").is_file()),
+                  key=lambda d: d.name)
+
+
+def validate(kit: Path, home: Path, ext_root: Path):
+    """Shared preflight for preview/apply/restore; raises Conflict."""
+    if not home.is_dir():
+        raise Conflict(f"hermes home not found: {home}")
+    if has_link_ancestor(home, home.parent if home.parent != home else Path(home.anchor)):
+        raise Conflict(f"hermes home path or ancestor is a link: {home}")
+    version = kit_version(kit)
+    skills = kit_skills(kit)
+    if not skills:
+        raise Conflict(f"no skills with SKILL.md under {kit / 'skills'}")
+    # ext root must live inside the profile (Hermes only shows dirs that exist;
+    # entries elsewhere would still resolve, but we keep managed files together)
+    if ext_root == home / "skills":
+        raise Conflict("ext root must not be the profile skills/ dir itself")
+    return version, skills
+
+
+def bundled_names(home: Path) -> set:
+    mf = home / "skills" / ".bundled_manifest"
+    out = set()
+    if mf.is_file():
+        for line in mf.read_text(encoding="utf-8", errors="replace").splitlines():
+            name = line.split(":", 1)[0].strip()
+            if name:
+                out.add(name)
+    return out
+
+
+def local_skill_names(home: Path) -> set:
+    """Frontmatter-name set of LOCAL skills (excluding the legacy coding-kit copy)."""
+    out = set()
+    for md in (home / "skills").rglob("SKILL.md"):
+        rel = md.relative_to(home / "skills")
+        if rel.parts and rel.parts[0] == CATEGORY:
+            continue
+        try:
+            text = md.read_text(encoding="utf-8", errors="replace")[:4000]
+        except OSError:
+            continue
+        m = re.search(r"^name:\s*['\"]?([^'\"\n]+)", text, re.M)
+        out.add((m.group(1).strip() if m else md.parent.name))
+    return out
+
+
+def _soul_block_version(soul_text: str) -> str:
+    m = re.search(re.escape("<!-- kit:begin v") + r"([^ ]+)", soul_text)
+    return m.group(1) if m else "?"
+
+
+def plan(kit: Path, home: Path, ext_root: Path, retire_legacy: bool) -> dict:
+    """Read-only planning: what apply would do + warnings. Raises Conflict on hard blocks."""
+    version, skills = validate(kit, home, ext_root)
+    cat_dir = ext_root / CATEGORY
+    actions = []
+    warnings = []
+
+    legacy = home / "skills" / CATEGORY
+    if legacy.exists():
+        if retire_legacy:
+            actions.append(f"retire legacy {legacy} (move to {legacy}.retired-<ts>)")
+        else:
+            raise Conflict(
+                f"legacy local copy {legacy} exists: its skills are curator-archivable "
+                f"(bundled names + prune_builtins). Re-run with --retire-legacy to move "
+                f"it out of skills/ and adopt the external root layout")
+
+    names = [d.name for d in skills]
+    bundled = bundled_names(home) & set(names)
+    if bundled:
+        warnings.append(
+            f"bundled-name overlap ({', '.join(sorted(bundled))}): curator eligibility "
+            f"flag will read True, but archive_skill refuses EXTERNAL skills — no action "
+            f"needed while the kit stays in the external root")
+    local_dupes = local_skill_names(home) & set(names)
+    if local_dupes:
+        warnings.append(
+            f"local same-name skills ({', '.join(sorted(local_dupes))}) will claim these "
+            f"names in the prompt; load kit procedures via {CATEGORY}/<name>")
+
+    # projection diff
+    changed = removed = kept = 0
+    for d in skills:
+        tgt = cat_dir / d.name
+        if not tgt.exists():
+            changed += 1
+            actions.append(f"install {CATEGORY}/{d.name}")
+        elif not _dir_equal(d, tgt):
+            changed += 1
+            actions.append(f"update  {CATEGORY}/{d.name}")
+        else:
+            kept += 1
+    if cat_dir.exists():
+        owned = set(names)
+        for existing in cat_dir.iterdir():
+            if existing.name not in owned:
+                removed += 1
+                actions.append(f"retire  {CATEGORY}/{existing.name} (not in kit {version})")
+
+    # config entry
+    cfg_path = home / "config.yaml"
+    cfg = cfg_path.read_text(encoding="utf-8") if cfg_path.is_file() else ""
+    ext_posix = ext_root.as_posix()
+    if ext_posix in cfg:
+        actions.append("config  external_dirs already contains kit root")
+    else:
+        actions.append(f"config  add external_dirs entry: {ext_posix}")
+    # SOUL block
+    soul = home / "SOUL.md"
+    soul_text = soul.read_text(encoding="utf-8") if soul.is_file() else ""
+    begin = MARK_BEGIN.format(version=version)
+    if begin in soul_text:
+        state_line = "present"
+    elif MARK_END in soul_text:
+        state_line = f"update ({_soul_block_version(soul_text)} -> {version})"
+    else:
+        state_line = "append"
+    actions.append(f"SOUL    {state_line} kit block ({version})")
+
+    return {"version": version, "names": names, "actions": actions,
+            "warnings": warnings, "install_or_update": changed, "retired": removed,
+            "kept": kept}
+
+
+def _dir_equal(a: Path, b: Path) -> bool:
+    """Content equality, newline-insensitive (kit checkouts vary by platform)."""
+    def files(root: Path) -> dict:
+        return {str(p.relative_to(root)): p.read_bytes().replace(b"\r\n", b"\n")
+                for p in root.rglob("*") if p.is_file()}
+    return files(a) == files(b)
+
+def _patch_config(cfg: str, ext_posix: str) -> str:
+    """Add the kit root to skills.external_dirs, preserving all other content.
+
+    Config files in the wild carry CRLF line endings; every pattern tolerates
+    a trailing \r and inserted lines are LF (Hermes YAML parsers accept both).
+    """
+    if ext_posix in cfg:
+        return cfg
+    if re.search(r"(?m)^skills:\s*\r?$", cfg):
+        m = re.search(r"(?ms)^skills:\s*?\r?\n((?:[ \t]+.*\r?\n?)*)", cfg)
+        section = m.group(1) if m else ""
+        if re.search(r"(?m)^([ \t]+)external_dirs:", section):
+            em = re.search(
+                r"(?ms)^([ \t]+)external_dirs:[ \t]*\r?\n((?:\1[ \t]+- [^\r\n]*\r?\n?)+)", cfg)
+            if em:
+                indent = em.group(1)
+                new_entry = f"{indent}    - {ext_posix}\n"
+                return cfg[:em.end(2)] + new_entry + cfg[em.end(2):]
+            fm = re.search(r"(?m)^([ \t]+)external_dirs:[ \t]*(\[[^\r\n]*\])[ \t]*\r?$", cfg)
+            if fm:
+                inner = fm.group(2)[1:-1].strip()
+                add = f"'{ext_posix}'"
+                joined = f"{inner}, {add}" if inner else add
+                return cfg[:fm.start(2)] + f"[{joined}]" + cfg[fm.end(2):]
+            raise Conflict("cannot parse skills.external_dirs shape; edit config.yaml manually")
+        m2 = re.search(r"(?m)^skills:\s*\r?$", cfg)
+        insert = f"  external_dirs:\n    - {ext_posix}\n"
+        return cfg[:m2.end()] + "\n" + insert + cfg[m2.end():]
+    if not cfg.endswith("\n"):
+        cfg += "\n"
+    return cfg + f"\nskills:\n  external_dirs:\n    - {ext_posix}\n"
+
+
+def _patch_soul(soul: str, version: str, ext_root: Path) -> str:
+    """Replace/insert ONLY the delimited kit block; personal text stays untouched."""
+    block = SOUL_BLOCK.format(
+        begin=MARK_BEGIN.format(version=version), end=MARK_END,
+        version=version, ext_root=ext_root.as_posix(), category=CATEGORY)
+    # replace any older kit block regardless of its version marker
+    pattern = re.compile(r"(?s)<!-- kit:begin v[^>]*-->\n?<!\[CDATA\[.*?\]\]>\n?<!-- kit:end -->"
+                         r"|<!-- kit:begin v[^>]*-->.*?<!-- kit:end -->")
+    if pattern.search(soul):
+        return pattern.sub(lambda _m: block, soul, count=1)
+    if soul and not soul.endswith("\n"):
+        soul += "\n"
+    return soul + ("\n" if soul else "") + block + "\n"
+
+
+def apply_adapter(kit: Path, home: Path, ext_root: Path, retire_legacy: bool,
+                  plan_data: dict) -> int:
+    version = plan_data["version"]
+    names = plan_data["names"]
+    ext_posix = ext_root.as_posix()
+
+    restore_state = _restore_state(home)
+    state_path = home / STATE_NAME
+
+    with DeployTransaction() as tx:
+        tx.record_absent_ancestors(ext_root)
+        tx.mark_mutations_started()
+
+        legacy = home / "skills" / CATEGORY
+        if legacy.exists() and retire_legacy:
+            tx.snapshot_target(legacy)
+            legacy.rename(home / "skills" / f"{CATEGORY}.retired-{_timestamp()}")
+
+        cat_dir = ext_root / CATEGORY
+        tx.snapshot_target(ext_root)   # absent initially -> removed on rollback
+        tx.snapshot_target(cat_dir)
+        previous = _load_json(state_path) or {}
+        prev_names = set(previous.get("after_apply", {}).get("names", []))
+        changed_any = False
+        for d in kit_skills(kit):
+            tgt = cat_dir / d.name
+            identical = tgt.exists() and _dir_equal(d, tgt)
+            if identical:
+                continue  # no-op: leave bytes (and mtimes) untouched
+            changed_any = True
+            tx.snapshot_target(tgt)    # absent -> removed; present -> restored
+            if tgt.exists():
+                safe_rmtree(tgt)
+            tgt.mkdir(parents=True, exist_ok=True)
+            for f in d.rglob("*"):
+                if f.is_file():
+                    rel = f.relative_to(d)
+                    (tgt / rel).parent.mkdir(parents=True, exist_ok=True)
+                    safe_write_text(tgt / rel, f.read_text(encoding="utf-8"),
+                                    boundary=ext_root)
+        # retire only dirs this tool previously owned (previous apply's names)
+        if cat_dir.exists():
+            owned = set(names)
+            for existing in sorted(cat_dir.iterdir()):
+                if existing.name in prev_names and existing.name not in owned:
+                    tx.snapshot_target(existing)
+                    safe_rmtree(existing)
+                    changed_any = True
+
+        cfg_path = home / "config.yaml"
+        tx.snapshot_target(cfg_path)
+        old_cfg = cfg_path.read_text(encoding="utf-8") if cfg_path.is_file() else ""
+        new_cfg = _patch_config(old_cfg, ext_posix)
+        if new_cfg != old_cfg:
+            safe_write_text(cfg_path, new_cfg, boundary=home)
+
+        soul_path = home / "SOUL.md"
+        tx.snapshot_target(soul_path)
+        old_soul = soul_path.read_text(encoding="utf-8") if soul_path.is_file() else ""
+        new_soul = _patch_soul(old_soul, version, ext_root)
+        if new_soul != old_soul:
+            safe_write_text(soul_path, new_soul, boundary=home)
+
+        if not changed_any and new_cfg == old_cfg and new_soul == old_soul:
+            tx.commit()
+            return 0  # complete no-op: state files stay untouched
+        tx.commit()
+
+    restore_state["after_apply"] = {
+        "version": version, "names": names, "ext_root": ext_posix}
+    state_file = home / STATE_NAME
+    if state_file.exists():
+        state_file.unlink()
+    safe_write_text(state_file, json_dumps(restore_state), boundary=home)
+    # Rollback anchor = the state BEFORE the kit was first integrated. Subsequent
+    # applies (updates) must not move it: updating skills is not a reason to
+    # forget the pre-integration rollback point.
+    anchor = home / RESTORE_NAME
+    if not anchor.exists():
+        safe_write_text(anchor, restore_state["pre"], boundary=home)
+    return 0
+
+
+def _timestamp() -> str:
+    import time
+    return time.strftime("%Y%m%d-%H%M%S")
+
+
+def json_dumps(obj) -> str:
+    import json
+    return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def _tree_snapshot(home: Path) -> dict:
+    """Byte snapshot of ONLY the owned surfaces (for restore)."""
+    out = {"config.yaml": None, "SOUL.md": None,
+           "ext_root_files": {}, "legacy": None}
+    for name in ("config.yaml", "SOUL.md"):
+        p = home / name
+        if p.is_file():
+            out[name] = p.read_text(encoding="utf-8")
+    ext_root = _state_ext_root(home)
+    if ext_root and ext_root.is_dir():
+        for p in sorted(ext_root.rglob("*")):
+            if p.is_file():
+                out["ext_root_files"][str(p.relative_to(ext_root))] = \
+                    p.read_text(encoding="utf-8")
+    legacy = home / "skills" / CATEGORY
+    if legacy.exists():
+        out["legacy"] = {
+            str(p.relative_to(legacy)): p.read_text(encoding="utf-8")
+            for p in sorted(legacy.rglob("*")) if p.is_file()}
+    return out
+
+
+def _state_ext_root(home: Path):
+    state = _load_json(home / STATE_NAME)
+    if state:
+        return Path(state.get("after_apply", {}).get("ext_root", ""))
+    return None
+
+
+def _restore_state(home: Path) -> dict:
+    return {"pre": json_dumps(_tree_snapshot(home))}
+
+
+def _load_json(path: Path):
+    try:
+        import json
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def restore(home: Path) -> int:
+    """Reverse the last apply to the exact prior bytes of the owned surfaces."""
+    snap = _load_json(home / RESTORE_NAME)
+    if not snap:
+        _report("nothing to restore: no prior apply recorded")
+        return 1
+    state = _load_json(home / STATE_NAME)
+    ext_root = Path(state.get("after_apply", {}).get("ext_root")) if state else None
+
+    for name, content in (("config.yaml", snap.get("config.yaml")),
+                          ("SOUL.md", snap.get("SOUL.md"))):
+        p = home / name
+        if content is None:
+            if p.exists():
+                p.unlink()
+        else:
+            safe_write_text(p, content, boundary=home)
+    if ext_root and ext_root.is_dir():
+        safe_rmtree(ext_root)
+    legacy = home / "skills" / CATEGORY
+    if legacy.exists():
+        safe_rmtree(legacy)
+    if snap.get("legacy"):
+        legacy.mkdir(parents=True, exist_ok=True)
+        for rel, content in snap["legacy"].items():
+            tgt = legacy / rel
+            tgt.parent.mkdir(parents=True, exist_ok=True)
+            safe_write_text(tgt, content, boundary=home / "skills")
+    for junk in (STATE_NAME, RESTORE_NAME):
+        p = home / junk
+        if p.exists():
+            p.unlink()
+    _report(f"restored owned surfaces in {home} to pre-apply state")
+    return 0
+
+
+def main(argv=None) -> int:
+    argv = list(sys.argv[1:]) if argv is None and __name__ == "__main__" else list(argv or [])
+    import argparse
+    ap = argparse.ArgumentParser(
+        description="Hermes-only coding-kit integration (preview/apply/restore)",
+        epilog="Docs: adapters/hermes.md; evidence: docs/research/2026-09-13-hermes-h1-evidence.md")
+    ap.add_argument("--kit", required=True, help="coding-kit repo root")
+    ap.add_argument("--hermes-home", required=True,
+                    help="Hermes profile dir (HERMES_HOME) — target of all changes")
+    ap.add_argument("--ext-root", default=None,
+                    help="external skills root (default: <home>/kit-skills)")
+    ap.add_argument("command", choices=["preview", "apply", "restore"], nargs="?", default="preview")
+    ap.add_argument("--retire-legacy", action="store_true",
+                    help="apply: move legacy <home>/skills/coding-kit out of skills/")
+    args = ap.parse_args(argv)
+
+    kit = Path(args.kit).expanduser().resolve()
+    home = Path(args.hermes_home).expanduser().resolve()
+    ext_root = (Path(args.ext_root).expanduser().resolve() if args.ext_root
+                else home / EXT_DIR_NAME)
+
+    try:
+        if args.command == "restore":
+            return restore(home)
+        data = plan(kit, home, ext_root, args.retire_legacy)
+        if args.command == "preview":
+            lines = [f"coding-kit {data['version']} -> hermes home {home}",
+                     f"ext root: {ext_root.as_posix()}" + (
+                         " (exists)" if ext_root.is_dir() else " (will be created)"),
+                     ""]
+            lines += [f"  {a}" for a in data["actions"]]
+            if data["warnings"]:
+                lines += ["", "warnings:"]
+                lines += [f"  ! {w}" for w in data["warnings"]]
+            _report("\n".join(lines))
+            return 0
+        # apply: print plan, then mutate under transaction
+        lines = [f"apply coding-kit {data['version']} -> {home}", ""]
+        lines += [f"  {a}" for a in data["actions"]]
+        for w in data["warnings"]:
+            lines.append(f"  ! {w}")
+        rc = apply_adapter(kit, home, ext_root, args.retire_legacy, data)
+        lines += ["", f"apply OK (rc=0); rollback snapshot: {home / RESTORE_NAME}"]
+        _report("\n".join(lines))
+        return rc
+    except Conflict as e:
+        _report(f"CONFLICT: {e}")
+        return 1
+    except OSError as e:
+        _report(f"FAILED (rolled back): {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

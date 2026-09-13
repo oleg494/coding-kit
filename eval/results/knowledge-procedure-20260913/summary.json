@@ -1,0 +1,56 @@
+{
+  "control": {
+    "available_two_requests": {
+      "correct": 6,
+      "attempts": 6,
+      "requests": 0
+    },
+    "query_contract": {
+      "correct": 6,
+      "attempts": 6,
+      "requests": 8
+    }
+  },
+  "procedure": {
+    "core": {
+      "complete_coverage": 3,
+      "attempts": 3
+    },
+    "targeted": {
+      "complete_coverage": 3,
+      "attempts": 3
+    }
+  },
+  "search_contract": {
+    "available_two_requests": {
+      "correct": 0,
+      "attempts": 16
+    },
+    "query_contract": {
+      "correct": 16,
+      "attempts": 16
+    }
+  },
+  "balanced": {
+    "discoverable_search": {
+      "correct": 0,
+      "abstained": 16,
+      "attempts": 16
+    },
+    "explicit_search": {
+      "correct": 0,
+      "abstained": 16,
+      "attempts": 16
+    },
+    "inline": {
+      "correct": 16,
+      "abstained": 0,
+      "attempts": 16
+    },
+    "repository_only": {
+      "correct": 0,
+      "abstained": 16,
+      "attempts": 16
+    }
+  }
+}

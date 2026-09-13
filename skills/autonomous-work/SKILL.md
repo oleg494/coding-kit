@@ -3,7 +3,7 @@ name: autonomous-work
 description: 'Use when the user broadly authorizes autonomous work selection and continuation ("do useful work", "choose what is worth doing", "keep going without asking", "work autonomously", "работай сам", "делай что полезно", "продолжай без вопросов") — not for ordinary bounded requests, which keep their existing scope. Covers evidence-backed work selection, verify-then-continue loops, durable mission/progress/handoff state, immediate stop and revocation, and the optional foreground supervisor CLI. Never implies authorization for outward, destructive, or spending actions.'
 license: MIT
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # Autonomous Work

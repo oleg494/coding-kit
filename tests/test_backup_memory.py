@@ -154,6 +154,40 @@ class BackupDrillTest(unittest.TestCase):
             finally:
                 os.environ.pop("MEMORY_ROOT", None)
 
+    def test_drill_findings_probe_needs_no_ambient_memory_root(self):
+        """A MEMORY_ROOT user on a clean home (no ~/.memory at all) must
+        still get a green drill: the probe subprocess resolves
+        _compat.chulan_root() at import, and with MEMORY_ROOT stripped that
+        fell back to ~/.memory — observed: exit 1 on a healthy restore."""
+        import os
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            root = _seed_memory_root(tmp)
+            empty_home = tmp / "home"
+            empty_home.mkdir()
+            saved = {k: os.environ.get(k) for k in ("MEMORY_ROOT", "HOME", "USERPROFILE")}
+            os.environ.update(MEMORY_ROOT=str(root), HOME=str(empty_home),
+                              USERPROFILE=str(empty_home))
+            try:
+                result = backup_memory.backup(dest=tmp / "dest", root=root)
+                drill = backup_memory.restore_drill(
+                    Path(result["path"]), root=root)
+                f = drill["findings"]
+                self.assertTrue(drill["integrity_ok"], drill)
+                self.assertEqual(f["doctor_rc"], 0, f)
+                self.assertTrue(f["ok"], f)
+                self.assertGreaterEqual(f["search_hits"] or 0, 1, f)
+                self.assertEqual(
+                    backup_memory.main(
+                        ["--restore-drill", str(Path(result["path"]))]), 0,
+                    "a healthy restore must not fail because ~/.memory is absent")
+            finally:
+                for key, value in saved.items():
+                    os.environ.pop(key, None)
+                    if value is not None:
+                        os.environ[key] = value
+
     def test_drill_findings_probe_flags_empty_index(self):
         """D-C on arrival: a backup whose FTS index is empty over non-empty
         content must FAIL the drill, not certify it — the exact scenario

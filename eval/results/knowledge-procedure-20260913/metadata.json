@@ -1,0 +1,13 @@
+{
+  "scope": "Stateless text decision experiments through completion(), no native Hermes/OMP session or executed model code. Explicit simulated retrieval loop uses real isolated kit search CLI. Not full harness utility evidence.",
+  "user_model_switch": "User reports stronger parent model since request to evaluate own work; previous and current work are not a same-model comparison.",
+  "adapter_before_sha256": "1d599b5512ebdef332fec6c3174f4b3e43b5dfbbc0d1989c163d233d31392cfe",
+  "model_aliases": [
+    "default"
+  ],
+  "exact_backend_model": "not exposed by completion result; parent configured custom-openai/gpt-6-astra is not asserted for aliases",
+  "temperature": "not controllable via completion API",
+  "usage": "not exposed; do not estimate",
+  "started_utc": "2026-09-13T06:37:27Z",
+  "mission": "User authorizes experiments of any scale and maximum useful progress on general kit memory/procedure efficacy, without live deployment."
+}

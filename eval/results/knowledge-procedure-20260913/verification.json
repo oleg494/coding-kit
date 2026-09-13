@@ -1,0 +1,11 @@
+{
+  "command": "python -m pytest tests/test_hermes_adapter.py tests/test_deploy_cli.py tests/test_deploy_rollback.py tests/test_deploy_ownership.py tests/test_skills_sync.py tests/test_release_contract.py tests/test_memory_experiment.py tests/test_evals_colocation.py tests/test_skill_lifecycle.py -q",
+  "observed": "123 passed, 1 skipped, 5 subtests passed",
+  "integrity_files": 171,
+  "size_gate": {
+    "hard": 0,
+    "soft": 36
+  },
+  "independent_agent_review": "unavailable: both agents failed provider 502",
+  "native_post_repair_integration": "not run"
+}

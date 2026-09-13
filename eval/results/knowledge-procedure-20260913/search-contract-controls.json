@@ -1,0 +1,236 @@
+[
+  {
+    "repeat": 0,
+    "case": "stale-decision",
+    "arm": "available_two_requests",
+    "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+    "searches": [],
+    "response": {
+      "action": "emit_v2",
+      "evidence": [
+        "migration-2026-09-08"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "stale-decision",
+    "arm": "query_contract",
+    "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}\nTool result: [{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"stale-decision\", \"tags\": \"\", \"source\": \"decision-2026-08-20\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-08-20 — Project [Birch] events use schema v1. Reject v2 events…\"}]\n\nTool result: [1] 2026-09-13 11:38  stale-decision\nsource: decision-2026-08-20\nproject: portable\nimportance: unreviewed\n\n2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\n\nNo requests remaining. Choose action.",
+    "searches": [
+      {
+        "action": "search",
+        "query": "Birch",
+        "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"stale-decision\", \"tags\": \"\", \"source\": \"decision-2026-08-20\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-08-20 — Project [Birch] events use schema v1. Reject v2 events…\"}]\n"
+      },
+      {
+        "action": "read",
+        "query": "1",
+        "result": "[1] 2026-09-13 11:38  stale-decision\nsource: decision-2026-08-20\nproject: portable\nimportance: unreviewed\n\n2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\n"
+      }
+    ],
+    "response": {
+      "action": "emit_v2",
+      "evidence": [
+        "migration-2026-09-08"
+      ],
+      "retrieved": [
+        "1"
+      ],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "conflicting-decisions",
+    "arm": "available_two_requests",
+    "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+    "searches": [],
+    "response": {
+      "action": "repair_payload",
+      "evidence": [
+        "api-contract-2026-09-01"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "conflicting-decisions",
+    "arm": "query_contract",
+    "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+    "searches": [],
+    "response": {
+      "action": "repair_payload",
+      "evidence": [
+        "api-contract-2026-09-01"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "repository-visible-control",
+    "arm": "available_two_requests",
+    "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+    "searches": [],
+    "response": {
+      "action": "resume_cursor_42",
+      "evidence": [
+        "import-contract"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "repository-visible-control",
+    "arm": "query_contract",
+    "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}\nTool result: [{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"repository-visible-control\", \"tags\": \"\", \"source\": \"decision-2026-09-01\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-09-01 — Project [Ash] resumes interrupted imports from the last committed…\"}]\n\nTool result: [1] 2026-09-13 11:38  repository-visible-control\nsource: decision-2026-09-01\nproject: portable\nimportance: unreviewed\n\n2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\n\nNo requests remaining. Choose action.",
+    "searches": [
+      {
+        "action": "search",
+        "query": "Ash",
+        "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"repository-visible-control\", \"tags\": \"\", \"source\": \"decision-2026-09-01\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-09-01 — Project [Ash] resumes interrupted imports from the last committed…\"}]\n"
+      },
+      {
+        "action": "read",
+        "query": "1",
+        "result": "[1] 2026-09-13 11:38  repository-visible-control\nsource: decision-2026-09-01\nproject: portable\nimportance: unreviewed\n\n2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\n"
+      }
+    ],
+    "response": {
+      "action": "resume_cursor_42",
+      "evidence": [
+        "import-contract",
+        "decision-2026-09-01"
+      ],
+      "retrieved": [
+        "1"
+      ],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "stale-decision",
+    "arm": "available_two_requests",
+    "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+    "searches": [],
+    "response": {
+      "action": "emit_v2",
+      "evidence": [
+        "migration-2026-09-08"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "stale-decision",
+    "arm": "query_contract",
+    "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}\nTool result: [{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"stale-decision\", \"tags\": \"\", \"source\": \"decision-2026-08-20\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-08-20 — Project [Birch] events use schema v1. Reject v2 events…\"}]\n\nTool result: [1] 2026-09-13 11:38  stale-decision\nsource: decision-2026-08-20\nproject: portable\nimportance: unreviewed\n\n2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\n\nNo requests remaining. Choose action.",
+    "searches": [
+      {
+        "action": "search",
+        "query": "Birch",
+        "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"stale-decision\", \"tags\": \"\", \"source\": \"decision-2026-08-20\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-08-20 — Project [Birch] events use schema v1. Reject v2 events…\"}]\n"
+      },
+      {
+        "action": "read",
+        "query": "1",
+        "result": "[1] 2026-09-13 11:38  stale-decision\nsource: decision-2026-08-20\nproject: portable\nimportance: unreviewed\n\n2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\n"
+      }
+    ],
+    "response": {
+      "action": "emit_v2",
+      "evidence": [
+        "migration-2026-09-08"
+      ],
+      "retrieved": [
+        "1"
+      ],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "conflicting-decisions",
+    "arm": "available_two_requests",
+    "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+    "searches": [],
+    "response": {
+      "action": "repair_payload",
+      "evidence": [
+        "api-contract-2026-09-01"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "conflicting-decisions",
+    "arm": "query_contract",
+    "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+    "searches": [],
+    "response": {
+      "action": "repair_payload",
+      "evidence": [
+        "api-contract-2026-09-01"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "repository-visible-control",
+    "arm": "available_two_requests",
+    "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+    "searches": [],
+    "response": {
+      "action": "resume_cursor_42",
+      "evidence": [
+        "import-contract"
+      ],
+      "retrieved": [],
+      "query": ""
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "repository-visible-control",
+    "arm": "query_contract",
+    "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}\nTool result: [{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"repository-visible-control\", \"tags\": \"\", \"source\": \"decision-2026-09-01\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-09-01 — Project [Ash] resumes interrupted imports from the last committed…\"}]\n\nTool result: [1] 2026-09-13 11:38  repository-visible-control\nsource: decision-2026-09-01\nproject: portable\nimportance: unreviewed\n\n2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\n\nNo requests remaining. Choose action.",
+    "searches": [
+      {
+        "action": "search",
+        "query": "Ash",
+        "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:38\", \"topic\": \"repository-visible-control\", \"tags\": \"\", \"source\": \"decision-2026-09-01\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"2026-09-01 — Project [Ash] resumes interrupted imports from the last committed…\"}]\n"
+      },
+      {
+        "action": "read",
+        "query": "1",
+        "result": "[1] 2026-09-13 11:38  repository-visible-control\nsource: decision-2026-09-01\nproject: portable\nimportance: unreviewed\n\n2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\n"
+      }
+    ],
+    "response": {
+      "action": "resume_cursor_42",
+      "evidence": [
+        "import-contract",
+        "decision-2026-09-01"
+      ],
+      "retrieved": [
+        "1"
+      ],
+      "query": ""
+    }
+  }
+]

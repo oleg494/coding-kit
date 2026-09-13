@@ -15,3 +15,4 @@ skip.local
 # private superpowers execution workspace
 .superpowers/
 .worktrees/
+# release tarballs (built per release, not source-controlled)

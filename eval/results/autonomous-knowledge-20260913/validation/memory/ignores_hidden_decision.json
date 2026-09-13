@@ -1,0 +1,18 @@
+{
+  "label": "memory/ignores_hidden_decision",
+  "candidate": "ignores_hidden_decision.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "case:useful-hidden-decision/memory",
+    "case:conflicting-current-authority/memory",
+    "case:repository-sufficient-control/memory"
+  ],
+  "n_checks": 10,
+  "passed_flag": false
+}

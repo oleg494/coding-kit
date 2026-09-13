@@ -1,0 +1,77 @@
+TARGETED VERIFICATION PROCEDURE - managed-file updater
+======================================================
+
+This document describes HOW to verify any candidate for this task
+behaviorally. It contains no oracle inputs: no golden hashes, no expected
+return values, no solution text. Every expectation is derived at runtime from
+throwaway copies of the synthetic seed.
+
+Method
+------
+1. Isolation. For every scenario copy `fixture/workspace_seed/` into a fresh
+   temporary directory. Never verify in place; never share one copy between
+   checks.
+
+2. Preimage capture. Before invoking the candidate, snapshot the whole tree
+   (relative path -> raw bytes) with the verifier's own code. All later
+   judgments are byte-for-byte comparisons against that snapshot.
+
+3. Foreign canaries. The seed contains files no update owns
+   (foreign_notes.txt, foreign/blob.bin). After every candidate operation they
+   must still exist with identical bytes, and the overall file set must equal
+   the expected set (preimage set minus deletions plus creations plus the
+   recovery-state file). This detects overreach without knowing internals.
+
+4. Preview truthfulness. Snapshot before/after `preview()`; equality proves it
+   is read-only. Independently recompute the expected plan (path, action,
+   old/new sha256, no-op entries excluded). Then run `apply()` on a fresh copy:
+   the set of files whose bytes changed (ignoring `.updater_recovery.json`)
+   must equal exactly the announced plan, and each announced new_sha256 must
+   match the bytes now on disk.
+
+5. Exact preimage restore. After a successful apply that rewrites a CRLF text
+   file, rewrites a binary file (containing 0x0D, 0x0A and non-UTF-8 bytes),
+   deletes one owned file and creates another, call `restore()`. Every file
+   must equal the pre-apply snapshot exactly. CRLF endings and arbitrary
+   binary bytes are the point: any text-mode or newline-normalizing round
+   trip fails here.
+
+6. Handled failure honesty. On a fresh copy call
+   `apply(..., fail_recovery=True)` and require all of:
+   (a) the returned status is ok=False with a non-empty reason string and
+       rolled_back=True;
+   (b) the whole tree equals the pre-call snapshot;
+   (c) no `.updater_recovery.json` remains.
+   No mutation may survive a handled failure, and success must never be
+   claimed after failed persistence.
+
+7. Honest restore-without-state. `restore()` on a pristine copy must report
+   failure (ok=False), not raise and not claim success.
+
+8. Reporting. Emit structured JSON (one entry per check: name, pass, short
+   detail); exit 0 only if all checks pass. Observe behavior only through the
+   filesystem and return values - never inspect candidate source text, never
+   trust self-reported success without the byte-level evidence above.
+
+Sensitivity demonstration (faulty controls)
+-------------------------------------------
+Each faulty control breaks a specific contract clause. To demonstrate
+verifier sensitivity: for each control, copy it as `solution.py` into an
+empty scratch directory and run `python verify.py <scratch-dir>`; the run
+must exit non-zero with the targeted check(s) failing. Run the same way on
+`reference.py`; it must pass all checks.
+
+  faulty_controls/faulty_foreign_delete.py
+      apply() sweeps away files the updater does not own.
+      Expected failing checks: foreign_preserved_after_apply (and the
+      file-set/preview-consistency consequences of the sweep).
+
+  faulty_controls/faulty_text_restore.py
+      restore() round-trips preimages through UTF-8 text with newline
+      normalization before writing them back.
+      Expected failing check: restore_exact_preimage.
+
+  faulty_controls/faulty_no_rollback.py
+      apply() swallows the recovery-persistence failure, keeps the
+      mutations, and reports success.
+      Expected failing check: handled_failure_rolls_back.

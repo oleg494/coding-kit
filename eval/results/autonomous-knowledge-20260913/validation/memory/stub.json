@@ -1,0 +1,25 @@
+{
+  "label": "memory/stub",
+  "candidate": "solution.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "case:useful-hidden-decision/repository_only",
+    "case:useful-hidden-decision/memory",
+    "case:stale-decision/repository_only",
+    "case:stale-decision/memory",
+    "case:conflicting-current-authority/repository_only",
+    "case:conflicting-current-authority/memory",
+    "case:repository-sufficient-control/repository_only",
+    "case:repository-sufficient-control/memory",
+    "no_input_mutation",
+    "determinism"
+  ],
+  "n_checks": 10,
+  "passed_flag": false
+}

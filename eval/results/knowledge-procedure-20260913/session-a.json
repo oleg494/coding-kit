@@ -1,0 +1,98 @@
+[
+  {
+    "repeat": 0,
+    "case": "useful-hidden-decision",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-08-20\", \"date\": \"2026-08-20\", \"text\": \"For project Cedar, uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east.\"}}",
+    "response": {
+      "note": "2026-08-20 — Project Cedar uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east. Source: decision-2026-08-20."
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "stale-decision",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-08-20\", \"date\": \"2026-08-20\", \"text\": \"Project Birch events use schema v1. Reject v2 events until migration approval.\"}}",
+    "response": {
+      "note": "2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20."
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "conflicting-decisions",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"ops-draft-2026-09-07\", \"date\": \"2026-09-07\", \"text\": \"Unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times.\"}}",
+    "response": {
+      "note": "2026-09-07 — An unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times. Source: ops-draft-2026-09-07."
+    }
+  },
+  {
+    "repeat": 0,
+    "case": "repository-visible-control",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-09-01\", \"date\": \"2026-09-01\", \"text\": \"Project Ash resumes interrupted imports from the last committed cursor. Do not restart from the beginning.\"}}",
+    "response": {
+      "note": "2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01."
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "useful-hidden-decision",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-08-20\", \"date\": \"2026-08-20\", \"text\": \"For project Cedar, uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east.\"}}",
+    "response": {
+      "note": "2026-08-20 — Project Cedar uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east. Source: decision-2026-08-20."
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "stale-decision",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-08-20\", \"date\": \"2026-08-20\", \"text\": \"Project Birch events use schema v1. Reject v2 events until migration approval.\"}}",
+    "response": {
+      "note": "2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20."
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "conflicting-decisions",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"ops-draft-2026-09-07\", \"date\": \"2026-09-07\", \"text\": \"Unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times.\"}}",
+    "response": {
+      "note": "2026-09-07 — An unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times. Source: ops-draft-2026-09-07."
+    }
+  },
+  {
+    "repeat": 1,
+    "case": "repository-visible-control",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-09-01\", \"date\": \"2026-09-01\", \"text\": \"Project Ash resumes interrupted imports from the last committed cursor. Do not restart from the beginning.\"}}",
+    "response": {
+      "note": "2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01."
+    }
+  },
+  {
+    "repeat": 2,
+    "case": "useful-hidden-decision",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-08-20\", \"date\": \"2026-08-20\", \"text\": \"For project Cedar, uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east.\"}}",
+    "response": {
+      "note": "2026-08-20 — Project Cedar uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east. Source: decision-2026-08-20."
+    }
+  },
+  {
+    "repeat": 2,
+    "case": "stale-decision",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-08-20\", \"date\": \"2026-08-20\", \"text\": \"Project Birch events use schema v1. Reject v2 events until migration approval.\"}}",
+    "response": {
+      "note": "2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20."
+    }
+  },
+  {
+    "repeat": 2,
+    "case": "conflicting-decisions",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"ops-draft-2026-09-07\", \"date\": \"2026-09-07\", \"text\": \"Unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times.\"}}",
+    "response": {
+      "note": "2026-09-07 — An unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times. Source: ops-draft-2026-09-07."
+    }
+  },
+  {
+    "repeat": 2,
+    "case": "repository-visible-control",
+    "prompt": "{\"task\": \"Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.\", \"decision\": {\"id\": \"decision-2026-09-01\", \"date\": \"2026-09-01\", \"text\": \"Project Ash resumes interrupted imports from the last committed cursor. Do not restart from the beginning.\"}}",
+    "response": {
+      "note": "2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01."
+    }
+  }
+]

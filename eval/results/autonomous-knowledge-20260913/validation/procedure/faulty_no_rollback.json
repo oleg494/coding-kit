@@ -1,0 +1,17 @@
+{
+  "label": "procedure/faulty_no_rollback",
+  "candidate": "faulty_no_rollback.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work",
+    "/verifier"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "handled_failure_rolls_back"
+  ],
+  "n_checks": 11,
+  "passed_flag": false
+}

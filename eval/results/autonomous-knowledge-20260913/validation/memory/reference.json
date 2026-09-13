@@ -1,0 +1,14 @@
+{
+  "label": "memory/reference",
+  "candidate": "reference.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work"
+  ],
+  "rc": 0,
+  "timed_out": false,
+  "failed_checks": [],
+  "n_checks": 10,
+  "passed_flag": true
+}

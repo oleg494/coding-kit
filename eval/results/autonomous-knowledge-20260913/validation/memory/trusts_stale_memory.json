@@ -1,0 +1,17 @@
+{
+  "label": "memory/trusts_stale_memory",
+  "candidate": "trusts_stale_memory.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "case:stale-decision/memory",
+    "case:conflicting-current-authority/memory"
+  ],
+  "n_checks": 10,
+  "passed_flag": false
+}

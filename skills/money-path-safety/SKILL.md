@@ -4,7 +4,7 @@ description: 'Use when the user wants to: pay/buy/subscribe, receive or spend a 
 license: MIT
 compatibility: any languages/stacks with balances, quotas, promo codes, limits
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # Money path safety: money and value — a special class of code

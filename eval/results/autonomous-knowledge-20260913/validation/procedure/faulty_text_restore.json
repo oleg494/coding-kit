@@ -1,0 +1,17 @@
+{
+  "label": "procedure/faulty_text_restore",
+  "candidate": "faulty_text_restore.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work",
+    "/verifier"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "restore_exact_preimage"
+  ],
+  "n_checks": 11,
+  "passed_flag": false
+}

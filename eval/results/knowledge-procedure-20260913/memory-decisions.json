@@ -1,0 +1,1360 @@
+{
+  "system": "You diagnose a synthetic project incident using only supplied facts. No tools or past conversation are available except the explicit search protocol if offered. Return JSON: action, evidence (source IDs), retrieved (note IDs actually received), query. If requesting search set action to search and query to your search query. Otherwise choose exactly one allowed action and set query empty. Current approved sources outrank older or unapproved notes. Do not claim execution.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string"
+      },
+      "evidence": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "retrieved": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "query": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "action",
+      "evidence",
+      "retrieved",
+      "query"
+    ],
+    "additionalProperties": false
+  },
+  "rows": [
+    {
+      "repeat": 0,
+      "case": "useful-hidden-decision",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"]}",
+      "first_response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "useful-hidden-decision",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"inline_context\": {\"id\": \"decision-2026-08-20\", \"note\": \"2026-08-20 — Project Cedar uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east. Source: decision-2026-08-20.\"}}",
+      "first_response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident",
+          "decision-2026-08-20"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident",
+          "decision-2026-08-20"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "stale-decision",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"]}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "stale-decision",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"inline_context\": {\"id\": \"decision-2026-08-20\", \"note\": \"2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\"}}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "stale-decision",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "conflicting-decisions",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"]}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "conflicting-decisions",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"inline_context\": {\"id\": \"ops-draft-2026-09-07\", \"note\": \"2026-09-07 — An unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times. Source: ops-draft-2026-09-07.\"}}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "conflicting-decisions",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "repository-visible-control",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"]}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "repository-visible-control",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"inline_context\": {\"id\": \"decision-2026-09-01\", \"note\": \"2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\"}}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract",
+          "decision-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract",
+          "decision-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "repository-visible-control",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "useful-hidden-decision",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"]}",
+      "first_response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "useful-hidden-decision",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"inline_context\": {\"id\": \"decision-2026-08-20\", \"note\": \"2026-08-20 — Project Cedar uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east. Source: decision-2026-08-20.\"}}",
+      "first_response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident",
+          "decision-2026-08-20"
+        ],
+        "retrieved": [
+          "decision-2026-08-20"
+        ],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident",
+          "decision-2026-08-20"
+        ],
+        "retrieved": [
+          "decision-2026-08-20"
+        ],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "stale-decision",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"]}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "stale-decision",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"inline_context\": {\"id\": \"decision-2026-08-20\", \"note\": \"2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\"}}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "stale-decision",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "conflicting-decisions",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"]}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "conflicting-decisions",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"inline_context\": {\"id\": \"ops-draft-2026-09-07\", \"note\": \"2026-09-07 — An unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times. Source: ops-draft-2026-09-07.\"}}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "conflicting-decisions",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "repository-visible-control",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"]}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "repository-visible-control",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"inline_context\": {\"id\": \"decision-2026-09-01\", \"note\": \"2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\"}}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract",
+          "decision-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract",
+          "decision-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "repository-visible-control",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "useful-hidden-decision",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"]}",
+      "first_response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 2,
+      "case": "useful-hidden-decision",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"inline_context\": {\"id\": \"decision-2026-08-20\", \"note\": \"2026-08-20 — Project Cedar uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east. Source: decision-2026-08-20.\"}}",
+      "first_response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident",
+          "decision-2026-08-20"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident",
+          "decision-2026-08-20"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "stale-decision",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"]}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "stale-decision",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"inline_context\": {\"id\": \"decision-2026-08-20\", \"note\": \"2026-08-20 — Project Birch events use schema v1. Reject v2 events until migration approval. Source: decision-2026-08-20.\"}}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "stale-decision",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "conflicting-decisions",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"]}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "conflicting-decisions",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"inline_context\": {\"id\": \"ops-draft-2026-09-07\", \"note\": \"2026-09-07 — An unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times. Source: ops-draft-2026-09-07.\"}}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "conflicting-decisions",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "repository-visible-control",
+      "arm": "repository_only",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"]}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "repository-visible-control",
+      "arm": "inline",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"inline_context\": {\"id\": \"decision-2026-09-01\", \"note\": \"2026-09-01 — Project Ash resumes interrupted imports from the last committed cursor; do not restart from the beginning. Source: decision-2026-09-01.\"}}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract",
+          "decision-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract",
+          "decision-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "repository-visible-control",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "searches": [],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "useful-hidden-decision",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": "Project Cedar current approved regional residency policy west upload outage east reroute queue uploads"
+      },
+      "searches": [
+        {
+          "query": "Project Cedar current approved regional residency policy west upload outage east reroute queue uploads",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "useful-hidden-decision",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": "Project Cedar prior approved decision west upload endpoint outage east rerouting regional residency policy queue uploads current"
+      },
+      "searches": [
+        {
+          "query": "Project Cedar prior approved decision west upload endpoint outage east rerouting regional residency policy queue uploads current",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "stale-decision",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Birch migration producer consumer v1 v2 prior approved project decision"
+      },
+      "searches": [
+        {
+          "query": "Birch migration producer consumer v1 v2 prior approved project decision",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "conflicting-decisions",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Maple API HTTP 400 missing required field prior project-specific decision retry repair payload approved contract amendment"
+      },
+      "searches": [
+        {
+          "query": "Maple API HTTP 400 missing required field prior project-specific decision retry repair payload approved contract amendment",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "repository-visible-control",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": "Ash import prior project-specific restart decision last committed cursor 42 non-idempotent external effects approved current"
+      },
+      "searches": [
+        {
+          "query": "Ash import prior project-specific restart decision last committed cursor 42 non-idempotent external effects approved current",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "useful-hidden-decision",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": "Project Cedar current approved regional residency policy upload outage West East reroute queuing"
+      },
+      "searches": [
+        {
+          "query": "Project Cedar current approved regional residency policy upload outage West East reroute queuing",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "useful-hidden-decision",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": "Project Cedar prior approved incident decision West upload unavailable East reroute queuing regional residency policy current"
+      },
+      "searches": [
+        {
+          "query": "Project Cedar prior approved incident decision West upload unavailable East reroute queuing regional residency policy current",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "stale-decision",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Birch migration v2 producer configuration prior project decision approved migration-2026-09-08"
+      },
+      "searches": [
+        {
+          "query": "Birch migration v2 producer configuration prior project decision approved migration-2026-09-08",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "conflicting-decisions",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Maple API prior project-specific decision HTTP 400 missing required field retry payload repair approved contract amendment"
+      },
+      "searches": [
+        {
+          "query": "Maple API prior project-specific decision HTTP 400 missing required field retry payload repair approved contract amendment",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "repository-visible-control",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": "Ash import prior project-specific approved decision restart resume last committed cursor 42 non-idempotent external effects"
+      },
+      "searches": [
+        {
+          "query": "Ash import prior project-specific approved decision restart resume last committed cursor 42 non-idempotent external effects",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "useful-hidden-decision",
+      "arm": "discoverable_search",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": "Project Cedar current approved regional residency policy west upload outage east rerouting queuing"
+      },
+      "searches": [
+        {
+          "query": "Project Cedar current approved regional residency policy west upload outage east rerouting queuing",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 2,
+      "case": "useful-hidden-decision",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"repo-incident\", \"text\": \"Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"reject_permanently\", \"request_policy\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": "Project Cedar prior approved upload outage decision West unavailable East healthy queue uploads reroute regional residency policy current"
+      },
+      "searches": [
+        {
+          "query": "Project Cedar prior approved upload outage decision West unavailable East healthy queue uploads reroute regional residency policy current",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "repo-incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": false
+    },
+    {
+      "repeat": 2,
+      "case": "stale-decision",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"migration-2026-09-08\", \"text\": \"Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration.\"}, \"allowed_actions\": [\"emit_v1\", \"emit_v2\", \"accept_both\", \"disable_producer\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Birch migration producer consumer v2 prior project-specific decision approved configuration"
+      },
+      "searches": [
+        {
+          "query": "Birch migration producer consumer v2 prior project-specific decision approved configuration",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "emit_v2",
+        "evidence": [
+          "migration-2026-09-08"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "conflicting-decisions",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"api-contract-2026-09-01\", \"text\": \"Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists.\"}, \"allowed_actions\": [\"retry_three_times\", \"repair_payload\", \"switch_provider\", \"ignore_error\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Maple API HTTP 400 missing required field prior project-specific decision retry repair payload approved contract amendment"
+      },
+      "searches": [
+        {
+          "query": "Maple API HTTP 400 missing required field prior project-specific decision retry repair payload approved contract amendment",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "repair_payload",
+        "evidence": [
+          "api-contract-2026-09-01"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    },
+    {
+      "repeat": 2,
+      "case": "repository-visible-control",
+      "arm": "explicit_search",
+      "prompt": "{\"repository\": {\"id\": \"import-contract\", \"text\": \"Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects.\"}, \"allowed_actions\": [\"resume_cursor_42\", \"restart_from_zero\", \"skip_import\", \"delete_checkpoint\"], \"available_capability\": \"Project findings search is available. Request it with action=search and query=<keywords>; the result will arrive in the next message. At most two searches.\", \"routing\": \"Before deciding, search project findings for any prior project-specific decision relevant to this incident; check authority and freshness against repository facts.\"}",
+      "first_response": {
+        "action": "search",
+        "evidence": [],
+        "retrieved": [],
+        "query": "Ash import prior project-specific decision restart resume last committed cursor 42 non-idempotent external effects approved current"
+      },
+      "searches": [
+        {
+          "query": "Ash import prior project-specific decision restart resume last committed cursor 42 non-idempotent external effects approved current",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "resume_cursor_42",
+        "evidence": [
+          "import-contract"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": true,
+      "allowed": true,
+      "provenance_correct": true
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "ok": true,
+  "checks": {
+    "host_mount_writable": true,
+    "secret_never_read": true,
+    "outside_writes_blocked": true,
+    "no_host_sentinel": true,
+    "read_only_mount_blocked": true,
+    "symlink_escape_blocked": true,
+    "subprocess_escape_blocked": true,
+    "network_blocked": true,
+    "no_docker_socket": true,
+    "host_env_absent": true
+  },
+  "reachable_reads": {},
+  "reachable_writes": {},
+  "probe": {
+    "workdir_writable": {
+      "result": "wrote"
+    },
+    "reads": {
+      "host_style": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      },
+      "wsl_style": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      },
+      "bind_style": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      },
+      "traversal": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      }
+    },
+    "writes": {
+      "host_style": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      },
+      "wsl_style": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      },
+      "bind_style": {
+        "result": "blocked",
+        "error": "FileNotFoundError"
+      },
+      "absolute": {
+        "result": "blocked",
+        "error": "OSError"
+      },
+      "sibling": {
+        "result": "blocked",
+        "error": "OSError"
+      },
+      "etsc": {
+        "result": "blocked",
+        "error": "OSError"
+      },
+      "ro_mount": {
+        "result": "blocked",
+        "error": "OSError"
+      }
+    },
+    "symlink": {
+      "result": "blocked",
+      "error": "OSError"
+    },
+    "symlink_ro": {
+      "result": "blocked",
+      "error": "OSError"
+    },
+    "subprocess": {
+      "result": "blocked",
+      "returncode": 1,
+      "error": "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\nOSError: [Errno 30] Read-only file system: '/s"
+    },
+    "network": {
+      "result": "blocked",
+      "error": "OSError"
+    },
+    "docker_socket": {
+      "present": false
+    },
+    "host_env_matches": {
+      "USERPROFILE": false
+    }
+  },
+  "run": {
+    "rc": 0,
+    "timed_out": false
+  },
+  "child_escape": {
+    "result": "blocked",
+    "returncode": 1,
+    "error": "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\nOSError: [Errno 30] Read-only file system: '/s"
+  },
+  "secret_fixture": "C:\\Users\\oleg2\\AppData\\Local\\Temp\\rigor-confinement-0niou3s0\\outside\\secret.txt"
+}

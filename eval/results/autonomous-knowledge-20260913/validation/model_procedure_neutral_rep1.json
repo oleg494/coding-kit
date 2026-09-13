@@ -1,0 +1,10 @@
+{
+  "label": "model/procedure/neutral/rep1",
+  "stage": "verified-rerun",
+  "rc": 0,
+  "timed_out": false,
+  "n_checks": 11,
+  "failed": [],
+  "passed_flag": true,
+  "code_chars": 14219
+}

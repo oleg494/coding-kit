@@ -145,6 +145,28 @@ project history. Do not commit your memory store or assume it is a sandbox
 for untrusted data. See the [security policy](SECURITY.md).
 
 <details>
+<summary>Back up and verify recovery</summary>
+
+The store is the one asset this repository cannot rebuild (`db/*.db` are
+gitignored by design). Back it up, then prove the snapshot is usable:
+
+```text
+python scripts/tools/backup_memory.py
+python scripts/tools/backup_memory.py --list
+python scripts/tools/backup_memory.py --restore-drill <backup directory>
+```
+
+Backups land in `<memory root>/backups/<timestamp>/`. A snapshot whose
+database was skipped is tagged `DEGRADED` and refused as a restore point.
+`--restore-drill` restores into a temporary root, runs `PRAGMA
+integrity_check` on every restored database, verifies the findings store and
+searches a token taken from the restored rows; it prints JSON and exits 0
+only when that verification passes. `--restore <dir>` performs a live restore
+(pre-restore snapshot first; asks unless `--yes`).
+
+</details>
+
+<details>
 <summary>Organize findings by project and importance</summary>
 
 Projects are discovered from the memory root's `db/*.db` files and optional

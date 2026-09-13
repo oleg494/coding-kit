@@ -1,0 +1,838 @@
+{
+  "query_contract": "The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.",
+  "system": "You diagnose a synthetic project incident using only supplied facts. No tools or past conversation are available except the explicit search protocol if offered. Return JSON: action, evidence (source IDs), retrieved (note IDs actually received), query. If requesting search set action to search and query to your search query. Otherwise choose exactly one allowed action and set query empty. Current approved sources outrank older or unapproved notes. Do not claim execution.",
+  "rows": [
+    {
+      "repeat": 0,
+      "case": "cedar-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Cedar current approved west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "cedar-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Cedar current approved policy west upload endpoint outage queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "birch-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Birch current approved policy west upload endpoint unavailable queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "birch-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Birch approved current policy west upload endpoint unavailable queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "maple-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Maple current approved upload outage policy west unavailable east healthy queue reroute",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "maple-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Maple current approved west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "ash-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Ash current approved west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "ash-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Ash current approved west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "cedar-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Cedar current approved policy west upload endpoint unavailable queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "cedar-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Cedar current approved policy west upload endpoint unavailable queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "birch-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Birch current approved outage upload policy west unavailable east reroute queue",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "birch-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Birch current approved outage upload routing policy west unavailable east healthy",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "maple-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Maple approved current west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "maple-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Maple current approved west upload outage policy queue reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "ash-queue_uploads",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Ash current approved west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 1,
+      "case": "ash-reroute_east",
+      "arm": "available_two_requests",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Project Ash current approved west upload outage policy queue uploads reroute east",
+          "result": "[]\n"
+        }
+      ],
+      "response": {
+        "action": "request_policy",
+        "evidence": [
+          "incident"
+        ],
+        "retrieved": [],
+        "query": ""
+      },
+      "correct": false
+    },
+    {
+      "repeat": 0,
+      "case": "cedar-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Cedar",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Cedar]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Cedar: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "cedar-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Cedar",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Cedar]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Cedar: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "birch-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Birch",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Birch]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Birch: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "birch-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Birch",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Birch]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Birch: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "maple-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Maple",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Maple]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Maple: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "maple-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Maple",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Maple]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Maple: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "ash-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Ash",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Ash]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Ash: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 0,
+      "case": "ash-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Ash",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Ash]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Ash: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "cedar-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Cedar",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Cedar]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Cedar: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "cedar-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Cedar: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Cedar",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Cedar]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Cedar: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "birch-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Birch",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Birch]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Birch: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "birch-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Birch: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Birch",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Birch]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Birch: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "maple-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Maple",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Maple]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Maple: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "maple-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Maple: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Maple",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Maple]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Maple: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "ash-queue_uploads",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Ash",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Ash]: the approved incident policy requires exactly queue_uploads during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Ash: the approved incident policy requires exactly queue_uploads during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "queue_uploads",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    },
+    {
+      "repeat": 1,
+      "case": "ash-reroute_east",
+      "arm": "query_contract",
+      "prompt": "{\"repository\": {\"id\": \"incident\", \"text\": \"Project Ash: west upload endpoint unavailable. East healthy. Queuing and rerouting are both technically supported. Policy is not present in repository facts.\"}, \"allowed_actions\": [\"queue_uploads\", \"reroute_east\", \"request_policy\"], \"available_capability\": \"Project findings CLI: action=search, query=<keywords> returns search results; action=read, query=<numeric ID> returns the full note. At most two requests total.\", \"search_contract\": \"The findings CLI uses lexical full-text matching, not semantic search: space-separated terms must all match. Start with one distinctive project token, not a sentence. Search returns snippets; fetch the complete note with action=read and query=<numeric ID> before deciding. Empty results are not proof that no policy exists.\"}",
+      "searches": [
+        {
+          "action": "search",
+          "query": "Ash",
+          "result": "[{\"id\": 1, \"created\": \"2026-09-13 11:40\", \"topic\": \"Approved regional incident policy\", \"tags\": \"\", \"source\": \"approved-regional-policy\", \"file\": \"\", \"score\": -0.0, \"superseded_by\": null, \"has_verify\": false, \"verified_at\": \"\", \"project\": \"portable\", \"importance\": \"unreviewed\", \"snippet\": \"Project [Ash]: the approved incident policy requires exactly reroute_east during west…\"}]\n"
+        },
+        {
+          "action": "read",
+          "query": "1",
+          "result": "[1] 2026-09-13 11:40  Approved regional incident policy\nsource: approved-regional-policy\nproject: portable\nimportance: unreviewed\n\nProject Ash: the approved incident policy requires exactly reroute_east during west outage. This explicit policy is authoritative for this exercise.\n"
+        }
+      ],
+      "response": {
+        "action": "reroute_east",
+        "evidence": [
+          "incident",
+          "approved-regional-policy"
+        ],
+        "retrieved": [
+          "1"
+        ],
+        "query": ""
+      },
+      "correct": true
+    }
+  ]
+}

@@ -21,8 +21,7 @@ has the mechanism:
 |---------|------------------|-------------|
 | Claude Code | `.claude/rules/*.md` with `paths:` frontmatter | skill-triggered (kit form); or point a rule file at the skill's SKILL.md section |
 | Codex CLI | per-directory AGENTS.md concatenation, closest wins | skill-triggered (kit form); drop a project AGENTS.md stub referencing the skill |
-| Antigravity | user-level `~/AGENTS.md`, `~/.agents/skills/` | skill-triggered (kit form) — no extra work |
-| Hermes | `skills.external_dirs` config | skill-triggered (kit form) — no extra work |
+| Hermes | `skills.external_dirs` + kit projection via `hermes_adapter.py` | [hermes.md](hermes.md) — verified contract |
 
 Receiving skills today: money rules -> `money-path-safety`; testing/TDD gate ->
 `testing-discipline`; destructive-command list -> `git-workflow-and-versioning`;
@@ -42,10 +41,10 @@ cp -r skills/. ~/.claude/skills/   # contents; safe when the dir exists
      eval/transcript_normalize.py --source gemini. -->
 
 ### Hermes
-```yaml
-# rules: SOUL.md gets the kit soul (AGENTS.md content)
-# skills: config.yaml → skills.external_dirs:
-#   - <kit>/skills
+```bash
+# Supported path: scripts/tools/hermes_adapter.py (external-root projection,
+# curated ownership, delimited SOUL block). See adapters/hermes.md for the
+# verified contract — do NOT rsync skills into ~/.hermes/skills/ anymore.
 ```
 
 ### Antigravity

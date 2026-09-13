@@ -1,0 +1,20 @@
+{
+  "label": "procedure/faulty_foreign_delete",
+  "candidate": "faulty_foreign_delete.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work",
+    "/verifier"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "preview_matches_apply",
+    "foreign_preserved_after_apply",
+    "restore_exact_preimage",
+    "handled_failure_rolls_back"
+  ],
+  "n_checks": 11,
+  "passed_flag": false
+}

@@ -3,7 +3,7 @@ name: yagni
 description: 'Always-on. Law of minimalism: don''t build what wasn''t asked for. Abstraction must pay rent via present value or a genuine change-isolation boundary; hypothetical reuse → inline. New dependency → only if the pain is measurable. Dead code → delete. "For the future" → not a reason. Use for ANY code change.'
 license: MIT
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # YAGNI — law of minimalism

@@ -65,6 +65,12 @@ def memory_root() -> Path:
     return Path(os.environ.get("MEMORY_ROOT") or DEFAULT_ROOT)
 
 
+# Files/folders present only in a real memory root — the same set
+# memory/scripts/_compat.py validates (ROOT_MARKERS). A CORE backup
+# restores without them; the drill's probe root therefore carries them.
+ROOT_MARKERS = ("VERSION", "db-tools", "scripts/_compat.py")
+
+
 def _backup_db(src: Path, dst: Path, busy_timeout: float = 5.0) -> None:
     """One database via sqlite3 online backup API (WAL-safe), STEPPED
     and PRE-PROBED: the backup API does NOT honor busy timeouts —
@@ -333,11 +339,23 @@ def _findings_probe(restored: Path) -> dict:
         finally:
             con.close()
 
-        # MEMORY_ROOT must NOT leak into the probe subprocess: drill runs
-        # inside a seeded/odd root (tests) whose markers _compat rejects
-        # at import; the db under test is pinned via MEMORY_ROOT_RESEARCH_DB.
-        env = {k: v for k, v in os.environ.items() if k != "MEMORY_ROOT"}
-        env.update(MEMORY_ROOT_RESEARCH_DB=str(copy),
+        # db-tools resolve _compat.chulan_root() at import (log.py does it at
+        # module level), so the probe subprocess needs a root that passes the
+        # marker check. Neither candidate is guaranteed: the caller's root may
+        # be a seeded/odd one whose markers _compat rejects, or absent
+        # entirely on a clean/CI home (no ~/.memory — observed: drill exit 1
+        # on a healthy restore), and a CORE backup restores without markers.
+        # So hand the probe a throwaway marker-carrying root; the database
+        # under test is pinned via MEMORY_ROOT_RESEARCH_DB below.
+        probe_root = tmp / "probe-root"
+        (probe_root / "db-tools").mkdir(parents=True)
+        (probe_root / "scripts").mkdir()
+        (probe_root / "scripts" / "_compat.py").write_text("", encoding="utf-8")
+        (probe_root / "VERSION").write_text("drill-probe\n", encoding="utf-8")
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("MEMORY_ROOT", "MEMORY_ROOT_RESEARCH_DB")}
+        env.update(MEMORY_ROOT=str(probe_root),
+                   MEMORY_ROOT_RESEARCH_DB=str(copy),
                    PYTHONIOENCODING="utf-8")
         # CLI resolution: repo kit first, then the deployed/live root,
         # then the roots themselves — a deployed copy of THIS file has no
@@ -462,7 +480,7 @@ def restore_drill(backup_dir: Path, root: Path | None = None) -> dict:
         # Wiki only) restores without them; running it there dies with a
         # RuntimeError traceback on a perfectly good restore. The
         # findings half above covers research.db either way.
-        markers = ("VERSION", "db-tools", "scripts/_compat.py")
+        markers = ROOT_MARKERS
         has_markers = all((restored / m).exists() for m in markers)
         tool = root / "db-tools" / "search_all.py"
         probe: dict = {"tool": str(tool), "exists": tool.is_file(),

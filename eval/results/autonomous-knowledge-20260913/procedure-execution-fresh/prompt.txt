@@ -1,0 +1,62 @@
+MANAGED-FILE UPDATER
+====================
+
+Implement `solution.py` in your workspace. The sample directory
+`fixture/workspace_seed/` is a disposable synthetic workspace you may copy for
+your own development; the grader always works on fresh copies of it.
+
+API (module-level functions, pure standard library)
+---------------------------------------------------
+    preview(workspace, updates) -> list[dict]
+    apply(workspace, updates, *, fail_recovery=False) -> dict
+    restore(workspace) -> dict
+
+`workspace` is a path (str or Path) to the workspace directory.
+`updates` maps a relative POSIX path to either:
+    - bytes: the exact new content for that file (create or overwrite), or
+    - None: delete that file.
+Paths appearing in `updates` are the files you OWN for that call. Parent
+directories of update targets already exist.
+
+CONTRACT
+--------
+1. Ownership. `apply` may create, modify, or delete ONLY files named in
+   `updates`, plus its own recovery-state file `.updater_recovery.json` at the
+   workspace root (and an atomic-rename temporary for it). Every other file in
+   the workspace is foreign and must remain byte-for-byte untouched.
+
+2. Binary exactness. Read and write files in binary mode. Preimage content
+   must be preserved byte-exactly: no newline translation, no encoding or
+   decoding round trips. Workspaces contain CRLF text and non-UTF-8 binary.
+
+3. preview. Read-only; must not change anything. Returns one entry per file
+   that `apply` would actually change (a no-op update whose bytes already
+   match is skipped and must NOT appear):
+       {"path": <str>, "action": "write"|"delete",
+        "old_sha256": <hex str or None>, "new_sha256": <hex str or None>}
+   sha256 is over raw bytes; None where not applicable (old for creation,
+   new for deletion).
+
+4. apply. Mutate the owned files exactly as planned, then persist a recovery
+   state (a preimage snapshot sufficient to undo the change) to
+   `.updater_recovery.json` as the FINAL step. On success return
+       {"ok": True, "applied": [<changed paths>]}.
+
+5. Handled failure. With `fail_recovery=True` the final persistence of the
+   recovery state fails (simulated). You must handle it: undo every mutation
+   you made (restore exact preimage bytes, recreate deleted files, remove
+   created files), leave no recovery state behind, and return
+       {"ok": False, "reason": <non-empty str>, "rolled_back": True,
+        "applied": []}
+   Reporting success after a failed persistence, or leaving mutations in
+   place, is a contract violation.
+
+6. restore. Using the recovery state from the last successful apply, return
+   every owned file to its exact pre-apply bytes (recreate deleted files,
+   remove created ones). Return {"ok": True, "restored": [<paths>]} on
+   success, or {"ok": False, "reason": <str>, "restored": []} when no usable
+   recovery state exists.
+
+Return values are the interface; nothing is graded on printed output. Your
+solution is judged by an independent behavioral verifier. No expected outputs
+are provided; derive everything from this contract.

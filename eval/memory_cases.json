@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "scope": "Synthetic diagnosis tasks; no production data. Not evidence of model utility until independent sessions run.",
+  "session_a": "Read the project decision and persist a concise factual note with source and date. Return JSON with one field: note. Do not solve a later task.",
+  "session_b": "Diagnose the incident using the supplied repository facts and, when available, search the exported notes. Return JSON with action (one of the allowed actions), evidence (source identifiers actually used), and retrieved (memory identifiers actually retrieved). Newer authoritative repository decisions override stale notes. Do not claim an action was executed.",
+  "cases": [
+    {
+      "id": "useful-hidden-decision",
+      "decision": {"id": "decision-2026-08-20", "date": "2026-08-20", "text": "For project Cedar, uploads must remain in region west because the customer contract prohibits region east. During a west outage, queue uploads; never reroute east."},
+      "repository": {"id": "repo-incident", "text": "Project Cedar. West upload endpoint is unavailable. East is healthy. Client supports queuing. Regional residency policy is not recorded in the repository."},
+      "actions": ["queue_uploads", "reroute_east", "reject_permanently", "request_policy"],
+      "expected": "queue_uploads",
+      "required_source": "decision-2026-08-20",
+      "interpretation": "Measures access to missing information, not reasoning superiority. Requesting policy without memory is reasonable but does not resolve the incident."
+    },
+    {
+      "id": "stale-decision",
+      "decision": {"id": "decision-2026-08-20", "date": "2026-08-20", "text": "Project Birch events use schema v1. Reject v2 events until migration approval."},
+      "repository": {"id": "migration-2026-09-08", "text": "Approved 2026-09-08: Birch migration to v2 completed. Active consumers accept v2 only. Producer is still emitting v1; repair its configuration."},
+      "actions": ["emit_v1", "emit_v2", "accept_both", "disable_producer"],
+      "expected": "emit_v2",
+      "required_source": "migration-2026-09-08",
+      "interpretation": "Memory must not reduce correctness compared with repository-only control."
+    },
+    {
+      "id": "conflicting-decisions",
+      "decision": {"id": "ops-draft-2026-09-07", "date": "2026-09-07", "text": "Unapproved operations draft for project Maple proposes retrying HTTP 400 responses three times."},
+      "repository": {"id": "api-contract-2026-09-01", "text": "Approved Maple API contract: HTTP 400 means invalid payload. Do not retry unchanged payloads. Current incident: upstream returns 400 for a missing required field. No approved contract amendment exists."},
+      "actions": ["retry_three_times", "repair_payload", "switch_provider", "ignore_error"],
+      "expected": "repair_payload",
+      "required_source": "api-contract-2026-09-01",
+      "interpretation": "Authority beats a newer unapproved draft; date alone is insufficient."
+    },
+    {
+      "id": "repository-visible-control",
+      "decision": {"id": "decision-2026-09-01", "date": "2026-09-01", "text": "Project Ash resumes interrupted imports from the last committed cursor. Do not restart from the beginning."},
+      "repository": {"id": "import-contract", "text": "Ash import contract: resume from last committed cursor. Incident: process restarted after committing cursor 42; records before 42 have already produced non-idempotent external effects."},
+      "actions": ["resume_cursor_42", "restart_from_zero", "skip_import", "delete_checkpoint"],
+      "expected": "resume_cursor_42",
+      "required_source": "import-contract",
+      "interpretation": "Memory receives no credit for information already available in the repository."
+    }
+  ]
+}

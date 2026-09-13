@@ -1,0 +1,115 @@
+{
+  "scope": "Text-only selection from supplied checks; not executed coding performance. Options make required checks discoverable.",
+  "core": "Define observable acceptance, implement minimally, verify the result before claiming success. Do not claim a check was executed.",
+  "targeted": "For managed-file updaters, compare exact bytes (do not normalize line endings), include binary support files and unrelated sentinels before and after restore, inject failure while final recovery state is persisted, inspect actual recursive discovery after retirement, and compare preview retirements with real owned changes. Passing happy-path tests do not establish these guarantees.",
+  "catalog": {
+    "C1": "Run existing happy-path test suite and count passing tests",
+    "C2": "Install and check expected skill filenames exist",
+    "C3": "Compare restore snapshots after normalizing CRLF to LF",
+    "C4": "Compare exact bytes after restore, including CRLF and binary data",
+    "C5": "Add unrelated sibling sentinel before apply and after apply, then verify both survive restore",
+    "C6": "Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage",
+    "C7": "Check old legacy directory name no longer exists",
+    "C8": "Recursively enumerate discoverable SKILL.md files after legacy migration",
+    "C9": "Preview with an unrelated directory and compare reported retire set to actual owned removals",
+    "C10": "Read the final success log and verify zero exit code"
+  },
+  "results": [
+    {
+      "repeat": 0,
+      "arm": "core",
+      "prompt": "{\"task\": \"Select the smallest adequate set of checks for an updater claiming foreign-file preservation, exact original-state restore including binary assets, rollback on any handled I/O failure, legacy exclusion from discovery, and truthful preview. Existing happy-path suite is green. No source code or test outcomes supplied. Return check IDs.\", \"available_checks\": {\"C1\": \"Run existing happy-path test suite and count passing tests\", \"C2\": \"Install and check expected skill filenames exist\", \"C3\": \"Compare restore snapshots after normalizing CRLF to LF\", \"C4\": \"Compare exact bytes after restore, including CRLF and binary data\", \"C5\": \"Add unrelated sibling sentinel before apply and after apply, then verify both survive restore\", \"C6\": \"Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage\", \"C7\": \"Check old legacy directory name no longer exists\", \"C8\": \"Recursively enumerate discoverable SKILL.md files after legacy migration\", \"C9\": \"Preview with an unrelated directory and compare reported retire set to actual owned removals\", \"C10\": \"Read the final success log and verify zero exit code\"}}",
+      "response": {
+        "checks": [
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "reason": "Smallest available set covering the five claims: exact-byte restore including binary assets (C4), foreign-file preservation (C5), rollback at final recovery-metadata persistence failure (C6), exclusion of legacy skills from discovery (C8), and accurate preview retire sets (C9). These are selected checks, not executed checks. C6 probes a critical handled I/O failure but cannot alone establish rollback on every handled I/O failure."
+      },
+      "coverage": 5
+    },
+    {
+      "repeat": 0,
+      "arm": "targeted",
+      "prompt": "{\"task\": \"Select the smallest adequate set of checks for an updater claiming foreign-file preservation, exact original-state restore including binary assets, rollback on any handled I/O failure, legacy exclusion from discovery, and truthful preview. Existing happy-path suite is green. No source code or test outcomes supplied. Return check IDs.\", \"available_checks\": {\"C1\": \"Run existing happy-path test suite and count passing tests\", \"C2\": \"Install and check expected skill filenames exist\", \"C3\": \"Compare restore snapshots after normalizing CRLF to LF\", \"C4\": \"Compare exact bytes after restore, including CRLF and binary data\", \"C5\": \"Add unrelated sibling sentinel before apply and after apply, then verify both survive restore\", \"C6\": \"Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage\", \"C7\": \"Check old legacy directory name no longer exists\", \"C8\": \"Recursively enumerate discoverable SKILL.md files after legacy migration\", \"C9\": \"Preview with an unrelated directory and compare reported retire set to actual owned removals\", \"C10\": \"Read the final success log and verify zero exit code\"}}",
+      "response": {
+        "checks": [
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "reason": "Smallest set covering the claimed guarantees: exact-byte restore including CRLF and binary assets; preservation of unrelated sentinels added before and after apply; rollback on failure persisting final recovery metadata; actual recursive discovery after legacy migration; and preview retirements matching real owned removals. These checks are selected, not executed; no outcomes were supplied."
+      },
+      "coverage": 5
+    },
+    {
+      "repeat": 1,
+      "arm": "core",
+      "prompt": "{\"task\": \"Select the smallest adequate set of checks for an updater claiming foreign-file preservation, exact original-state restore including binary assets, rollback on any handled I/O failure, legacy exclusion from discovery, and truthful preview. Existing happy-path suite is green. No source code or test outcomes supplied. Return check IDs.\", \"available_checks\": {\"C1\": \"Run existing happy-path test suite and count passing tests\", \"C2\": \"Install and check expected skill filenames exist\", \"C3\": \"Compare restore snapshots after normalizing CRLF to LF\", \"C4\": \"Compare exact bytes after restore, including CRLF and binary data\", \"C5\": \"Add unrelated sibling sentinel before apply and after apply, then verify both survive restore\", \"C6\": \"Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage\", \"C7\": \"Check old legacy directory name no longer exists\", \"C8\": \"Recursively enumerate discoverable SKILL.md files after legacy migration\", \"C9\": \"Preview with an unrelated directory and compare reported retire set to actual owned removals\", \"C10\": \"Read the final success log and verify zero exit code\"}}",
+      "response": {
+        "checks": [
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "reason": "Smallest adequate selection from the available checks: exact-byte restoration including binary and CRLF data; preservation of foreign files added before and after apply; rollback on final recovery-metadata I/O failure; recursive legacy discovery exclusion; and preview accuracy against owned removals. These checks are selected, not executed. C6 tests a critical failure boundary but does not alone establish rollback for every handled I/O failure."
+      },
+      "coverage": 5
+    },
+    {
+      "repeat": 1,
+      "arm": "targeted",
+      "prompt": "{\"task\": \"Select the smallest adequate set of checks for an updater claiming foreign-file preservation, exact original-state restore including binary assets, rollback on any handled I/O failure, legacy exclusion from discovery, and truthful preview. Existing happy-path suite is green. No source code or test outcomes supplied. Return check IDs.\", \"available_checks\": {\"C1\": \"Run existing happy-path test suite and count passing tests\", \"C2\": \"Install and check expected skill filenames exist\", \"C3\": \"Compare restore snapshots after normalizing CRLF to LF\", \"C4\": \"Compare exact bytes after restore, including CRLF and binary data\", \"C5\": \"Add unrelated sibling sentinel before apply and after apply, then verify both survive restore\", \"C6\": \"Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage\", \"C7\": \"Check old legacy directory name no longer exists\", \"C8\": \"Recursively enumerate discoverable SKILL.md files after legacy migration\", \"C9\": \"Preview with an unrelated directory and compare reported retire set to actual owned removals\", \"C10\": \"Read the final success log and verify zero exit code\"}}",
+      "response": {
+        "checks": [
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "reason": "Smallest adequate set: exact-byte restore including CRLF and binary assets; preservation of unrelated sentinels added before and after apply; rollback under failure while persisting final recovery metadata; actual recursive discovery after legacy migration; and preview retirements compared with actual owned removals. These checks are selected, not executed; no outcomes were supplied."
+      },
+      "coverage": 5
+    },
+    {
+      "repeat": 2,
+      "arm": "core",
+      "prompt": "{\"task\": \"Select the smallest adequate set of checks for an updater claiming foreign-file preservation, exact original-state restore including binary assets, rollback on any handled I/O failure, legacy exclusion from discovery, and truthful preview. Existing happy-path suite is green. No source code or test outcomes supplied. Return check IDs.\", \"available_checks\": {\"C1\": \"Run existing happy-path test suite and count passing tests\", \"C2\": \"Install and check expected skill filenames exist\", \"C3\": \"Compare restore snapshots after normalizing CRLF to LF\", \"C4\": \"Compare exact bytes after restore, including CRLF and binary data\", \"C5\": \"Add unrelated sibling sentinel before apply and after apply, then verify both survive restore\", \"C6\": \"Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage\", \"C7\": \"Check old legacy directory name no longer exists\", \"C8\": \"Recursively enumerate discoverable SKILL.md files after legacy migration\", \"C9\": \"Preview with an unrelated directory and compare reported retire set to actual owned removals\", \"C10\": \"Read the final success log and verify zero exit code\"}}",
+      "response": {
+        "checks": [
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "reason": "Smallest adequate selection from the available checks: exact-byte restore including binary assets (C4), foreign-file preservation (C5), rollback at final recovery-metadata persistence failure (C6), discovery-based legacy exclusion (C8), and truthful preview (C9). These are selected checks, not executed checks; C6 alone cannot establish rollback on every handled I/O failure."
+      },
+      "coverage": 5
+    },
+    {
+      "repeat": 2,
+      "arm": "targeted",
+      "prompt": "{\"task\": \"Select the smallest adequate set of checks for an updater claiming foreign-file preservation, exact original-state restore including binary assets, rollback on any handled I/O failure, legacy exclusion from discovery, and truthful preview. Existing happy-path suite is green. No source code or test outcomes supplied. Return check IDs.\", \"available_checks\": {\"C1\": \"Run existing happy-path test suite and count passing tests\", \"C2\": \"Install and check expected skill filenames exist\", \"C3\": \"Compare restore snapshots after normalizing CRLF to LF\", \"C4\": \"Compare exact bytes after restore, including CRLF and binary data\", \"C5\": \"Add unrelated sibling sentinel before apply and after apply, then verify both survive restore\", \"C6\": \"Inject I/O error when persisting final recovery metadata and compare all profile bytes with preimage\", \"C7\": \"Check old legacy directory name no longer exists\", \"C8\": \"Recursively enumerate discoverable SKILL.md files after legacy migration\", \"C9\": \"Preview with an unrelated directory and compare reported retire set to actual owned removals\", \"C10\": \"Read the final success log and verify zero exit code\"}}",
+      "response": {
+        "checks": [
+          "C4",
+          "C5",
+          "C6",
+          "C8",
+          "C9"
+        ],
+        "reason": "Smallest set covering exact-byte restore of CRLF and binary assets, preservation of unrelated sentinels added before and after apply, rollback on failure while persisting final recovery metadata, actual recursive discovery after legacy retirement, and preview retirements versus real owned removals. These checks are selected, not executed; no verification results were supplied."
+      },
+      "coverage": 5
+    }
+  ]
+}

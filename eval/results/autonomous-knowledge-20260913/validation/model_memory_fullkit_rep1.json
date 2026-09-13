@@ -1,0 +1,9 @@
+{
+  "label": "model/memory/fullkit/rep1",
+  "stage": "verified",
+  "rc": 0,
+  "timed_out": false,
+  "n_checks": 10,
+  "failed": [],
+  "passed_flag": true
+}

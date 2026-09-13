@@ -1,0 +1,141 @@
+Implement the complete requested behavior with Python standard library. Preserve unrelated user data. Distinguish evidence from assumptions. Check boundary cases and failure outcomes before returning code. Do not claim execution you did not perform.
+
+TASK: implement an incident routing function
+=============================================
+
+Write solution.py at the root of your workspace. It must define exactly one
+public function:
+
+    def route(repository, memory):
+        ...
+
+route is a PURE function: no I/O, no module-level mutable state, no mutation
+of its arguments, fully deterministic. Use only the Python standard library.
+A starter stub with this same specification is provided in fixture/solution.py.
+
+Purpose
+-------
+An incident arrives with a set of observed facts. Response actions are
+proposed by policy rules that come from two kinds of sources: repository
+authorities (approved project contracts, runbooks, migrations) and memory
+records (persisted notes, decisions, drafts). route must select ONE action
+and report which source ids were actually used and which memory records were
+actually consulted.
+
+Inputs
+------
+repository: dict with keys
+    "id": str                      source id of the incident context
+    "topic": str                   the routing topic to resolve
+    "facts": dict                  str -> JSON scalar incident facts
+    "authorities": list            of authority dicts (may be empty)
+    "default_action": str          optional; defaults to "request_policy"
+
+authority and memory record: dict with keys
+    "id": str
+    "date": str                    "YYYY-MM-DD"
+    "approved": bool
+    "supersedes": list[str]        ids of records made obsolete
+    "rules": list                  of rule dicts (may be empty)
+
+rule: dict with keys
+    "topic": str
+    "when": dict                   applicability condition over facts
+    "action": str
+    "priority": int                optional, default 0
+    "fallback": bool               optional, default False
+
+memory: list of memory record dicts (possibly empty).
+
+Source tiers
+------------
+    2  approved repository authority
+    1  approved memory record
+    0  unapproved source of either kind (draft)
+
+Required algorithm
+------------------
+Implement exactly this behavior:
+
+1. Collect rule sources: every repository authority and every memory record.
+2. Supersession: a memory record whose "id" appears in the "supersedes" list
+   of ANY repository authority is excluded entirely: its rules are ignored
+   and it never appears in "retrieved".
+3. "retrieved": ids, in input order, of the remaining memory records that
+   contain at least one rule whose "topic" equals repository["topic"].
+4. Candidate rules: rules whose "topic" equals repository["topic"], from all
+   remaining sources, whose "when" mapping matches the facts: every key in
+   "when" must be present in "facts" with an exactly equal value (== on JSON
+   scalars; a missing key never matches).
+5. Rank candidates best-first by, in order:
+   a. non-fallback rules before fallback rules;
+   b. higher source tier;
+   c. newer source date (compare ISO date strings);
+   d. higher rule priority;
+   e. lexicographically smaller source id, then smaller rule index within
+      the source (deterministic tiebreak).
+6. If a winner exists: action = winner rule's "action", evidence = [winner
+   source's "id"]. If no candidate applies: action = repository's
+   "default_action" (or "request_policy" when absent) and evidence =
+   [repository["id"]].
+
+Return value
+------------
+A dict with exactly these three keys (extra keys are tolerated):
+
+    {"action": str, "evidence": [str], "retrieved": [str]}
+
+Worked example 1 (fallback vs non-fallback)
+-------------------------------------------
+repository = {
+  "id": "repo-alder", "topic": "maintenance",
+  "facts": {"service": "alder", "window_active": True, "drain_supported": True},
+  "authorities": [{
+    "id": "ops-playbook", "date": "2026-07-01", "approved": True,
+    "supersedes": [],
+    "rules": [{"topic": "maintenance", "when": {"window_active": True},
+               "action": "restart_immediately", "fallback": True}]}]}
+memory = [{
+  "id": "memo-alder-1", "date": "2026-07-10", "approved": True,
+  "supersedes": [],
+  "rules": [{"topic": "maintenance",
+             "when": {"window_active": True, "drain_supported": True},
+             "action": "drain_then_restart"}]}]
+
+route(repository, memory) must return
+{"action": "drain_then_restart", "evidence": ["memo-alder-1"],
+ "retrieved": ["memo-alder-1"]}
+because a non-fallback rule outranks a fallback rule regardless of tier.
+
+Worked example 2 (supersession)
+-------------------------------
+repository = {
+  "id": "repo-elm", "topic": "db_upgrade",
+  "facts": {"project": "elm", "target_version": 3},
+  "authorities": [{
+    "id": "db-standard-2026-06", "date": "2026-06-20", "approved": True,
+    "supersedes": ["memo-elm-old"],
+    "rules": [{"topic": "db_upgrade", "when": {"target_version": 3},
+               "action": "upgrade_online"}]}]}
+memory = [{
+  "id": "memo-elm-old", "date": "2026-05-01", "approved": True,
+  "supersedes": [],
+  "rules": [{"topic": "db_upgrade", "when": {"project": "elm"},
+             "action": "upgrade_offline"}]}]
+
+route(repository, memory) must return
+{"action": "upgrade_online", "evidence": ["db-standard-2026-06"],
+ "retrieved": []}
+because the authority supersedes the memory record, which is therefore
+excluded from routing and from "retrieved".
+
+Grading
+-------
+Your route will be executed on concrete hidden inputs (incidents with and
+without memory records supplied) and judged ONLY on the returned action,
+evidence and retrieved values, plus determinism and non-mutation of the
+inputs. Implement the general algorithm; do not special-case project names
+or dates, and do not read files or depend on wall-clock time.
+
+
+Return JSON with a single code string containing the complete requested Python file. No tools are available in this synthesis stage; executable checks will run independently. Do not pretend to have run commands.

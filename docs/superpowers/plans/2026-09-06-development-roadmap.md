@@ -43,6 +43,8 @@ Keep core tools stdlib-first, preserve Windows support, and reuse existing adapt
 
 **Dependency:** none. First implementation package below is the preview subset.
 
+**Status 2026-09-11 — DONE (preview + recovery proof).** `--dry-run` (no `--canonical`) now prints the full-deploy plan read-only; apply-path plan functions are reused with `dry=True`, so no second renderer exists. Evidence: `tests/test_deploy_cli.py` — preview opens no transaction, mutates nothing, and its planned paths equal the exact file set a real deploy creates/changes/deletes on an identical fixture; a subprocess drill redirects `HOME`/`USERPROFILE`/`APPDATA`/`LOCALAPPDATA`/`MEMORY_ROOT` into a temp root, runs `--dry-run`/`--help`/unknown-arg (home and repository byte-identical) and performs a real full deploy into a disposable repository copy (byte-identical skill mirrors, regenerated routers, untracked original repo). Preimage restoration after a mid-deploy failure stays covered by `tests/test_deploy_rollback.py` (canonical, mid-skills, late-router and verify-false cases). Suite: 59 passed, 1 skipped, 5 subtests across the deploy-related files. The machine-wide deploy itself was not executed; the local preview reported 4 drifted skill files across two sync targets plus five routers and CLAUDE.md pending regeneration.
+
 ### CK-02 — Reconcile release and installed state deliberately [S/M]
 
 **Targets:** `VERSION`, `profile.yml`, `integrity-manifest.json`, `scripts/doctor.py`, deploy/sync and release tests.
@@ -65,6 +67,10 @@ Keep core tools stdlib-first, preserve Windows support, and reuse existing adapt
 
 **Dependency:** independent of CK-01/02. No more live Desktop scratch experiments.
 
+**Status 2026-09-11 — backend and escape battery landed; confined-executor adapter still open.** `eval/rigor/container.py` implements the OS boundary on this machine's Docker (29.7.2, linux containers, image `python:3.12-alpine`): read-only rootfs, `--cap-drop=ALL`, `no-new-privileges`, `--network=none`, `--tmpfs /tmp`, only the task directory mounted writable, no host environment forwarded, timeout kills the container tree. `escape_probes()` performs the acceptance battery and the host, not the container, judges it — measured green on all nine checks (secret outside every mount never read via `/…`, `/mnt/<drive>/…`, `/host/…` or `/work/../…`; sentinel writes blocked on `/`, beside the mount, in `/etc` and behind a symlink; child-process write blocked; network and Docker socket unreachable; host env digests absent). `timeout_kills_descendants()` confirms a run past its deadline leaves no container or child behind. `require_confined_executor()` is wired into `run_rigor_suite`, so a live rigor run now raises `IsolationUnavailable` instead of executing the host CLI unconfined; dry runs are unchanged. Evidence: `python -m pytest tests/test_rigor_container.py tests/test_rigor_runner.py tests/test_rigor_gate.py -q` — 29 passed. **Still open before a model trial:** a confined-executor adapter (an image/VM carrying the actual CLI), the same gate for `eval/runner.py --executor` (its tests drive a fake executor, so gating it needs a test-side decision), a Linux/macOS run of the battery, and no live eval is authorized by this status.
+
+**Status 2026-09-12 — offline confined executor and verifier verified.** The rigor runner now accepts explicit Docker executors and confines candidate verification with read-only trusted inputs. Independent scoped suite: 38 passed. The deterministic `--offline-task 006-import-boundary` produced PASS; its import-time escape variant produced FAIL with `verifier_rc=1` and no escape marker. The scored FAIL still returns CLI exit 0; inspect `clean_pass`. CK-03 remains open for live models: model CLI image and verifier dependencies, credential transport, endpoint-restricted networking (`@net` is unrestricted bridge networking), and the separate `eval/runner.py` path. No model call was made.
+
 ## NEXT — establish actual user value
 
 ### CK-04 — Cross-session memory outcome benchmark [M]
@@ -78,6 +84,8 @@ Keep core tools stdlib-first, preserve Windows support, and reuse existing adapt
 **Acceptance:** publish task outcomes from independent oracles, retrieval evidence, duration and usage for every arm; no cross-case memory leakage; stale information does not override newer authoritative evidence. Failure is a valid result: it blocks the product claim rather than triggering benchmark tailoring.
 
 **Dependency:** CK-03. Run the fixture without a model first. Paid evaluation is a separately authorized experiment with a fixed scope.
+
+**Status 2026-09-12 — native-memory offline preparation exercised.** `eval/memory_experiment.py prepare --notes` now seeds an independent native findings database per memory arm through the real CLI, exports its search command and environment, and retains repository-only and identical-inline controls. A CLI smoke prepared all four cases and retrieved each source from a separate process; an independent disposable-root drill confirmed empty starting databases and no cross-case results. No model ran. This proves persistence, retrieval and source preservation, not task-solving utility, stale-decision handling by a model, or independently observed retrieval during a model trial. Moving an exported arm into a container requires rebasing its explicit absolute memory environment paths to that container's mount location.
 
 ### CK-05 — Measure and reduce methodology overhead [M]
 
@@ -100,6 +108,8 @@ Keep core tools stdlib-first, preserve Windows support, and reuse existing adapt
 **Acceptance:** no live-home writes in development; saved knowledge survives upgrade and restore; failures identify the missing prerequisite; a reader can follow the public commands without author-specific paths or credentials. Historical onboarding fixes are retained, not reimplemented.
 
 **Dependency:** CK-01 for deployment portion; basic memory drill can proceed independently. Measure first-use time rather than promise an unsupported minute target.
+
+**Status 2026-09-11 — drill executed on Windows (isolated root); Linux environment still unexercised.** Ran the documented commands against a temporary `MEMORY_ROOT` + empty `HOME`: `install.py` (exit 0, `search smoke: OK`), `findings.py add`, `search_all.py` retrieval, re-run of `install.py` as the upgrade path (only SQLite sidecars and the rebuilt `wiki.db` changed — the saved finding survived intact), `backup_memory.py` (default destination), `--list`, and `--restore-drill` (exit 0 with `integrity_ok: true`, `findings.ok: true`, `doctor_rc: 0`, `search_hits: 1`), then retrieval from the live root after the drill. The drill exposed a real defect: `--restore-drill` exited 1 on a healthy restore whenever `~/.memory` was absent, because the findings probe stripped `MEMORY_ROOT` and `log.py` resolved `_compat.chulan_root()` from home; fixed by probing against a throwaway marker-carrying root (regression `tests/test_backup_memory.py::BackupDrillTest::test_drill_findings_probe_needs_no_ambient_memory_root`, red before / green after). README now documents the backup and recovery commands. Not done: a Linux run, a first-use time measurement, and the agent-integration half of the drill.
 
 ## LATER — release only demonstrated capabilities
 

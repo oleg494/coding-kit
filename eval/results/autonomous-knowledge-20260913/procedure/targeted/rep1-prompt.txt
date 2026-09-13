@@ -1,0 +1,146 @@
+Implement the complete requested behavior with Python standard library. Preserve unrelated user data. Distinguish evidence from assumptions. Check boundary cases and failure outcomes before returning code. Do not claim execution you did not perform.
+
+TARGETED VERIFICATION PROCEDURE - managed-file updater
+======================================================
+
+This document describes HOW to verify any candidate for this task
+behaviorally. It contains no oracle inputs: no golden hashes, no expected
+return values, no solution text. Every expectation is derived at runtime from
+throwaway copies of the synthetic seed.
+
+Method
+------
+1. Isolation. For every scenario copy `fixture/workspace_seed/` into a fresh
+   temporary directory. Never verify in place; never share one copy between
+   checks.
+
+2. Preimage capture. Before invoking the candidate, snapshot the whole tree
+   (relative path -> raw bytes) with the verifier's own code. All later
+   judgments are byte-for-byte comparisons against that snapshot.
+
+3. Foreign canaries. The seed contains files no update owns
+   (foreign_notes.txt, foreign/blob.bin). After every candidate operation they
+   must still exist with identical bytes, and the overall file set must equal
+   the expected set (preimage set minus deletions plus creations plus the
+   recovery-state file). This detects overreach without knowing internals.
+
+4. Preview truthfulness. Snapshot before/after `preview()`; equality proves it
+   is read-only. Independently recompute the expected plan (path, action,
+   old/new sha256, no-op entries excluded). Then run `apply()` on a fresh copy:
+   the set of files whose bytes changed (ignoring `.updater_recovery.json`)
+   must equal exactly the announced plan, and each announced new_sha256 must
+   match the bytes now on disk.
+
+5. Exact preimage restore. After a successful apply that rewrites a CRLF text
+   file, rewrites a binary file (containing 0x0D, 0x0A and non-UTF-8 bytes),
+   deletes one owned file and creates another, call `restore()`. Every file
+   must equal the pre-apply snapshot exactly. CRLF endings and arbitrary
+   binary bytes are the point: any text-mode or newline-normalizing round
+   trip fails here.
+
+6. Handled failure honesty. On a fresh copy call
+   `apply(..., fail_recovery=True)` and require all of:
+   (a) the returned status is ok=False with a non-empty reason string and
+       rolled_back=True;
+   (b) the whole tree equals the pre-call snapshot;
+   (c) no `.updater_recovery.json` remains.
+   No mutation may survive a handled failure, and success must never be
+   claimed after failed persistence.
+
+7. Honest restore-without-state. `restore()` on a pristine copy must report
+   failure (ok=False), not raise and not claim success.
+
+8. Reporting. Emit structured JSON (one entry per check: name, pass, short
+   detail); exit 0 only if all checks pass. Observe behavior only through the
+   filesystem and return values - never inspect candidate source text, never
+   trust self-reported success without the byte-level evidence above.
+
+Sensitivity demonstration (faulty controls)
+-------------------------------------------
+Each faulty control breaks a specific contract clause. To demonstrate
+verifier sensitivity: for each control, copy it as `solution.py` into an
+empty scratch directory and run `python verify.py <scratch-dir>`; the run
+must exit non-zero with the targeted check(s) failing. Run the same way on
+`reference.py`; it must pass all checks.
+
+  faulty_controls/faulty_foreign_delete.py
+      apply() sweeps away files the updater does not own.
+      Expected failing checks: foreign_preserved_after_apply (and the
+      file-set/preview-consistency consequences of the sweep).
+
+  faulty_controls/faulty_text_restore.py
+      restore() round-trips preimages through UTF-8 text with newline
+      normalization before writing them back.
+      Expected failing check: restore_exact_preimage.
+
+  faulty_controls/faulty_no_rollback.py
+      apply() swallows the recovery-persistence failure, keeps the
+      mutations, and reports success.
+      Expected failing check: handled_failure_rolls_back.
+
+
+MANAGED-FILE UPDATER
+====================
+
+Implement `solution.py` in your workspace. The sample directory
+`fixture/workspace_seed/` is a disposable synthetic workspace you may copy for
+your own development; the grader always works on fresh copies of it.
+
+API (module-level functions, pure standard library)
+---------------------------------------------------
+    preview(workspace, updates) -> list[dict]
+    apply(workspace, updates, *, fail_recovery=False) -> dict
+    restore(workspace) -> dict
+
+`workspace` is a path (str or Path) to the workspace directory.
+`updates` maps a relative POSIX path to either:
+    - bytes: the exact new content for that file (create or overwrite), or
+    - None: delete that file.
+Paths appearing in `updates` are the files you OWN for that call. Parent
+directories of update targets already exist.
+
+CONTRACT
+--------
+1. Ownership. `apply` may create, modify, or delete ONLY files named in
+   `updates`, plus its own recovery-state file `.updater_recovery.json` at the
+   workspace root (and an atomic-rename temporary for it). Every other file in
+   the workspace is foreign and must remain byte-for-byte untouched.
+
+2. Binary exactness. Read and write files in binary mode. Preimage content
+   must be preserved byte-exactly: no newline translation, no encoding or
+   decoding round trips. Workspaces contain CRLF text and non-UTF-8 binary.
+
+3. preview. Read-only; must not change anything. Returns one entry per file
+   that `apply` would actually change (a no-op update whose bytes already
+   match is skipped and must NOT appear):
+       {"path": <str>, "action": "write"|"delete",
+        "old_sha256": <hex str or None>, "new_sha256": <hex str or None>}
+   sha256 is over raw bytes; None where not applicable (old for creation,
+   new for deletion).
+
+4. apply. Mutate the owned files exactly as planned, then persist a recovery
+   state (a preimage snapshot sufficient to undo the change) to
+   `.updater_recovery.json` as the FINAL step. On success return
+       {"ok": True, "applied": [<changed paths>]}.
+
+5. Handled failure. With `fail_recovery=True` the final persistence of the
+   recovery state fails (simulated). You must handle it: undo every mutation
+   you made (restore exact preimage bytes, recreate deleted files, remove
+   created files), leave no recovery state behind, and return
+       {"ok": False, "reason": <non-empty str>, "rolled_back": True,
+        "applied": []}
+   Reporting success after a failed persistence, or leaving mutations in
+   place, is a contract violation.
+
+6. restore. Using the recovery state from the last successful apply, return
+   every owned file to its exact pre-apply bytes (recreate deleted files,
+   remove created ones). Return {"ok": True, "restored": [<paths>]} on
+   success, or {"ok": False, "reason": <str>, "restored": []} when no usable
+   recovery state exists.
+
+Return values are the interface; nothing is graded on printed output. Your
+solution is judged by an independent behavioral verifier. No expected outputs
+are provided; derive everything from this contract.
+
+
+Return JSON with a single code string containing the complete requested Python file. No tools are available in this synthesis stage; executable checks will run independently. Do not pretend to have run commands.

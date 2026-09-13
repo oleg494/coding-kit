@@ -4,7 +4,7 @@ description: 'Use when adding/fixing tests, reproducing bugs, checking limits or
 license: MIT
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # Testing discipline: tests as a spec and defining "done"

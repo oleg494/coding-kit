@@ -3,7 +3,7 @@ name: ponytail
 description: 'Use for coding tasks to minimize implementation weight without reducing requested behavior: reuse existing code, prefer stdlib/native, avoid speculative abstractions, fix root causes and verify the complete observable result.'
 license: MIT
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # Ponytail — lazy senior dev mode

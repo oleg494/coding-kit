@@ -1,0 +1,110 @@
+{
+  "scope": "Stateless text-to-code synthesis via completion(); generated code executed ONLY in no-network read-only-root Docker; independent verifier mounted read-only. Not a native agent session; no tool loop during synthesis.",
+  "conditions": {
+    "procedure/neutral": "thin core only (249 chars)",
+    "procedure/targeted": "thin core + targeted verification procedure text (no oracle inputs)",
+    "procedure/fullkit": "entire kit OPS.md + all 37 skill bodies inline (214,520 chars)",
+    "memory/neutral": "thin core only",
+    "memory/fullkit": "entire kit inline"
+  },
+  "model": "completion() default alias; exact backend not exposed; temperature/usage not exposed",
+  "repeats": 2,
+  "results": [
+    {
+      "label": "model/memory/fullkit/rep0",
+      "stage": "verified",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 10,
+      "failed": [],
+      "passed_flag": true
+    },
+    {
+      "label": "model/memory/fullkit/rep1",
+      "stage": "verified",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 10,
+      "failed": [],
+      "passed_flag": true
+    },
+    {
+      "label": "model/memory/neutral/rep0",
+      "stage": "verified",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 10,
+      "failed": [],
+      "passed_flag": true
+    },
+    {
+      "label": "model/memory/neutral/rep1",
+      "stage": "verified",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 10,
+      "failed": [],
+      "passed_flag": true
+    },
+    {
+      "label": "model/procedure/neutral/rep0",
+      "stage": "verified-rerun",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 11,
+      "failed": [],
+      "passed_flag": true,
+      "code_chars": 15976
+    },
+    {
+      "label": "model/procedure/neutral/rep1",
+      "stage": "verified-rerun",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 11,
+      "failed": [],
+      "passed_flag": true,
+      "code_chars": 14219
+    },
+    {
+      "label": "model/procedure/targeted/rep0",
+      "stage": "verified-rerun",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 11,
+      "failed": [],
+      "passed_flag": true,
+      "code_chars": 13650
+    },
+    {
+      "label": "model/procedure/targeted/rep1",
+      "stage": "verified-rerun",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 11,
+      "failed": [],
+      "passed_flag": true,
+      "code_chars": 13203
+    },
+    {
+      "label": "model/procedure/fullkit/rep0",
+      "stage": "verified-rerun",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 11,
+      "failed": [],
+      "passed_flag": true,
+      "code_chars": 9295
+    },
+    {
+      "label": "model/procedure/fullkit/rep1",
+      "stage": "verified-rerun",
+      "rc": 0,
+      "timed_out": false,
+      "n_checks": 11,
+      "failed": [],
+      "passed_flag": true,
+      "code_chars": 9537
+    }
+  ]
+}

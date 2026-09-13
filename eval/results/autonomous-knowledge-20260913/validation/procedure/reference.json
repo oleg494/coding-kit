@@ -1,0 +1,15 @@
+{
+  "label": "procedure/reference",
+  "candidate": "reference.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work",
+    "/verifier"
+  ],
+  "rc": 0,
+  "timed_out": false,
+  "failed_checks": [],
+  "n_checks": 11,
+  "passed_flag": true
+}

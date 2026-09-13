@@ -3,7 +3,7 @@ name: design-system
 description: Use when creating or refactoring product UI, landing-page styling, visual direction, shared components, themes, or design tokens, or adapting a supplied design reference. Not for software architecture or static illustrations.
 license: MIT
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # Design System

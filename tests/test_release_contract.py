@@ -30,9 +30,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXPECTED_VERSION = "4.5.1"
+EXPECTED_VERSION = "4.6.0"
 EXPECTED_SKILL_COUNT = 37
-EXPECTED_SCENARIO_COUNT = 31
+EXPECTED_SCENARIO_COUNT = 38
 EXPECTED_TRIGGER_QUERY_COUNT = 80
 EXPECTED_TASK_COUNT = 6
 
@@ -245,7 +245,7 @@ class ContextMonitorAbsentTest(unittest.TestCase):
 
 
 class AssetCountsContractTest(unittest.TestCase):
-    def test_scenario_count_is_21(self):
+    def test_scenario_count_is_38(self):
         scenarios = list((ROOT / "eval" / "scenarios").glob("*.md"))
         self.assertEqual(len(scenarios), EXPECTED_SCENARIO_COUNT,
                          f"eval/scenarios/*.md count must be {EXPECTED_SCENARIO_COUNT}, found {len(scenarios)}")

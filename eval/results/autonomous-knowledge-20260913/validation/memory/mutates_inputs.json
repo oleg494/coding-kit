@@ -1,0 +1,16 @@
+{
+  "label": "memory/mutates_inputs",
+  "candidate": "mutates_inputs.py",
+  "argv": [
+    "python",
+    "/verifier/verify.py",
+    "/work"
+  ],
+  "rc": 1,
+  "timed_out": false,
+  "failed_checks": [
+    "no_input_mutation"
+  ],
+  "n_checks": 10,
+  "passed_flag": false
+}

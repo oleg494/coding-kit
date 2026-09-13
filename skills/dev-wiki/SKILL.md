@@ -3,7 +3,7 @@ name: dev-wiki
 description: 'Always-on. Cross-chat memory (database, not conversation): record decisions, errors, patterns in the global Wiki (~/.memory). Use on "record"/"save"/"remember"/"запиши"/"сохрани"/"запомни"/"в память"/"память" or "what do we know about X"/"напомни". Hierarchy: portable → ~/.memory/Wiki/; project-specific → WORK/<project>/docs/. Cycle: file → index.md → log.md → python ~/.memory/db-tools/build.py → lint.'
 license: MIT
 metadata:
-  version: "4.5.1"
+  version: "4.6.0"
 ---
 
 # Dev Wiki — cross-chat developer memory
@@ -89,10 +89,13 @@ python ~/.memory/db-tools/search_all.py "query" --project portable              
 python ~/.memory/db-tools/search_all.py "query" --substring                           # declensions/substrings
 ```
 - Search the database, NOT conversation memory.
+- Search is lexical FTS, not semantic: plain space-separated terms all must match. Start with a distinctive project or component token, not a natural-language sentence; narrow only after seeing results.
+- Search when history or an unresolved project-specific decision matters; do not add mandatory retrieval when the current authoritative source already settles the question.
+- A hit is a snippet, not the complete decision: open `findings.py show <id>` or the source file before relying on it. If a query is empty, retry a simpler token or supported `OR` alternative before claiming absence; `--substring` applies to indexed files, while findings retain word matching.
 - Project + portable composition: `--project portable` selects findings classified portable; global search also searches indexed Wiki/project files. To scope retrieval without losing portable patterns, query both target `--project <slug>` and `--project portable` or query globally.
 - Found → check lifecycle badges first: `[superseded by #N]` → resolve to the replacing finding before using it; `[unverified]` → treat as unconfirmed. Then answer with a link to the file.
 - Warmup lifecycle (`memory-warmup.py`): high-priority feed surfaces key active invariants with verification status (`[unverified]` if missing `verified_at`); unsure feed prioritizes high/normal unanchored items over low-importance checkpoints.
-- Not found → "not in the database".
+- Still no relevant results after checking query and scope → report what was searched and not found; this does not prove no policy exists.
 ## Auto-write triggers
 
 - "record", "save", "remember", «запиши», «сохрани», «запомни», «в память», «память» → full cycle.

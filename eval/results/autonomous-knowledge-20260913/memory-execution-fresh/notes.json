@@ -1,0 +1,196 @@
+{
+  "scenario": "memory-execution-fresh",
+  "purpose": "Executable routing task measuring whether persisted project memory (hidden decisions) changes incident routing correctness relative to repository-only information, without leaking the oracle to the candidate.",
+  "SCOPE_LIMITATION": "This scenario tests the ROUTING APPLICATION only: given memory records already in hand, does the router use them correctly (credit hidden decisions, drop superseded ones, defer to current authority, ignore redundant memory)? It does NOT test memory retrieval efficacy: no search, no CLI, no retrieval-cost or availability measurement. The inline arm is byte-identical to the memory arm and therefore supports NO memory-vs-inline comparison claim. Do not report this scenario as evidence about retrieval mechanisms.",
+  "api": {
+    "solution": "def route(repository, memory) -> {action, evidence, retrieved}; pure, stdlib-only, deterministic; full spec in prompt.txt",
+    "verifier": "python verify.py <candidate-workspace>; exit 0 iff all behavioral checks pass; prints {checks:[...], reference_agreement:{...,scored:false}, passed:bool}. reference_agreement is an unscored scenario self-check (reference must agree with the oracle or the scenario is broken); it never affects passed or the exit code. No API-plumbing row is scored: a missing/non-callable route fails every behavioral check."
+  },
+  "arms": {
+    "repository_only": "memory argument is an empty list; only repository authorities are available",
+    "memory": "memory argument carries the hidden project decision records; simulates successful retrieval by direct argument passing (no CLI in the offline container)",
+    "inline": "memory argument identical to the memory arm; controls for information availability versus retrieval mechanism, identical here by design"
+  },
+  "cases": [
+    {
+      "id": "useful-hidden-decision",
+      "measures": "access to information missing from the repository: only memory resolves the incident",
+      "repository": {
+        "id": "repo-incident-cedar",
+        "topic": "uploads",
+        "facts": {"project": "cedar", "west_available": false, "east_available": true, "queuing_supported": true},
+        "authorities": [
+          {
+            "id": "ops-general-playbook",
+            "date": "2026-07-01",
+            "approved": true,
+            "supersedes": [],
+            "rules": [
+              {"topic": "uploads", "when": {"east_available": true}, "action": "reroute_east", "fallback": true},
+              {"topic": "uploads", "when": {"queuing_supported": true}, "action": "request_policy", "fallback": true}
+            ]
+          }
+        ],
+        "default_action": "request_policy"
+      },
+      "memory": [
+        {
+          "id": "decision-2026-08-20-cedar-region",
+          "date": "2026-08-20",
+          "approved": true,
+          "supersedes": [],
+          "rules": [
+            {"topic": "uploads", "when": {"project": "cedar", "west_available": false, "queuing_supported": true}, "action": "queue_uploads"}
+          ]
+        }
+      ],
+      "oracle": {
+        "repository_only": {"action": "reroute_east", "evidence": ["ops-general-playbook"], "retrieved": []},
+        "memory": {"action": "queue_uploads", "evidence": ["decision-2026-08-20-cedar-region"], "retrieved": ["decision-2026-08-20-cedar-region"]}
+      },
+      "interpretation": "Repository-only takes the playbook's east reroute fallback (tie between two fallbacks resolved by rule index), which violates the customer residency constraint that the repository does not record. Memory supplies the residency decision that routes to queue_uploads. Memory earns credit only here."
+    },
+    {
+      "id": "stale-decision",
+      "measures": "memory must not reduce correctness versus repository-only: a newer repository authority supersedes the memory record",
+      "repository": {
+        "id": "migration-2026-09-08-birch",
+        "topic": "events_schema",
+        "facts": {"project": "birch", "consumers_accept": "v2", "producer_emitting": "v1"},
+        "authorities": [
+          {
+            "id": "migration-2026-09-08-birch",
+            "date": "2026-09-08",
+            "approved": true,
+            "supersedes": ["decision-2026-08-20-birch-schema"],
+            "rules": [
+              {"topic": "events_schema", "when": {"consumers_accept": "v2", "producer_emitting": "v1"}, "action": "emit_v2"}
+            ]
+          }
+        ],
+        "default_action": "request_policy"
+      },
+      "memory": [
+        {
+          "id": "decision-2026-08-20-birch-schema",
+          "date": "2026-08-20",
+          "approved": true,
+          "supersedes": [],
+          "rules": [
+            {"topic": "events_schema", "when": {"project": "birch"}, "action": "emit_v1"}
+          ]
+        }
+      ],
+      "oracle": {
+        "repository_only": {"action": "emit_v2", "evidence": ["migration-2026-09-08-birch"], "retrieved": []},
+        "memory": {"action": "emit_v2", "evidence": ["migration-2026-09-08-birch"], "retrieved": []}
+      },
+      "interpretation": "The memory record is superseded: excluded from routing and from retrieved. Trusting stale memory flips the action to emit_v1 (wrong). The repository resolves the incident identically with or without memory."
+    },
+    {
+      "id": "conflicting-current-authority",
+      "measures": "authority beats recency: a newer unapproved draft must not override an older approved repository contract",
+      "repository": {
+        "id": "api-contract-2026-09-01-maple",
+        "topic": "http_error",
+        "facts": {"project": "maple", "status": 400, "payload": "missing_required_field"},
+        "authorities": [
+          {
+            "id": "api-contract-2026-09-01-maple",
+            "date": "2026-09-01",
+            "approved": true,
+            "supersedes": [],
+            "rules": [
+              {"topic": "http_error", "when": {"status": 400}, "action": "repair_payload"}
+            ]
+          }
+        ],
+        "default_action": "request_policy"
+      },
+      "memory": [
+        {
+          "id": "ops-draft-2026-09-07-maple-retry",
+          "date": "2026-09-07",
+          "approved": false,
+          "supersedes": [],
+          "rules": [
+            {"topic": "http_error", "when": {"status": 400, "project": "maple"}, "action": "retry_three_times"}
+          ]
+        }
+      ],
+      "oracle": {
+        "repository_only": {"action": "repair_payload", "evidence": ["api-contract-2026-09-01-maple"], "retrieved": []},
+        "memory": {"action": "repair_payload", "evidence": ["api-contract-2026-09-01-maple"], "retrieved": ["ops-draft-2026-09-07-maple-retry"]}
+      },
+      "interpretation": "The draft is newer but unapproved: tier dominates date. Date-first ranking flips the action to retry_three_times (wrong). Retrieved must still list the draft: it carries a topic-matching rule and is not superseded."
+    },
+    {
+      "id": "repository-sufficient-control",
+      "measures": "the repository alone resolves the incident; memory adds no routing information and must not change the outcome",
+      "repository": {
+        "id": "import-contract-ash",
+        "topic": "import_recovery",
+        "facts": {"project": "ash", "restart_after_commit": 42, "non_idempotent_effects_before_commit": true},
+        "authorities": [
+          {
+            "id": "import-contract-ash",
+            "date": "2026-08-15",
+            "approved": true,
+            "supersedes": [],
+            "rules": [
+              {"topic": "import_recovery", "when": {"restart_after_commit": 42}, "action": "resume_cursor_42"}
+            ]
+          }
+        ],
+        "default_action": "request_policy"
+      },
+      "memory": [
+        {
+          "id": "decision-2026-09-01-ash-resume",
+          "date": "2026-09-01",
+          "approved": true,
+          "supersedes": [],
+          "rules": [
+            {"topic": "import_recovery", "when": {"project": "ash", "non_idempotent_effects_before_commit": true}, "action": "resume_cursor_42", "fallback": true}
+          ]
+        }
+      ],
+      "oracle": {
+        "repository_only": {"action": "resume_cursor_42", "evidence": ["import-contract-ash"], "retrieved": []},
+        "memory": {"action": "resume_cursor_42", "evidence": ["import-contract-ash"], "retrieved": ["decision-2026-09-01-ash-resume"]}
+      },
+      "interpretation": "The memory record agrees with the contract but is marked fallback: the non-fallback authority rule must win the ranking, so evidence stays with the repository and memory receives no routing credit. Both arms route identically; the case proves the router does not switch evidence to memory merely because memory is present. Memory-first ranking (control 2) wrongly takes credit here, which is exactly what distinguishes it from the honest implementation."
+    }
+  ],
+  "controls": [
+    {
+      "file": "controls/ignores_hidden_decision.py",
+      "defect": "drops all memory records before routing",
+      "expected_fail_checks": ["case:useful-hidden-decision/memory", "case:conflicting-current-authority/memory", "case:repository-sufficient-control/memory"],
+      "note": "Also fails retrieved honesty in the two cases whose oracle expects a memory id in retrieved."
+    },
+    {
+      "file": "controls/trusts_stale_memory.py",
+      "defect": "ignores supersession and ranks any memory record above repository authorities",
+      "expected_fail_checks": ["case:stale-decision/memory", "case:conflicting-current-authority/memory"],
+      "note": "Fails stale-decision on the action (emit_v1) and conflicting-current-authority because unapproved memory outranks the approved contract."
+    },
+    {
+      "file": "controls/overrides_current_authority.py",
+      "defect": "pure date-first ranking: newest source wins regardless of approval tier or fallback",
+      "expected_fail_checks": ["case:conflicting-current-authority/memory", "case:repository-sufficient-control/memory", "case:useful-hidden-decision/repository_only"],
+      "note": "Also fails the repository_only cell of useful-hidden-decision: date-first picks the request_policy fallback rule (later index, same date) over reroute_east."
+    },
+    {
+      "file": "controls/mutates_inputs.py",
+      "defect": "behaviorally correct routing that writes into the passed repository facts dict; all case checks pass, only no_input_mutation fails",
+      "expected_fail_checks": ["no_input_mutation"],
+      "note": "Proves the mutation check observes the actual argument objects route received, not untouched originals."
+    }
+  ],
+  "limitations": [
+    "APPLICATION-ONLY (see SCOPE_LIMITATION): memory records are passed directly as arguments; the isolated findings.py CLI search path used by eval/memory_experiment.py cannot run in the offline container, so retrieval efficacy is untested and no memory-vs-inline comparison is claimed or supported.",
+    "The verifier's no_input_mutation check observes the argument objects themselves (deep snapshot compared after the call); the determinism check uses fresh equal inputs.",
+    "The inline arm is structurally identical to the memory arm in this executable form; it cannot separate retrieval cost from information availability the way memory_experiment.py's arms do."
+  ]
+}
