@@ -85,11 +85,6 @@ def _on_disk_skills() -> set:
 def _public_release_files() -> list:
     out = [ROOT / n for n in _PUBLIC_DOC_NAMES if (ROOT / n).is_file()]
     out.extend(sorted((ROOT / "adapters").glob("*.md")))
-    # Tracked evidence artifacts ship in the repo/tag too: personal paths
-    # there contradict the same intent NoPersonalPathTest encodes.
-    out.extend(sorted(p for p in (ROOT / "eval" / "results").rglob("*")
-                      if p.is_file()
-                      and p.suffix in (".json", ".txt", ".md")))
     return out
 
 

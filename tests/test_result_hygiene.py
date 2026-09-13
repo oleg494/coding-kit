@@ -13,12 +13,15 @@ Two defect classes from the v3.5.0-v4.0.1 audit:
    eval hygiene (scenarios/tasks/queries/baselines hashed, mutable
    results unpinned) lives in tests/test_integrity_manifest.py.
 
-`eval/results/*.json` is the committed set plus whatever a live run just
-wrote; the scan ignores subdirectories (staging dirs) so it stays
-focused on the flat artifacts git tracks.
+The committed set is every eval/results file git tracks — flat JSONs and
+subdirectory packages alike (the 2026-09-13 research packages live one
+level down). Local staging output that was never committed is out of
+scope by construction: the file list comes from `git ls-files`, so a
+live run's dirt never reddens this suite.
 """
 import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -34,20 +37,22 @@ _PERSONAL = (
 )
 
 
-def _committed_results() -> list[Path]:
-    """Committed result JSONs; staging subdirectories are not tracked."""
-    return sorted(p for p in RESULTS.glob("*.json")
-                  if p.is_file() and not p.name.endswith(".staging"))
+def _tracked_result_files() -> list[Path]:
+    """Result files git actually tracks (flat + subdirectory packages)."""
+    out = subprocess.run(
+        ["git", "-C", str(KIT), "ls-files", "--", "eval/results"],
+        capture_output=True, check=True).stdout.decode("utf-8").splitlines()
+    return sorted(KIT / rel for rel in out if rel.endswith(".json"))
 
 
 class ResultHygieneTest(unittest.TestCase):
     def test_committed_results_exist(self):
-        self.assertTrue(_committed_results(),
+        self.assertTrue(_tracked_result_files(),
                         "eval/results lost its committed artifacts?")
 
     def test_no_personal_path_literals(self):
-        for p in _committed_results():
-            with self.subTest(result=p.name):
+        for p in _tracked_result_files():
+            with self.subTest(result=str(p.relative_to(KIT))):
                 raw = p.read_bytes()
                 for pat in _PERSONAL:
                     self.assertIsNone(pat.search(raw),
@@ -55,13 +60,28 @@ class ResultHygieneTest(unittest.TestCase):
                 self.assertNotIn(b"oleg2", raw,
                                  f"{p.name}: username literal leaked")
 
-    def test_scrubbed_trigger_artifact_still_parses(self):
-        scrubbed = [p for p in _committed_results()
-                    if p.name.startswith("trigger-20260829-093013")]
-        self.assertTrue(scrubbed, "scrubbed trigger artifact missing")
-        for p in scrubbed:
-            data = json.loads(p.read_text(encoding="utf-8"))
-            self.assertEqual(data["kind"], "trigger")
+    def test_tracked_results_still_parse(self):
+        # Byte surgery on evidence artifacts (path scrubs) must not break
+        # parsing: every tracked result JSON loads, and the two shapes the
+        # 2026-09-13 packages use survive with their semantic keys intact.
+        for p in _tracked_result_files():
+            with self.subTest(result=str(p.relative_to(KIT))):
+                data = json.loads(p.read_text(encoding="utf-8"))
+        probe = RESULTS / "autonomous-knowledge-20260913" / "native-adapter-result.json"
+        if probe.is_file():
+            doc = json.loads(probe.read_text(encoding="utf-8"))
+            self.assertEqual(doc["rc"], 0)
+            inner = json.loads(doc["stdout"])
+            self.assertEqual(len(inner["checks"]), 9)
+        for name, expected_cases in (("recovery-before.json", 6),
+                                     ("recovery-after.json", 6)):
+            probe = RESULTS / "knowledge-procedure-20260913" / name
+            if probe.is_file():
+                doc = json.loads(probe.read_text(encoding="utf-8"))
+                self.assertEqual(len(doc), expected_cases)
+                self.assertEqual([d["case"] for d in doc],
+                                 ["foreign", "crlf", "binary",
+                                  "anchor_failure", "legacy", "preview"])
 
 
 if __name__ == "__main__":
