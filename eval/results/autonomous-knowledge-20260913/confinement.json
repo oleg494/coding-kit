@@ -99,5 +99,5 @@
     "returncode": 1,
     "error": "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\nOSError: [Errno 30] Read-only file system: '/s"
   },
-  "secret_fixture": "C:\\Users\\oleg2\\AppData\\Local\\Temp\\rigor-confinement-0niou3s0\\outside\\secret.txt"
+  "secret_fixture": "<TEMP>\\rigor-confinement-0niou3s0\\outside\\secret.txt"
 }

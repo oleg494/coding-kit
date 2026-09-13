@@ -2,12 +2,12 @@
   {
     "case": "foreign",
     "pass": false,
-    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-flilz9j8\\profile\n\n  install coding-kit/alpha\n  retire  coding-kit/foreign (not in kit 1.0)\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-flilz9j8/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-flilz9j8\\profile\\.kit-hermes-restore.json\nrestored owned surfaces in C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-flilz9j8\\profile to pre-apply state\n"
+    "log": "apply coding-kit 1.0 -> <TEMP>\\independent-recovery-flilz9j8\\profile\n\n  install coding-kit/alpha\n  retire  coding-kit/foreign (not in kit 1.0)\n  config  add external_dirs entry: <TEMP>/independent-recovery-flilz9j8/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: <TEMP>\\independent-recovery-flilz9j8\\profile\\.kit-hermes-restore.json\nrestored owned surfaces in <TEMP>\\independent-recovery-flilz9j8\\profile to pre-apply state\n"
   },
   {
     "case": "crlf",
     "pass": false,
-    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-suojwolo\\profile\n\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-suojwolo/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-suojwolo\\profile\\.kit-hermes-restore.json\nrestored owned surfaces in C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-suojwolo\\profile to pre-apply state\n"
+    "log": "apply coding-kit 1.0 -> <TEMP>\\independent-recovery-suojwolo\\profile\n\n  install coding-kit/alpha\n  config  add external_dirs entry: <TEMP>/independent-recovery-suojwolo/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: <TEMP>\\independent-recovery-suojwolo\\profile\\.kit-hermes-restore.json\nrestored owned surfaces in <TEMP>\\independent-recovery-suojwolo\\profile to pre-apply state\n"
   },
   {
     "case": "binary",
@@ -23,11 +23,11 @@
   {
     "case": "legacy",
     "pass": false,
-    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-tlvll28u\\profile\n\n  retire legacy C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-tlvll28u\\profile\\skills\\coding-kit (move to C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-tlvll28u\\profile\\skills\\coding-kit.retired-<ts>)\n  install coding-kit/alpha\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-tlvll28u/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-tlvll28u\\profile\\.kit-hermes-restore.json\n"
+    "log": "apply coding-kit 1.0 -> <TEMP>\\independent-recovery-tlvll28u\\profile\n\n  retire legacy <TEMP>\\independent-recovery-tlvll28u\\profile\\skills\\coding-kit (move to <TEMP>\\independent-recovery-tlvll28u\\profile\\skills\\coding-kit.retired-<ts>)\n  install coding-kit/alpha\n  config  add external_dirs entry: <TEMP>/independent-recovery-tlvll28u/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: <TEMP>\\independent-recovery-tlvll28u\\profile\\.kit-hermes-restore.json\n"
   },
   {
     "case": "preview",
     "pass": false,
-    "log": "apply coding-kit 1.0 -> C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-k02hr70j\\profile\n\n  install coding-kit/alpha\n  retire  coding-kit/foreign (not in kit 1.0)\n  config  add external_dirs entry: C:/Users/oleg2/AppData/Local/Temp/independent-recovery-k02hr70j/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: C:\\Users\\oleg2\\AppData\\Local\\Temp\\independent-recovery-k02hr70j\\profile\\.kit-hermes-restore.json\n"
+    "log": "apply coding-kit 1.0 -> <TEMP>\\independent-recovery-k02hr70j\\profile\n\n  install coding-kit/alpha\n  retire  coding-kit/foreign (not in kit 1.0)\n  config  add external_dirs entry: <TEMP>/independent-recovery-k02hr70j/profile/kit-skills\n  SOUL    append kit block (1.0)\n\napply OK (rc=0); rollback snapshot: <TEMP>\\independent-recovery-k02hr70j\\profile\\.kit-hermes-restore.json\n"
   }
 ]

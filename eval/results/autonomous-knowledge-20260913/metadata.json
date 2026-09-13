@@ -5,7 +5,7 @@
   "usage": "not exposed",
   "temperature": "not controllable",
   "repeats_planned": 2,
-  "native_runtime": "C:\\Users\\oleg2\\AppData\\Local\\hermes\\hermes-agent",
+  "native_runtime": "<HERMES_HOME>",
   "native_sources_sha256": {
     "tools/skills_tool.py": "2c4f15b919b5ec687bcdf598b6fd44fa8a3dda1fe231fa53ea630f82a1a0cda6",
     "agent/prompt_builder.py": "06e612e589d8fb5eda07e922283706b9d71dcd46940211fa76cf148c1a777742",
