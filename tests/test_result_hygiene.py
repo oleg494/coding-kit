@@ -90,39 +90,36 @@ class ResultHygieneTest(unittest.TestCase):
                 doc = json.loads(p.read_text(encoding="utf-8"))
                 self.assertIsNotNone(doc, f"{p.name}: parses to null")
 
-        # Shape probes are guarded by package membership: inside a package
-        # that ships these artifacts the probes are unconditional — a
-        # renamed/moved file fails loudly instead of skipping green.
-        # Trees without the 2026-09-13 packages (e.g. the 4.5.1 tarball)
-        # do not assert them.
+        # Shape probes are unconditional: this suite ships with the tree
+        # it guards, so the 2026-09-13 packages are always present — a
+        # renamed/moved/deleted artifact fails loudly instead of skipping
+        # green. (The non-git fallback changes file enumeration, not
+        # which files exist.)
         native = ("eval/results/autonomous-knowledge-20260913/"
                   "native-adapter-result.json")
-        if native in rels:
-            doc = json.loads((KIT / native).read_text(encoding="utf-8"))
-            self.assertEqual(doc["rc"], 0)
-            inner = json.loads(doc["stdout"])
-            self.assertEqual(len(inner["checks"]), 9)
+        self.assertIn(native, rels, f"{native} missing from tracked results")
+        doc = json.loads((KIT / native).read_text(encoding="utf-8"))
+        self.assertEqual(doc["rc"], 0)
+        inner = json.loads(doc["stdout"])
+        self.assertEqual(len(inner["checks"]), 9)
 
         cases = ["foreign", "crlf", "binary", "anchor_failure", "legacy",
                  "preview"]
         docs = {}
         for name in ("recovery-before.json", "recovery-after.json"):
             rel = f"eval/results/knowledge-procedure-20260913/{name}"
-            if rel not in rels:
-                continue
+            self.assertIn(rel, rels, f"{rel} missing from tracked results")
             docs[name] = json.loads((KIT / rel).read_text(encoding="utf-8"))
         # Semantic core of the recovery evidence: the before-probe ran
         # against the broken adapter (0/6), the after-probe against the
         # repaired one (6/6). Identical vectors would mean one of the two
-        # files lost its meaning in a scrub. Both files are required —
-        # one without the other skips.
-        if len(docs) == 2:
-            for name, doc in docs.items():
-                self.assertEqual([d["case"] for d in doc], cases)
-            self.assertEqual([d["pass"] for d in docs["recovery-before.json"]],
-                             [False] * 6)
-            self.assertEqual([d["pass"] for d in docs["recovery-after.json"]],
-                             [True] * 6)
+        # files lost its meaning in a scrub.
+        for name, doc in docs.items():
+            self.assertEqual([d["case"] for d in doc], cases)
+        self.assertEqual([d["pass"] for d in docs["recovery-before.json"]],
+                         [False] * 6)
+        self.assertEqual([d["pass"] for d in docs["recovery-after.json"]],
+                         [True] * 6)
 
 
 if __name__ == "__main__":
