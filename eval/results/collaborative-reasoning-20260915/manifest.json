@@ -1,0 +1,62 @@
+{
+  "created_utc": "2026-09-15T15:22:30.049Z",
+  "scope": "Stateless text-only comparative dialogue probe using completion(); not a native coding-agent tool loop, installed-skill routing test, or evidence of real-user satisfaction.",
+  "sources": [
+    {
+      "path": "OPS.md",
+      "sha256": "91785bb1197bc37b4ab6c2029d3040f50370fd2bd41e135c407bd04fd9de0e2c",
+      "characters": 8698
+    },
+    {
+      "path": "skills/reasoning-engine/SKILL.md",
+      "sha256": "b2efc940538886472402e71937fcf0a57ed556f3860d960bbabc3a34c5d85ed3",
+      "characters": 3286
+    },
+    {
+      "path": "skills/brainstorming/SKILL.md",
+      "sha256": "b56d7d333e30af5f52f47ae341403a63e31f12704d8922da463fef97da74892b",
+      "characters": 4453
+    },
+    {
+      "path": "skills/receiving-code-review/SKILL.md",
+      "sha256": "2179ba1bbaa0a242c3f58ca081bddaad39deb488d17282ca0fe896f0f639f7b1",
+      "characters": 6823
+    },
+    {
+      "path": "skills/debug-incident-protocol/SKILL.md",
+      "sha256": "7510aa3002b5f546c0ed6aaff73b5505285325ad59e05b9951308e79b7c5440d",
+      "characters": 4084
+    },
+    {
+      "path": "skills/engineering-persona/SKILL.md",
+      "sha256": "9cd2a2579e69e7784b7b5d66e50916b5b2989b0d36004d8534e077ed7100cff5",
+      "characters": 1546
+    },
+    {
+      "path": "skills/yagni/SKILL.md",
+      "sha256": "95252039a213524a39cc2290ff2fdee838edc1e625f0536d152cb2b7c277706e",
+      "characters": 2622
+    }
+  ],
+  "systems": {
+    "baseline": {
+      "sha256": "716f02c9f963af3268fdbc12c8d0bceb92f871485664f32f87aa49445e73f442",
+      "characters": 32198
+    },
+    "candidate": {
+      "sha256": "dae41a707bfceb9b7999885afe556f5ea6abfd0319a12677b3d96c0dcac2df16",
+      "characters": 33813
+    }
+  },
+  "executor_aliases": [
+    "default",
+    "smol"
+  ],
+  "judge_alias": "slow",
+  "exact_backend_models": null,
+  "temperature": null,
+  "provider_seed": null,
+  "usage": null,
+  "cost": null,
+  "frozen": true
+}

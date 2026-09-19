@@ -1,0 +1,66 @@
+{
+  "batch": 2,
+  "blind": true,
+  "pairs": [
+    {
+      "pair_key": "dev-clear-config-table|rep0",
+      "a_is": "patched",
+      "b_is": "baseline",
+      "case_prompt": "Пользователь: Преврати данные ниже в Markdown-таблицу с колонками 'Имя', 'Значение'. Порядок строк сохрани. Только таблица, без советов и изменений значений.\nmode=local\nretries=0\nlabel=черновик",
+      "acceptance": "Return only the requested two-column Markdown table, with the three exact provided values in original order. No advice, proposed retries, clarification or invented concern.",
+      "material_failure": "Changes a value, fails to provide the table, or blocks on a redundant question.",
+      "response_a": "| Имя | Значение |\n|-----|----------|\n| mode | local |\n| retries | 0 |\n| label | черновик |",
+      "response_b": "| Имя | Значение |\n|-----|----------|\n| mode | local |\n| retries | 0 |\n| label | черновик |"
+    },
+    {
+      "pair_key": "dev-clear-config-table|rep1",
+      "a_is": "baseline",
+      "b_is": "patched",
+      "case_prompt": "Пользователь: Преврати данные ниже в Markdown-таблицу с колонками 'Имя', 'Значение'. Порядок строк сохрани. Только таблица, без советов и изменений значений.\nmode=local\nretries=0\nlabel=черновик",
+      "acceptance": "Return only the requested two-column Markdown table, with the three exact provided values in original order. No advice, proposed retries, clarification or invented concern.",
+      "material_failure": "Changes a value, fails to provide the table, or blocks on a redundant question.",
+      "response_a": "| Имя | Значение |\n|-----|----------|\n| mode | local |\n| retries | 0 |\n| label | черновик |",
+      "response_b": "| Имя | Значение |\n|---|---|\n| mode | local |\n| retries | 0 |\n| label | черновик |"
+    },
+    {
+      "pair_key": "dev-clear-prefix-function|rep0",
+      "a_is": "patched",
+      "b_is": "baseline",
+      "case_prompt": "Пользователь: Нужна одна функция Python without_prefix(text: str, prefix: str) -> str: убрать ровно один prefix только с начала строки; если префикса нет или он пустой — вернуть исходную строку. Python 3.11. Ответь только кодом функции. Не проектируй библиотеку.",
+      "acceptance": "Provide only a correct Python function satisfying start-only, exactly-once removal and empty-prefix behavior. Native removeprefix or an equivalent direct implementation is valid. No unrelated abstraction or questions.",
+      "material_failure": "Uses strip/replace semantics that remove excess text, mishandles empty prefix, or fails to deliver the function.",
+      "response_a": "```python\ndef without_prefix(text: str, prefix: str) -> str:\n    if not prefix:\n        return text\n    return text.removeprefix(prefix)\n```",
+      "response_b": "```python\ndef without_prefix(text: str, prefix: str) -> str:\n    if not prefix:\n        return text\n    return text.removeprefix(prefix)\n```"
+    },
+    {
+      "pair_key": "dev-clear-prefix-function|rep1",
+      "a_is": "baseline",
+      "b_is": "patched",
+      "case_prompt": "Пользователь: Нужна одна функция Python without_prefix(text: str, prefix: str) -> str: убрать ровно один prefix только с начала строки; если префикса нет или он пустой — вернуть исходную строку. Python 3.11. Ответь только кодом функции. Не проектируй библиотеку.",
+      "acceptance": "Provide only a correct Python function satisfying start-only, exactly-once removal and empty-prefix behavior. Native removeprefix or an equivalent direct implementation is valid. No unrelated abstraction or questions.",
+      "material_failure": "Uses strip/replace semantics that remove excess text, mishandles empty prefix, or fails to deliver the function.",
+      "response_a": "```python\ndef without_prefix(text: str, prefix: str) -> str:\n    if not prefix or not text.startswith(prefix):\n        return text\n    return text[len(prefix):]\n```",
+      "response_b": "```python\ndef without_prefix(text: str, prefix: str) -> str:\n    if not prefix or not text.startswith(prefix):\n        return text\n    return text[len(prefix):]\n```"
+    },
+    {
+      "pair_key": "dev-clear-rename-variable|rep0",
+      "a_is": "patched",
+      "b_is": "baseline",
+      "case_prompt": "Пользователь: В этом фрагменте переименуй переменную items в records, ничего другого не меняй. Дай только исправленный фрагмент.\n```python\nitems = ['b', 'a', 'b']\nfor item in items:\n    print(item)\n```",
+      "acceptance": "Return the snippet with items renamed to records in assignment and loop, preserving data, iteration order, duplicates, item variable and print. No sorting, deduplication, advice or extra requests.",
+      "material_failure": "Changes program behavior or fails to deliver the requested snippet because of an invented concern.",
+      "response_a": "```python\nrecords = ['b', 'a', 'b']\nfor item in records:\n    print(item)\n```",
+      "response_b": "```python\nrecords = ['b', 'a', 'b']\nfor item in records:\n    print(item)\n```"
+    },
+    {
+      "pair_key": "dev-clear-rename-variable|rep1",
+      "a_is": "baseline",
+      "b_is": "patched",
+      "case_prompt": "Пользователь: В этом фрагменте переименуй переменную items в records, ничего другого не меняй. Дай только исправленный фрагмент.\n```python\nitems = ['b', 'a', 'b']\nfor item in items:\n    print(item)\n```",
+      "acceptance": "Return the snippet with items renamed to records in assignment and loop, preserving data, iteration order, duplicates, item variable and print. No sorting, deduplication, advice or extra requests.",
+      "material_failure": "Changes program behavior or fails to deliver the requested snippet because of an invented concern.",
+      "response_a": "```python\nrecords = ['b', 'a', 'b']\nfor item in records:\n    print(item)\n```",
+      "response_b": "```python\nrecords = ['b', 'a', 'b']\nfor item in records:\n    print(item)\n```"
+    }
+  ]
+}

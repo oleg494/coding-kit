@@ -1,0 +1,17 @@
+{
+  "experiment": "collaborative-reasoning-confirmation-20260916",
+  "status": "preregistered before confirmation response generation",
+  "parent": "collaborative-reasoning-20260915 (REPORT.md corrected)",
+  "question": "Does the narrow ideation patch (confirmation/patch-candidate.md, appended to skills/brainstorming/SKILL.md only) reproduce the replicated benefit (unfinished_idea, unusual_valid, goal_ownership) without regressing the negative controls (clear_execution, resist_pressure)?",
+  "conditions": {
+    "baseline": "frozen baseline system prompt, hash-equal to manifest.json systems.baseline.sha256 (verified at build)",
+    "patched": "same baseline with patch-candidate.md inserted into the brainstorming skill body; no deference/pressure clauses, no other skill changes"
+  },
+  "cases": "existing case files, families unfinished_idea, unusual_valid, goal_ownership (benefit), clear_execution, resist_pressure (controls); 23 cases",
+  "model": "default alias only (the session-relevant alias); 2 repeats per case per condition = 92 trials",
+  "judge": "task agent astra (role @plan -> custom-openai/gpt-6-astra), blind to condition, one randomized side order per pair, strict line format; meets per side plus preference",
+  "metrics": ["pair-level preference per family (baseline/candidate wins, equal, split)", "per-response acceptance YES rate per arm per family", "control families must show no consistent baseline-favoring shift versus the main experiment"],
+  "promotion_rule": "promote the patch into skills/brainstorming/SKILL.md and bump VERSION to 4.6.1 only if: (a) benefit families show net candidate preference on >=2 of 3 families with no family net-baseline, and (b) both control families show no net baseline preference worse than the main experiment's corrected pair-level result; otherwise no change and no version bump",
+  "stop_rule": "if a wave produces >=3 infrastructure errors of the same kind consecutively, stop new waves, report partial evidence, and do not promote",
+  "scope_limits": "stateless text probes; single alias; ASTRA as sole judge for this round; real-user ideation utility remains unverified"
+}

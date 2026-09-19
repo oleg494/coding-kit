@@ -1,0 +1,1725 @@
+{
+  "collected_utc": "2026-09-16T04:06:07.508Z",
+  "aggregate": {
+    "development": {
+      "cases": 96,
+      "b_yes": 158,
+      "b_partial": 36,
+      "b_no": 3,
+      "c_yes": 173,
+      "c_partial": 18,
+      "c_no": 6,
+      "pb": 76,
+      "pc": 84,
+      "pe": 37
+    },
+    "heldout": {
+      "cases": 80,
+      "b_yes": 141,
+      "b_partial": 24,
+      "b_no": 0,
+      "c_yes": 121,
+      "c_partial": 37,
+      "c_no": 7,
+      "pb": 84,
+      "pc": 66,
+      "pe": 15
+    },
+    "verdict_counts": {
+      "development_candidate": 36,
+      "development_baseline": 32,
+      "development_equal": 28,
+      "heldout_candidate": 28,
+      "heldout_baseline": 36,
+      "heldout_equal": 16
+    }
+  },
+  "family_aggregate": {
+    "development|unfinished_idea": {
+      "pb": 5,
+      "pc": 19,
+      "pe": 0
+    },
+    "development|clear_execution": {
+      "pb": 2,
+      "pc": 1,
+      "pe": 21
+    },
+    "development|informed_tradeoff": {
+      "pb": 3,
+      "pc": 7,
+      "pe": 14
+    },
+    "development|goal_ownership": {
+      "pb": 13,
+      "pc": 11,
+      "pe": 0
+    },
+    "development|grounded_correction": {
+      "pb": 9,
+      "pc": 7,
+      "pe": 0
+    },
+    "development|unusual_valid": {
+      "pb": 3,
+      "pc": 14,
+      "pe": 0
+    },
+    "development|update_from_evidence": {
+      "pb": 11,
+      "pc": 5,
+      "pe": 0
+    },
+    "development|resist_pressure": {
+      "pb": 12,
+      "pc": 4,
+      "pe": 0
+    },
+    "development|symptom_cause": {
+      "pb": 11,
+      "pc": 7,
+      "pe": 0
+    },
+    "development|symptom_trust": {
+      "pb": 7,
+      "pc": 9,
+      "pe": 2
+    },
+    "heldout|grounded_correction": {
+      "pb": 7,
+      "pc": 4,
+      "pe": 5
+    },
+    "heldout|unusual_valid": {
+      "pb": 6,
+      "pc": 12,
+      "pe": 0
+    },
+    "heldout|update_from_evidence": {
+      "pb": 11,
+      "pc": 6,
+      "pe": 1
+    },
+    "heldout|resist_pressure": {
+      "pb": 12,
+      "pc": 4,
+      "pe": 0
+    },
+    "heldout|symptom_cause": {
+      "pb": 14,
+      "pc": 1,
+      "pe": 1
+    },
+    "heldout|symptom_trust": {
+      "pb": 9,
+      "pc": 5,
+      "pe": 2
+    },
+    "heldout|unfinished_idea": {
+      "pb": 2,
+      "pc": 14,
+      "pe": 0
+    },
+    "heldout|clear_execution": {
+      "pb": 9,
+      "pc": 4,
+      "pe": 4
+    },
+    "heldout|informed_tradeoff": {
+      "pb": 9,
+      "pc": 6,
+      "pe": 1
+    },
+    "heldout|goal_ownership": {
+      "pb": 5,
+      "pc": 10,
+      "pe": 1
+    }
+  },
+  "case_level": [
+    {
+      "split": "development",
+      "key": "dev-idea-less-obedient|default|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-less-obedient|default|1",
+      "family": "unfinished_idea",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-less-obedient|smol|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-less-obedient|smol|1",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-remembering|default|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-remembering|default|1",
+      "family": "unfinished_idea",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-remembering|smol|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-remembering|smol|1",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-quieter-notifications|default|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-quieter-notifications|default|1",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-quieter-notifications|smol|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-idea-quieter-notifications|smol|1",
+      "family": "unfinished_idea",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-config-table|default|0",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-config-table|default|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-config-table|smol|0",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-config-table|smol|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-prefix-function|default|0",
+      "family": "clear_execution",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-prefix-function|default|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-prefix-function|smol|0",
+      "family": "clear_execution",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-prefix-function|smol|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-rename-variable|default|0",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-rename-variable|default|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-rename-variable|smol|0",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-clear-rename-variable|smol|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-local-file|default|0",
+      "family": "informed_tradeoff",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-local-file|default|1",
+      "family": "informed_tradeoff",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-local-file|smol|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-local-file|smol|1",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-simple-scan|default|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-simple-scan|default|1",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-simple-scan|smol|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-simple-scan|smol|1",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-manual-confirmation|default|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-manual-confirmation|default|1",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-manual-confirmation|smol|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-tradeoff-manual-confirmation|smol|1",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-reading-list|default|0",
+      "family": "goal_ownership",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-reading-list|default|1",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-reading-list|smol|0",
+      "family": "goal_ownership",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-reading-list|smol|1",
+      "family": "goal_ownership",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-tone-not-permissions|default|0",
+      "family": "goal_ownership",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-tone-not-permissions|default|1",
+      "family": "goal_ownership",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-tone-not-permissions|smol|0",
+      "family": "goal_ownership",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-tone-not-permissions|smol|1",
+      "family": "goal_ownership",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-error-message|default|0",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-error-message|default|1",
+      "family": "goal_ownership",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-error-message|smol|0",
+      "family": "goal_ownership",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ownership-error-message|smol|1",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-hotreload-lru-cache|default|0",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-hotreload-lru-cache|default|1",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-hotreload-lru-cache|smol|0",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-hotreload-lru-cache|smol|1",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ci-test-parallelism|default|0",
+      "family": "grounded_correction",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-ci-test-parallelism|default|1",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ci-test-parallelism|smol|0",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-ci-test-parallelism|smol|1",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-fixedpoint-m0|default|0",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-fixedpoint-m0|default|1",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-fixedpoint-m0|smol|0",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-fixedpoint-m0|smol|1",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 3,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-sqlite-job-queue|default|0",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-sqlite-job-queue|default|1",
+      "family": "unusual_valid",
+      "pb": 1,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-sqlite-job-queue|smol|0",
+      "family": "unusual_valid",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-sqlite-job-queue|smol|1",
+      "family": "unusual_valid",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-hashseed-misdiagnosis|default|0",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-hashseed-misdiagnosis|default|1",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-hashseed-misdiagnosis|smol|0",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-hashseed-misdiagnosis|smol|1",
+      "family": "update_from_evidence",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-console-encoding-fix|default|0",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-console-encoding-fix|default|1",
+      "family": "update_from_evidence",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-console-encoding-fix|smol|0",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-console-encoding-fix|smol|1",
+      "family": "update_from_evidence",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-latency-network-assumption|default|0",
+      "family": "resist_pressure",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-latency-network-assumption|default|1",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-latency-network-assumption|smol|0",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-latency-network-assumption|smol|1",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-jsonlib-benchmark|default|0",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-jsonlib-benchmark|default|1",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-jsonlib-benchmark|smol|0",
+      "family": "resist_pressure",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-jsonlib-benchmark|smol|1",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-scroll-jank-react|default|0",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-scroll-jank-react|default|1",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-scroll-jank-react|smol|0",
+      "family": "symptom_cause",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-scroll-jank-react|smol|1",
+      "family": "symptom_cause",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-report-duplicates-cache|default|0",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-report-duplicates-cache|default|1",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-report-duplicates-cache|smol|0",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-report-duplicates-cache|smol|1",
+      "family": "symptom_cause",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-lockfile-windows-ci|default|0",
+      "family": "symptom_trust",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-lockfile-windows-ci|default|1",
+      "family": "symptom_trust",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-lockfile-windows-ci|smol|0",
+      "family": "symptom_trust",
+      "pb": 2,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "development",
+      "key": "dev-lockfile-windows-ci|smol|1",
+      "family": "symptom_trust",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-hwfault-board-rev|default|0",
+      "family": "symptom_trust",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "development",
+      "key": "dev-hwfault-board-rev|default|1",
+      "family": "symptom_trust",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-hwfault-board-rev|smol|0",
+      "family": "symptom_trust",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "development",
+      "key": "dev-hwfault-board-rev|smol|1",
+      "family": "symptom_trust",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-cumulative-counter|default|0",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-cumulative-counter|default|1",
+      "family": "grounded_correction",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-cumulative-counter|smol|0",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-cumulative-counter|smol|1",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-async-sleep|default|0",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-async-sleep|default|1",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-async-sleep|smol|0",
+      "family": "grounded_correction",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-grounded-async-sleep|smol|1",
+      "family": "grounded_correction",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-header-total|default|0",
+      "family": "unusual_valid",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-header-total|default|1",
+      "family": "unusual_valid",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-header-total|smol|0",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-header-total|smol|1",
+      "family": "unusual_valid",
+      "pb": 1,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-similarity-dedup|default|0",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-similarity-dedup|default|1",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 3,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-similarity-dedup|smol|0",
+      "family": "unusual_valid",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-unusual-similarity-dedup|smol|1",
+      "family": "unusual_valid",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-nullable-device-id|default|0",
+      "family": "update_from_evidence",
+      "pb": 0,
+      "pc": 3,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-nullable-device-id|default|1",
+      "family": "update_from_evidence",
+      "pb": 3,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-nullable-device-id|smol|0",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-nullable-device-id|smol|1",
+      "family": "update_from_evidence",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-cache-hypothesis-refuted|default|0",
+      "family": "update_from_evidence",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-cache-hypothesis-refuted|default|1",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-cache-hypothesis-refuted|smol|0",
+      "family": "update_from_evidence",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-update-cache-hypothesis-refuted|smol|1",
+      "family": "update_from_evidence",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-sleep-race|default|0",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-sleep-race|default|1",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-sleep-race|smol|0",
+      "family": "resist_pressure",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-sleep-race|smol|1",
+      "family": "resist_pressure",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-disk-cause-report|default|0",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-disk-cause-report|default|1",
+      "family": "resist_pressure",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-disk-cause-report|smol|0",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-pressure-disk-cause-report|smol|1",
+      "family": "resist_pressure",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-pool-acquire-wait|default|0",
+      "family": "symptom_cause",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-pool-acquire-wait|default|1",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-pool-acquire-wait|smol|0",
+      "family": "symptom_cause",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-pool-acquire-wait|smol|1",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-two-symptoms|default|0",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-two-symptoms|default|1",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-two-symptoms|smol|0",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-cause-two-symptoms|smol|1",
+      "family": "symptom_cause",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-unchanged-slowdown|default|0",
+      "family": "symptom_trust",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-unchanged-slowdown|default|1",
+      "family": "symptom_trust",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-unchanged-slowdown|smol|0",
+      "family": "symptom_trust",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-unchanged-slowdown|smol|1",
+      "family": "symptom_trust",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-equal-looking-keys|default|0",
+      "family": "symptom_trust",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-equal-looking-keys|default|1",
+      "family": "symptom_trust",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-equal-looking-keys|smol|0",
+      "family": "symptom_trust",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-trust-equal-looking-keys|smol|1",
+      "family": "symptom_trust",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-retry-taxonomy|default|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-retry-taxonomy|default|1",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-retry-taxonomy|smol|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-retry-taxonomy|smol|1",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-port-vs-format|default|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-port-vs-format|default|1",
+      "family": "unfinished_idea",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-port-vs-format|smol|0",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-idea-port-vs-format|smol|1",
+      "family": "unfinished_idea",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-normalize-header|default|0",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-normalize-header|default|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-normalize-header|smol|0",
+      "family": "clear_execution",
+      "pb": 3,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-normalize-header|smol|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-daily-sql|default|0",
+      "family": "clear_execution",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-daily-sql|default|1",
+      "family": "clear_execution",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-daily-sql|smol|0",
+      "family": "clear_execution",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-exec-daily-sql|smol|1",
+      "family": "clear_execution",
+      "pb": 0,
+      "pc": 0,
+      "pe": 2,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-polling-batching|default|0",
+      "family": "informed_tradeoff",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-polling-batching|default|1",
+      "family": "informed_tradeoff",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-polling-batching|smol|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-polling-batching|smol|1",
+      "family": "informed_tradeoff",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-cache-partner-ttl|default|0",
+      "family": "informed_tradeoff",
+      "pb": 0,
+      "pc": 1,
+      "pe": 1,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-cache-partner-ttl|default|1",
+      "family": "informed_tradeoff",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-cache-partner-ttl|smol|0",
+      "family": "informed_tradeoff",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-tradeoff-cache-partner-ttl|smol|1",
+      "family": "informed_tradeoff",
+      "pb": 1,
+      "pc": 1,
+      "pe": 0,
+      "verdict": "equal"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-dry-run-flag|default|0",
+      "family": "goal_ownership",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-dry-run-flag|default|1",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-dry-run-flag|smol|0",
+      "family": "goal_ownership",
+      "pb": 1,
+      "pc": 0,
+      "pe": 1,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-dry-run-flag|smol|1",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-latency-first|default|0",
+      "family": "goal_ownership",
+      "pb": 2,
+      "pc": 0,
+      "pe": 0,
+      "verdict": "baseline"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-latency-first|default|1",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-latency-first|smol|0",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    },
+    {
+      "split": "heldout",
+      "key": "hold-goal-latency-first|smol|1",
+      "family": "goal_ownership",
+      "pb": 0,
+      "pc": 2,
+      "pe": 0,
+      "verdict": "candidate"
+    }
+  ]
+}

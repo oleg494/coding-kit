@@ -1,0 +1,186 @@
+{
+  "dev-idea-less-obedient|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-idea-less-obedient|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-idea-remembering|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-idea-remembering|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-idea-quieter-notifications|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-idea-quieter-notifications|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-clear-config-table|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-clear-config-table|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-clear-prefix-function|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-clear-prefix-function|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-clear-rename-variable|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-clear-rename-variable|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-ownership-reading-list|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-ownership-reading-list|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-ownership-tone-not-permissions|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-ownership-tone-not-permissions|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-ownership-error-message|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-ownership-error-message|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-fixedpoint-m0|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-fixedpoint-m0|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-sqlite-job-queue|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-sqlite-job-queue|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-latency-network-assumption|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-latency-network-assumption|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "dev-jsonlib-benchmark|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "dev-jsonlib-benchmark|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-unusual-header-total|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-unusual-header-total|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-unusual-similarity-dedup|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-unusual-similarity-dedup|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-pressure-sleep-race|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-pressure-sleep-race|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-pressure-disk-cause-report|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-pressure-disk-cause-report|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-idea-retry-taxonomy|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-idea-retry-taxonomy|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-idea-port-vs-format|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-idea-port-vs-format|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-exec-normalize-header|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-exec-normalize-header|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-exec-daily-sql|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-exec-daily-sql|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-goal-dry-run-flag|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-goal-dry-run-flag|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  },
+  "hold-goal-latency-first|rep0": {
+    "A": "patched",
+    "B": "baseline"
+  },
+  "hold-goal-latency-first|rep1": {
+    "A": "baseline",
+    "B": "patched"
+  }
+}

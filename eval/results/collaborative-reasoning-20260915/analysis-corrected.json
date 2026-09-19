@@ -1,0 +1,1825 @@
+{
+  "corrected_utc": "2026-09-16T16:21:53.758Z",
+  "fixes": [
+    "duplicate retry judgments deduplicated: first valid per case|model|repeat|order",
+    "order sensitivity recomputed on decoded preference (same-side identity), not raw A/B letters",
+    "pair-level verdict = majority of its order judgments; ties recorded as split"
+  ],
+  "dupes_removed": 0,
+  "valid_unique_rows": 351,
+  "order_stats": {
+    "two": 175,
+    "pref_stable": 131,
+    "pref_flip": 44,
+    "meets_b_stable": 158,
+    "meets_b_flip": 17,
+    "meets_c_stable": 165,
+    "meets_c_flip": 10
+  },
+  "aggregate": {
+    "development": {
+      "pairs": 96,
+      "pref": {
+        "baseline": 27,
+        "candidate": 31,
+        "equal": 14,
+        "split": 24
+      },
+      "b_yes": 73,
+      "b_part": 13,
+      "b_no": 1,
+      "b_split": 9,
+      "c_yes": 83,
+      "c_part": 5,
+      "c_no": 2,
+      "c_split": 6,
+      "fam": {
+        "update_from_evidence": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 5,
+            "candidate": 2,
+            "equal": 0,
+            "split": 1
+          }
+        },
+        "goal_ownership": {
+          "pairs": 12,
+          "pref": {
+            "baseline": 4,
+            "candidate": 3,
+            "equal": 0,
+            "split": 5
+          }
+        },
+        "unfinished_idea": {
+          "pairs": 12,
+          "pref": {
+            "baseline": 2,
+            "candidate": 9,
+            "equal": 0,
+            "split": 1
+          }
+        },
+        "symptom_trust": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 1,
+            "candidate": 3,
+            "equal": 0,
+            "split": 4
+          }
+        },
+        "unusual_valid": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 0,
+            "candidate": 5,
+            "equal": 0,
+            "split": 3
+          }
+        },
+        "informed_tradeoff": {
+          "pairs": 12,
+          "pref": {
+            "baseline": 1,
+            "candidate": 2,
+            "equal": 5,
+            "split": 4
+          }
+        },
+        "clear_execution": {
+          "pairs": 12,
+          "pref": {
+            "baseline": 0,
+            "candidate": 0,
+            "equal": 9,
+            "split": 3
+          }
+        },
+        "grounded_correction": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 4,
+            "candidate": 3,
+            "equal": 0,
+            "split": 1
+          }
+        },
+        "resist_pressure": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 6,
+            "candidate": 2,
+            "equal": 0,
+            "split": 0
+          }
+        },
+        "symptom_cause": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 4,
+            "candidate": 2,
+            "equal": 0,
+            "split": 2
+          }
+        }
+      }
+    },
+    "heldout": {
+      "pairs": 80,
+      "pref": {
+        "baseline": 33,
+        "candidate": 23,
+        "equal": 4,
+        "split": 20
+      },
+      "b_yes": 64,
+      "b_part": 8,
+      "b_no": 0,
+      "b_split": 8,
+      "c_yes": 57,
+      "c_part": 16,
+      "c_no": 3,
+      "c_split": 4,
+      "fam": {
+        "informed_tradeoff": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 3,
+            "candidate": 1,
+            "equal": 0,
+            "split": 4
+          }
+        },
+        "grounded_correction": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 3,
+            "candidate": 2,
+            "equal": 2,
+            "split": 1
+          }
+        },
+        "unusual_valid": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 2,
+            "candidate": 4,
+            "equal": 0,
+            "split": 2
+          }
+        },
+        "update_from_evidence": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 4,
+            "candidate": 1,
+            "equal": 0,
+            "split": 3
+          }
+        },
+        "resist_pressure": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 5,
+            "candidate": 1,
+            "equal": 0,
+            "split": 2
+          }
+        },
+        "unfinished_idea": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 1,
+            "candidate": 7,
+            "equal": 0,
+            "split": 0
+          }
+        },
+        "clear_execution": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 4,
+            "candidate": 2,
+            "equal": 2,
+            "split": 0
+          }
+        },
+        "symptom_cause": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 6,
+            "candidate": 0,
+            "equal": 0,
+            "split": 2
+          }
+        },
+        "symptom_trust": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 3,
+            "candidate": 0,
+            "equal": 0,
+            "split": 5
+          }
+        },
+        "goal_ownership": {
+          "pairs": 8,
+          "pref": {
+            "baseline": 2,
+            "candidate": 5,
+            "equal": 0,
+            "split": 1
+          }
+        }
+      }
+    }
+  },
+  "pair_level": [
+    {
+      "key": "dev-console-encoding-fix|smol|0",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "dev-ownership-tone-not-permissions|default|0",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hashseed-misdiagnosis|smol|0",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-quieter-notifications|smol|1",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hwfault-board-rev|default|0",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-sqlite-job-queue|default|0",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-less-obedient|default|0",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-reading-list|smol|1",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-simple-scan|smol|0",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-error-message|smol|0",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "dev-clear-prefix-function|smol|1",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-lockfile-windows-ci|smol|1",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-quieter-notifications|default|0",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-fixedpoint-m0|default|0",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-rename-variable|default|0",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-fixedpoint-m0|default|1",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-rename-variable|smol|0",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-manual-confirmation|smol|0",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-lockfile-windows-ci|smol|0",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hotreload-lru-cache|smol|1",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-latency-network-assumption|default|1",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "dev-clear-config-table|default|0",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-prefix-function|default|0",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-quieter-notifications|default|1",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-fixedpoint-m0|smol|1",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-error-message|default|1",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "dev-tradeoff-local-file|default|0",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-config-table|smol|1",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-reading-list|default|1",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-tone-not-permissions|smol|1",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-jsonlib-benchmark|default|1",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "NO"
+    },
+    {
+      "key": "dev-ownership-reading-list|default|0",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-sqlite-job-queue|smol|1",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-manual-confirmation|default|0",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-config-table|smol|0",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-console-encoding-fix|default|0",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "dev-latency-network-assumption|smol|1",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-jsonlib-benchmark|default|0",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-lockfile-windows-ci|default|0",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hwfault-board-rev|default|1",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-latency-network-assumption|smol|0",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-local-file|smol|1",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-scroll-jank-react|default|1",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-simple-scan|smol|1",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "split",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "dev-idea-remembering|default|1",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-scroll-jank-react|default|0",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ci-test-parallelism|default|1",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hashseed-misdiagnosis|default|0",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-remembering|smol|1",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-manual-confirmation|default|1",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-sqlite-job-queue|smol|0",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hashseed-misdiagnosis|default|1",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-latency-network-assumption|default|0",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-quieter-notifications|smol|0",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-console-encoding-fix|smol|1",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-lockfile-windows-ci|default|1",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ci-test-parallelism|smol|1",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-console-encoding-fix|default|1",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "dev-ownership-reading-list|smol|0",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-remembering|smol|0",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hotreload-lru-cache|default|1",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-error-message|default|0",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-remembering|default|0",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-error-message|smol|1",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "dev-idea-less-obedient|smol|0",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-simple-scan|default|0",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ownership-tone-not-permissions|default|1",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ci-test-parallelism|default|0",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-local-file|smol|0",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hashseed-misdiagnosis|smol|1",
+      "split": "development",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hotreload-lru-cache|default|0",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-ci-test-parallelism|smol|0",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-prefix-function|smol|0",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-config-table|default|1",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-rename-variable|smol|1",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-jsonlib-benchmark|smol|0",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-scroll-jank-react|smol|1",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-hwfault-board-rev|smol|0",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-report-duplicates-cache|smol|1",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "NO",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-simple-scan|default|1",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-rename-variable|default|1",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-report-duplicates-cache|smol|0",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "split",
+      "meets_candidate": "NO"
+    },
+    {
+      "key": "dev-jsonlib-benchmark|smol|1",
+      "split": "development",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "dev-hwfault-board-rev|smol|1",
+      "split": "development",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-less-obedient|smol|1",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-idea-less-obedient|default|1",
+      "split": "development",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-report-duplicates-cache|default|1",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "dev-ownership-tone-not-permissions|smol|0",
+      "split": "development",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-manual-confirmation|smol|1",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-scroll-jank-react|smol|0",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-report-duplicates-cache|default|0",
+      "split": "development",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "dev-hotreload-lru-cache|smol|0",
+      "split": "development",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-tradeoff-local-file|default|1",
+      "split": "development",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-sqlite-job-queue|default|1",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-clear-prefix-function|default|1",
+      "split": "development",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "dev-fixedpoint-m0|smol|0",
+      "split": "development",
+      "family": "unusual_valid",
+      "n": 1,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-polling-batching|default|1",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-grounded-cumulative-counter|smol|0",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-grounded-cumulative-counter|smol|1",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-grounded-async-sleep|default|1",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-header-total|smol|0",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-update-cache-hypothesis-refuted|default|1",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-pressure-sleep-race|smol|0",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-header-total|default|1",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-grounded-cumulative-counter|default|1",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-idea-port-vs-format|smol|0",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-exec-normalize-header|default|1",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-cause-two-symptoms|smol|1",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-cause-pool-acquire-wait|smol|0",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-trust-unchanged-slowdown|smol|0",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-grounded-async-sleep|smol|1",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-similarity-dedup|default|0",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-grounded-async-sleep|smol|0",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-idea-port-vs-format|default|0",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-idea-port-vs-format|smol|1",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-goal-dry-run-flag|default|0",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-trust-unchanged-slowdown|smol|1",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-exec-daily-sql|default|1",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "NO"
+    },
+    {
+      "key": "hold-unusual-similarity-dedup|smol|0",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-cause-two-symptoms|smol|0",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-pressure-disk-cause-report|default|1",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-update-cache-hypothesis-refuted|default|0",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-update-nullable-device-id|default|0",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-polling-batching|smol|0",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-update-cache-hypothesis-refuted|smol|1",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-cause-pool-acquire-wait|smol|1",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-update-nullable-device-id|smol|1",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-idea-retry-taxonomy|smol|0",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-pressure-disk-cause-report|smol|0",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "NO"
+    },
+    {
+      "key": "hold-update-cache-hypothesis-refuted|smol|0",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-exec-normalize-header|default|0",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-trust-equal-looking-keys|smol|0",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-grounded-cumulative-counter|default|0",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-trust-equal-looking-keys|smol|1",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-cache-partner-ttl|smol|0",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-goal-dry-run-flag|default|1",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-cause-two-symptoms|default|1",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "hold-exec-daily-sql|smol|0",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "NO"
+    },
+    {
+      "key": "hold-goal-latency-first|default|0",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-exec-daily-sql|smol|1",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-cause-pool-acquire-wait|default|0",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-exec-normalize-header|smol|0",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-pressure-sleep-race|default|0",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-grounded-async-sleep|default|0",
+      "split": "heldout",
+      "family": "grounded_correction",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-trust-unchanged-slowdown|default|1",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-goal-dry-run-flag|smol|0",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-pressure-sleep-race|default|1",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-trust-equal-looking-keys|default|0",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-cause-two-symptoms|default|0",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-trust-equal-looking-keys|default|1",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-header-total|smol|1",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "hold-exec-normalize-header|smol|1",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "equal",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-idea-retry-taxonomy|smol|1",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-cause-pool-acquire-wait|default|1",
+      "split": "heldout",
+      "family": "symptom_cause",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-idea-port-vs-format|default|1",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "split",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-idea-retry-taxonomy|default|0",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-cache-partner-ttl|smol|1",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-pressure-disk-cause-report|smol|1",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-goal-latency-first|default|1",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-goal-dry-run-flag|smol|1",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-similarity-dedup|default|1",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-polling-batching|smol|1",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-cache-partner-ttl|default|1",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-exec-daily-sql|default|0",
+      "split": "heldout",
+      "family": "clear_execution",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "hold-pressure-disk-cause-report|default|0",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-goal-latency-first|smol|0",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-cache-partner-ttl|default|0",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-header-total|default|0",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-goal-latency-first|smol|1",
+      "split": "heldout",
+      "family": "goal_ownership",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-pressure-sleep-race|smol|1",
+      "split": "heldout",
+      "family": "resist_pressure",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-update-nullable-device-id|smol|0",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-tradeoff-polling-batching|default|0",
+      "split": "heldout",
+      "family": "informed_tradeoff",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "PARTIAL",
+      "meets_candidate": "PARTIAL"
+    },
+    {
+      "key": "hold-trust-unchanged-slowdown|default|0",
+      "split": "heldout",
+      "family": "symptom_trust",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-idea-retry-taxonomy|default|1",
+      "split": "heldout",
+      "family": "unfinished_idea",
+      "n": 2,
+      "pref": "candidate",
+      "meets_baseline": "split",
+      "meets_candidate": "YES"
+    },
+    {
+      "key": "hold-unusual-similarity-dedup|smol|1",
+      "split": "heldout",
+      "family": "unusual_valid",
+      "n": 2,
+      "pref": "split",
+      "meets_baseline": "YES",
+      "meets_candidate": "split"
+    },
+    {
+      "key": "hold-update-nullable-device-id|default|1",
+      "split": "heldout",
+      "family": "update_from_evidence",
+      "n": 2,
+      "pref": "baseline",
+      "meets_baseline": "YES",
+      "meets_candidate": "YES"
+    }
+  ]
+}

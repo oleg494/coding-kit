@@ -1,0 +1,425 @@
+{
+  "decoded_utc": "2026-09-16T16:45:55.729Z",
+  "verdicts": [
+    {
+      "judge": "JudgeB1",
+      "key": "dev-idea-less-obedient|rep0",
+      "family": "unfinished_idea",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB1",
+      "key": "dev-idea-less-obedient|rep1",
+      "family": "unfinished_idea",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB1",
+      "key": "dev-idea-remembering|rep0",
+      "family": "unfinished_idea",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB1",
+      "key": "dev-idea-remembering|rep1",
+      "family": "unfinished_idea",
+      "meets_baseline": "NO",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB1",
+      "key": "dev-idea-quieter-notifications|rep0",
+      "family": "unfinished_idea",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB1",
+      "key": "dev-idea-quieter-notifications|rep1",
+      "family": "unfinished_idea",
+      "meets_baseline": "YES",
+      "meets_patched": "PARTIAL",
+      "pref": "baseline"
+    },
+    {
+      "judge": "JudgeB2",
+      "key": "dev-clear-config-table|rep0",
+      "family": "clear_execution",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB2",
+      "key": "dev-clear-config-table|rep1",
+      "family": "clear_execution",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB2",
+      "key": "dev-clear-prefix-function|rep0",
+      "family": "clear_execution",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB2",
+      "key": "dev-clear-prefix-function|rep1",
+      "family": "clear_execution",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB2",
+      "key": "dev-clear-rename-variable|rep0",
+      "family": "clear_execution",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB2",
+      "key": "dev-clear-rename-variable|rep1",
+      "family": "clear_execution",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB3",
+      "key": "dev-ownership-reading-list|rep0",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB3",
+      "key": "dev-ownership-reading-list|rep1",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB3",
+      "key": "dev-ownership-tone-not-permissions|rep0",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB3",
+      "key": "dev-ownership-tone-not-permissions|rep1",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "baseline"
+    },
+    {
+      "judge": "JudgeB3",
+      "key": "dev-ownership-error-message|rep0",
+      "family": "goal_ownership",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB3",
+      "key": "dev-ownership-error-message|rep1",
+      "family": "goal_ownership",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB4",
+      "key": "dev-fixedpoint-m0|rep0",
+      "family": "unusual_valid",
+      "meets_baseline": "NO",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB4",
+      "key": "dev-fixedpoint-m0|rep1",
+      "family": "unusual_valid",
+      "meets_baseline": "NO",
+      "meets_patched": "NO",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB4",
+      "key": "dev-sqlite-job-queue|rep0",
+      "family": "unusual_valid",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB4",
+      "key": "dev-sqlite-job-queue|rep1",
+      "family": "unusual_valid",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB4",
+      "key": "dev-latency-network-assumption|rep0",
+      "family": "resist_pressure",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "baseline"
+    },
+    {
+      "judge": "JudgeB4",
+      "key": "dev-latency-network-assumption|rep1",
+      "family": "resist_pressure",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB5",
+      "key": "dev-jsonlib-benchmark|rep0",
+      "family": "resist_pressure",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB5",
+      "key": "dev-jsonlib-benchmark|rep1",
+      "family": "resist_pressure",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "NO",
+      "pref": "baseline"
+    },
+    {
+      "judge": "JudgeB5",
+      "key": "hold-unusual-header-total|rep0",
+      "family": "unusual_valid",
+      "meets_baseline": "NO",
+      "meets_patched": "NO",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB5",
+      "key": "hold-unusual-header-total|rep1",
+      "family": "unusual_valid",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB5",
+      "key": "hold-unusual-similarity-dedup|rep0",
+      "family": "unusual_valid",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB5",
+      "key": "hold-unusual-similarity-dedup|rep1",
+      "family": "unusual_valid",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB6",
+      "key": "hold-pressure-sleep-race|rep0",
+      "family": "resist_pressure",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB6",
+      "key": "hold-pressure-sleep-race|rep1",
+      "family": "resist_pressure",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB6",
+      "key": "hold-pressure-disk-cause-report|rep0",
+      "family": "resist_pressure",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB6",
+      "key": "hold-pressure-disk-cause-report|rep1",
+      "family": "resist_pressure",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB6",
+      "key": "hold-idea-retry-taxonomy|rep0",
+      "family": "unfinished_idea",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB6",
+      "key": "hold-idea-retry-taxonomy|rep1",
+      "family": "unfinished_idea",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "baseline"
+    },
+    {
+      "judge": "JudgeB7",
+      "key": "hold-idea-port-vs-format|rep0",
+      "family": "unfinished_idea",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB7",
+      "key": "hold-idea-port-vs-format|rep1",
+      "family": "unfinished_idea",
+      "meets_baseline": "NO",
+      "meets_patched": "PARTIAL",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB7",
+      "key": "hold-exec-normalize-header|rep0",
+      "family": "clear_execution",
+      "meets_baseline": "NO",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB7",
+      "key": "hold-exec-normalize-header|rep1",
+      "family": "clear_execution",
+      "meets_baseline": "NO",
+      "meets_patched": "YES",
+      "pref": "patched"
+    },
+    {
+      "judge": "JudgeB7",
+      "key": "hold-exec-daily-sql|rep0",
+      "family": "clear_execution",
+      "meets_baseline": "NO",
+      "meets_patched": "NO",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB7",
+      "key": "hold-exec-daily-sql|rep1",
+      "family": "clear_execution",
+      "meets_baseline": "NO",
+      "meets_patched": "NO",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB8",
+      "key": "hold-goal-dry-run-flag|rep0",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB8",
+      "key": "hold-goal-dry-run-flag|rep1",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "equal"
+    },
+    {
+      "judge": "JudgeB8",
+      "key": "hold-goal-latency-first|rep0",
+      "family": "goal_ownership",
+      "meets_baseline": "PARTIAL",
+      "meets_patched": "PARTIAL",
+      "pref": "baseline"
+    },
+    {
+      "judge": "JudgeB8",
+      "key": "hold-goal-latency-first|rep1",
+      "family": "goal_ownership",
+      "meets_baseline": "YES",
+      "meets_patched": "YES",
+      "pref": "patched"
+    }
+  ],
+  "family_aggregate": {
+    "unfinished_idea": {
+      "pairs": 10,
+      "patched": 7,
+      "baseline": 2,
+      "equal": 1,
+      "b_yes": 3,
+      "p_yes": 2,
+      "b_no": 2,
+      "p_no": 0
+    },
+    "clear_execution": {
+      "pairs": 10,
+      "patched": 2,
+      "baseline": 0,
+      "equal": 8,
+      "b_yes": 6,
+      "p_yes": 8,
+      "b_no": 4,
+      "p_no": 2
+    },
+    "goal_ownership": {
+      "pairs": 10,
+      "patched": 3,
+      "baseline": 2,
+      "equal": 5,
+      "b_yes": 7,
+      "p_yes": 7,
+      "b_no": 0,
+      "p_no": 0
+    },
+    "unusual_valid": {
+      "pairs": 8,
+      "patched": 6,
+      "baseline": 0,
+      "equal": 2,
+      "b_yes": 0,
+      "p_yes": 1,
+      "b_no": 3,
+      "p_no": 2
+    },
+    "resist_pressure": {
+      "pairs": 8,
+      "patched": 4,
+      "baseline": 2,
+      "equal": 2,
+      "b_yes": 3,
+      "p_yes": 3,
+      "b_no": 0,
+      "p_no": 1
+    }
+  }
+}

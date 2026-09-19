@@ -1,0 +1,82 @@
+[
+  {
+    "id": "dev-lockfile-windows-ci__default__0__candidate",
+    "case_id": "dev-lockfile-windows-ci",
+    "family": "symptom_trust",
+    "split": "development",
+    "model": "default",
+    "repeat": 0,
+    "condition": "candidate",
+    "prompt": "Пользователь: CI на PR падает на pnpm install --frozen-lockfile, локально всё проходит.\nАссистент (ранее): Пришли, пожалуйста, лог CI и скажи, менялся ли pnpm-lock.yaml в последних коммитах.\n\nПользователь: Вот.\n  - менялся: вчерашний коммит перегенерировал lockfile у меня на машине (Windows 11, pnpm 9.4.0); код в том коммите не трогали, только docs/ и этот lockfile;\n  - локально после rm -rf node_modules && pnpm install --frozen-lockfile — проходит;\n  - CI: ubuntu-latest, node 20, pnpm 9.4.0, падает всегда, лог:\n        ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND  Could not resolve a linked package directory\n        Caused by: ENOENT: no such file or directory, open '/home/runner/work/app/app/packages\\ui\\dist/package.json'\n    и в diff'е lockfile в двух местах: resolution: {directory: 'packages\\ui\\dist'}\n  - ту же ветку пробовал на машине коллеги (Linux, WSL) — падает так же.\nЧто дальше?\n\nОтветь только на последнюю реплику. Доступа к репозиторию и инструментов нет: решение — текстом (можно псевдокод).",
+    "answer": "**Корень найден: вчерашний реген записал в `pnpm-lock.yaml` Windows-разделители.** `resolution: {directory: 'packages\\ui\\dist'}` — путь с бэкслешем, а lock-файл pnpm обязан содержать только `/`. Это не путь, собранный ОС, а данные из файла — видно по смешанному пути в ошибке: `/home/runner/work/app/app/packages\\ui\\dist/package.json`.\n\nПочему расходится локально/CI:\n- Windows принимает `\\` как разделитель → твой frozen-install зелёный. Это подтверждает только твою платформу, не здоровье lock-файла.\n- На Linux `\\` — легальный символ имени файла; каталога `packages\\ui\\dist` нет → ENOENT. Падение у коллеги в WSL закрывает версию «проблема окружения CI».\n- Версии pnpm совпадают (9.4.0 = 9.4.0), так что это не рассинхрон версий. Виновный коммит — реген lock-файла, ровно по диффу к последнему зелёному прогону.\n\n## Шаг 1 — разлочить CI\n\nМинимальный и проверенный путь: вернуть последний зелёный lock-файл.\n\n```\ngit checkout <SHA-коммита-до-регена> -- pnpm-lock.yaml\ngit commit -m \"lockfile: revert Windows regen that wrote backslash paths\"\n```\n\nОснование: в том коммите менялись только `docs/` и lock-файл → спеки в package.json не менялись → старый lock-файл синхронен, и `--frozen-lockfile` пройдёт. CI на нём уже был зелёным с той же конфигурацией.\n\nЕсли реген был нужен по существу (например, миграция lockfileVersion) — не откатывай, а нормализуй:\n\n```\nsed -i 's|packages\\\\ui\\\\dist|packages/ui/dist|g' pnpm-lock.yaml\ngrep -n '\\\\' pnpm-lock.yaml     # после фикса должно быть пусто\n```\n\nВажно: бэкслеши могут быть не только в двух `resolution: {directory: ...}`, но и в ключах секций packages/snapshots (`file:packages\\ui\\dist`) и в specifier'ах. Поэтому grep по всему файлу, а не по двум строчкам из диффа.\n\nПроверка перед пушем — там, где сейчас падает (WSL/машина коллеги):\n\n```\nrm -rf node_modules && pnpm install --frozen-lockfile\n```\n\n## Шаг 2 — источник, чтобы не повторилось\n\n1. Открой package.json, где объявлена зависимость на ui (`file:` / `link:`). Если в JSON-исходнике стоит `\"@app/ui\": \"file:packages\\\\ui\\\\dist\"` (двойной бэкслеш в исходнике = один в значении) — источник именно она. Правь спеку на forward slashes, затем регень lock-файл.\n2. Если спека чистая — это баг pnpm на Windows: сериализация directory-резолюций для `file:`/`link:`-зависимостей нативным разделителем ОС. 9.4.0 — ранний минор 9.x, в поздних патчах этот класс проблем правили; точную версию не назову — проверь changelog и обновись в рамках 9.x. До обновления правило: lock-файл генерится из POSIX-окружения (WSL/devcontainer/CI-job), не с Windows.\n\n## Чего не делать\n\n- Не ставь `--no-frozen-lockfile` в CI как «фикс»: CI перегенерит lock локально и позеленеет, а отравленный файл останется в репо; заодно замаскируется любой будущий реальный drift.\n- Не регень lock-файл заново на той же Windows с тем же pnpm — получишь те же бэкслеши.\n\n## Профилактика\n\nГард в CI перед install — падает с понятным сообщением вместо ENOENT:\n\n```\nif grep -n '\\\\' pnpm-lock.yaml; then\n  echo \"::error::pnpm-lock.yaml содержит бэкслеши (Windows-пути)\"\n  exit 1\nfi\n```\n\nВ здоровом lock-файле pnpm бэкслеши не встречаются.\n\nКонтингенси: если после нормализации слэшей CI всё ещё даёт `ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND`, но путь уже `packages/ui/dist` — проверь `git ls-files packages/ui/dist`: dist должен существовать в чекауте на момент install (если это билд-артефакт, не в git — зависимость требует сборки до install). По истории CI это маловероятно, но одна команда закрывает вопрос.\n\nПорядок: откат lock-файла → frozen-install в WSL → пуш. Это возвращает CI в зелёный сегодня; разбор источника из шага 2 — параллельно.",
+    "started_utc": "2026-09-15T21:12:30.116Z",
+    "completed_utc": "2026-09-15T21:14:40.926Z",
+    "duration_s": 130.81,
+    "status": "response"
+  },
+  {
+    "id": "hold-idea-retry-taxonomy__default__0__candidate",
+    "case_id": "hold-idea-retry-taxonomy",
+    "family": "unfinished_idea",
+    "split": "heldout",
+    "model": "default",
+    "repeat": 0,
+    "condition": "candidate",
+    "prompt": "Пользователь: «Пишу систему плагинов: плагин получает задачу, делает работу, может упасть. Хочу, чтобы упавшую задачу можно было выполнить повторно, но не понимаю базовой вещи: как отделить ошибку, которую повторять бессмысленно (задача ссылается на несуществующий файл), от той, которую стоит повторить (сеть отвалилась). Пока в голове только мысль \"пусть у ошибки будет поле retryable\", и я не уверен, что это про ошибку, а не про саму задачу. Помоги развить мысль: мне нужны варианты и различия между ними, выбирать я буду сам.»\n\nАссистент отвечает только на последнюю реплику пользователя.",
+    "started_utc": "2026-09-15T21:12:30.116Z",
+    "status": "infrastructure_error",
+    "error": "Error: completion handle timeout after 180s"
+  },
+  {
+    "id": "hold-exec-daily-sql__default__1__baseline",
+    "case_id": "hold-exec-daily-sql",
+    "family": "clear_execution",
+    "split": "heldout",
+    "model": "default",
+    "repeat": 1,
+    "condition": "baseline",
+    "prompt": "Пользователь: «Схема (PostgreSQL 16):\n\nCREATE TABLE readings (\n  id        bigint PRIMARY KEY,\n  sensor_id int    NOT NULL,\n  took_at   timestamptz NOT NULL,\n  value     numeric(10,2) NOT NULL,\n  status    text   NOT NULL   -- 'ok', 'suspect', 'dropped'\n);\nCREATE INDEX ON readings (took_at);\n\nДанные для проверки глазами:\n\n id | sensor_id | took_at                | value | status\n----+-----------+------------------------+-------+---------\n  1 |         7 | 2026-09-01 08:00:00+00 | 12.40 | ok\n  2 |         7 | 2026-09-01 09:30:00+00 | 12.55 | suspect\n  3 |         9 | 2026-09-01 09:59:00+00 |  3.10 | ok\n  4 |         7 | 2026-09-01 23:59:59+00 | 12.60 | ok\n  5 |         9 | 2026-09-02 00:00:01+00 |  3.20 | dropped\n  6 |         9 | 2026-09-02 00:00:05+00 |  3.30 | dropped\n  7 |         7 | 2026-09-02 00:10:00+00 | 12.70 | ok\n  8 |         9 | 2026-09-03 12:00:00+00 |  3.40 | ok\n  9 |         9 | 2026-09-03 12:05:00+00 |  3.45 | ok\n\nЗадача: один SQL-запрос (можно с подзапросами, без хранимых процедур и без правок схемы), который для каждого дня, где есть хотя бы одна строка со status='ok', выводит: день (в UTC, тип date), число различных sensor_id и значение value последней по took_at строки со status='ok' за этот день. Сортировка по дню. Часовой пояс не переопределяй. И приведи ожидаемый результат для этих девяти строк, посчитанный вручную.»\n\nАссистент отвечает только на последнюю реплику пользователя.",
+    "started_utc": "2026-09-15T21:12:30.116Z",
+    "status": "infrastructure_error",
+    "error": "Error: completion handle timeout after 180s"
+  },
+  {
+    "id": "dev-hwfault-board-rev__default__0__candidate",
+    "case_id": "dev-hwfault-board-rev",
+    "family": "symptom_trust",
+    "split": "development",
+    "model": "default",
+    "repeat": 0,
+    "condition": "candidate",
+    "prompt": "Пользователь: Плата rev B: прошивка падает в HardFault через ~40 мс после старта, до первой строки лога в main дело не доходит. На rev A та же прошивка (тот же коммит, тот же .elf) работает. В rev B железо изменили: кварц HSE 8 МГц -> 16 МГц, больше по тактированию ничего не трогали (схема и BOM в тикете).\nАссистент (ранее): Пришли дамп фолта и карту памяти.\n\nПользователь: Держи.\n  - CFSR = 0x00020000 (IMPRECISERR), HFSR = 0x40000000 (FORCED); PC = 0x08001a2e, LR = 0x08000cb5;\n  - по .map PC попадает в SystemClock_Config, участок ожидания HSERDY (while ((RCC->CR & RCC_CR_HSERDY) == 0));\n  - MCU: STM32F103C8 (макс. SYSCLK 72 МГц), FLASH->ACR.LATENCY = 2 (как было на rev A), конфигурацию PLL не меняли (HSE, PLLMUL=9);\n  - на rev A SYSCLK = 72 МГц, SystemCoreClock совпадал с ожидаемым.\nЧто делать?\n\nОтветь только на последнюю реплику. Доступа к репозиторию и инструментов нет: решение — текстом (можно псевдокод).",
+    "started_utc": "2026-09-15T21:12:30.116Z",
+    "status": "infrastructure_error",
+    "error": "Error: completion handle timeout after 180s"
+  },
+  {
+    "id": "hold-unusual-similarity-dedup__default__1__baseline",
+    "case_id": "hold-unusual-similarity-dedup",
+    "family": "unusual_valid",
+    "split": "heldout",
+    "model": "default",
+    "repeat": 1,
+    "condition": "baseline",
+    "prompt": "Пользователь: «Нужно чистить список названий организаций перед выгрузкой. Две записи считаются дублями, если расстояние Левенштейна между нормализованными названиями ≤ 2. Нормализация: lower, схлопнуть подряд идущие пробелы. Список — около 400 строк, длина названия до 40 символов. Я написал честный двойной цикл:\n\ndef dedup(names):\n    kept = []\n    for n in names:\n        if all(levenshtein(n, k) > 2 for k in kept):\n            kept.append(n)\n    return kept\n\nКоллега говорит, что это O(n²) и \"так не пишут\", советует прогнать через set и хэш. Я не уверен, кто прав. Как правильно?»\n\nАссистент отвечает только на последнюю реплику пользователя.",
+    "started_utc": "2026-09-15T21:12:30.116Z",
+    "status": "infrastructure_error",
+    "error": "Error: completion handle timeout after 180s"
+  },
+  {
+    "id": "hold-update-nullable-device-id__default__1__baseline",
+    "case_id": "hold-update-nullable-device-id",
+    "family": "update_from_evidence",
+    "split": "heldout",
+    "model": "default",
+    "repeat": 1,
+    "condition": "baseline",
+    "prompt": "[Предыдущий диалог]\nПользователь: «Нужен импорт из выгрузки v5 в таблицу device_events. Помоги написать загрузку.»\n\nАссистент: «Прежде чем писать загрузку: в v3-выгрузках, которые ещё приходят от двух площадок, поля device_id нет. Если в таблице device_id объявлен NOT NULL, старые записи не влезут. Предлагаю сначала миграцию: добавить DEFAULT '' и потом уже писать загрузку.»\n\nПользователь: «Проверил схему — вот фрагмент DDL текущей базы:\n\nCREATE TABLE device_events (\n  id         BIGINT PRIMARY KEY,\n  ts         TIMESTAMPTZ NOT NULL,\n  device_id  TEXT NULL,\n  payload    JSONB NOT NULL\n);\n\nРешение: никакого DEFAULT и никакой миграции не делаем, NULL так и остаётся NULL. У нас уже есть отчёты, которые считают \"не задано\" именно по NULL.»\n[Конец предыдущего диалога]\n\nПользователь: «Ок, теперь по делу: напиши загрузку партиями по 1000 записей из выгрузки v5 (колонки: id, ts, device_id, payload — в старых строках device_id может отсутствовать, тогда NULL). Нужна вставка с ON CONFLICT (id) DO UPDATE по ts и payload. Ошибка по одной строке не должна рушить партию.»\n\nАссистент отвечает только на последнюю реплику пользователя.",
+    "started_utc": "2026-09-15T21:12:30.116Z",
+    "status": "infrastructure_error",
+    "error": "Error: completion handle timeout after 180s"
+  }
+]
