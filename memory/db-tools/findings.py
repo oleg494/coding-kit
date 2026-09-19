@@ -367,11 +367,24 @@ def cmd_del(args):
     if not row:
         print(f"no finding with id={args.id}")
         return
+    # Re-point dangling supersedes: if the deleted row replaced others,
+    # they must not silently become current again. Their links to the
+    # deleted row are removed, but the fact that they were superseded
+    # must survive as text (tombstone) — deleting the correction must
+    # not resurrect the disproven conclusion as the apparent current one.
+    superseded_by_deleted = cur.execute(
+        "SELECT to_id FROM links WHERE from_id = ? AND kind = 'supersedes'",
+        (args.id,)).fetchall()
     cur.execute("DELETE FROM findings WHERE id = ?", (args.id,))
     cur.execute("DELETE FROM finding_classifications WHERE finding_id = ?", (args.id,))
     n_links = cur.execute(
         "DELETE FROM links WHERE from_id = ? OR to_id = ?",
         (args.id, args.id)).rowcount
+    for (old_id,) in superseded_by_deleted:
+        cur.execute(
+            "UPDATE findings SET text = text || "
+            " '\n[superseded: conclusion replaced, replacer was deleted]' "
+            "WHERE id = ?", (old_id,))
     con.commit()
     print(f"[✓] deleted: id={args.id} \"{row['topic']}\""
           + (f" (links deleted: {n_links})" if n_links else ""))
@@ -603,7 +616,7 @@ def cmd_list(args):
     proj_col = "f.project" if "project" in cols else "'unknown' AS project"
     imp_col = "f.importance" if "importance" in cols else "'unreviewed' AS importance"
     sel = ("SELECT f.id, f.created, f.topic, f.tags, f.file, f.symbol, "
-           f"{proj_col}, {imp_col}, "
+           f"{proj_col}, {imp_col}, f.verify_cmd, f.verified_at, f.text, "
            + _superseded_by("f.id", cur) + " FROM findings f ")
     conds, params = [], []
     if getattr(args, "project", ""):
@@ -614,6 +627,9 @@ def cmd_list(args):
         params.append(args.importance)
     if getattr(args, "unreviewed", False):
         conds.append(f"({imp_col}) = 'unreviewed'")
+    if getattr(args, "unverified", False):
+        conds.append("f.verify_cmd <> '' "
+                     "AND (f.verified_at IS NULL OR f.verified_at = '')")
     where_clause = ("WHERE " + " AND ".join(conds) + " ") if conds else ""
     rows = cur.execute(
         sel + where_clause + "ORDER BY f.id DESC LIMIT ?",
@@ -624,12 +640,16 @@ def cmd_list(args):
     print(f"total: {len(rows)}\n")
     for r in rows:
         loc = f" [{r['file']}:{r['symbol']}]" if r["file"] else ""
+        tombstone = ("  ⚠ superseded (replacer deleted)"
+                     if "text" in r.keys() and "[superseded:" in (r["text"] or "") else "")
         badge = (f"  ⚠ superseded by #{r['superseded_by']}"
-                 if r["superseded_by"] else "")
+                 if r["superseded_by"] else tombstone)
         proj_str = f" [{r['project']}]" if ("project" in r.keys() and r["project"] and r["project"] != "unknown") else ""
         imp_str = f" *{r['importance']}*" if ("importance" in r.keys() and r["importance"] and r["importance"] != "unreviewed") else ""
+        unv_badge = (" [unverified]"
+                     if (r["verify_cmd"] and not r["verified_at"]) else "")
         print(f"[{r['id']}] {r['created']}  {r['topic']}{proj_str}{imp_str}  "
-              f"({r['tags']}){loc}{badge}")
+              f"({r['tags']}){unv_badge}{loc}{badge}")
     con.close()
 
 
@@ -643,6 +663,11 @@ def cmd_show(args):
         con.close()
         return
     print(f"[{r['id']}] {r['created']}  {r['topic']}")
+    sup = cur.execute(
+        "SELECT from_id FROM links WHERE to_id = ? AND kind = 'supersedes'",
+        (args.id,)).fetchone()
+    if sup:
+        print(f"superseded by #{sup['from_id']} — resolve to it before use")
     if r["tags"]:
         print(f"tags: {r['tags']}")
     if r["source"]:
@@ -659,11 +684,15 @@ def cmd_show(args):
     print()
     print(r["text"])
     links = _row_links(cur, args.id)
+    supersedes_ids = [linked_id for _lid, d, kind, _t, _n, linked_id
+                      in links if d == "->" and kind == "supersedes"]
+    if supersedes_ids:
+        print(f"replaces: {', '.join(f'#{i}' for i in supersedes_ids)}")
     if links:
         print("\nlinks:")
-        for _link_id, direction, kind, topic, note in links:
+        for _link_id, direction, kind, topic, note, linked_id in links:
             note_s = f"  ({note})" if note else ""
-            print(f"  {direction} {kind:12} {topic}{note_s}")
+            print(f"  {direction} {kind:12} [{linked_id}] {topic}{note_s}")
     con.close()
 
 
@@ -819,6 +848,8 @@ def arg_parser():
     p_list.add_argument("--project", default="", help="filter by project slug")
     p_list.add_argument("--importance", default="", help="filter by importance level")
     p_list.add_argument("--unreviewed", action="store_true", help="filter unreviewed records")
+    p_list.add_argument("--unverified", action="store_true",
+                        help="filter: verify-cmd set but never verified")
     p_list.add_argument("--limit", type=int, default=20)
     p_list.set_defaults(fn=cmd_list)
 

@@ -15,7 +15,7 @@ def _row_links(cur, fid):
             (fid, fid, fid)).fetchall():
         direction = "->" if r["from_id"] == fid else "<-"
         out.append((r["link_id"], direction, r["kind"], r["topic"],
-                    r["note"]))
+                    r["note"], r["to_id"] if direction == "->" else r["from_id"]))
     return out
 
 
@@ -52,7 +52,7 @@ def cmd_link_list(args):
         con.close()
         return
     print(f"links of finding [{args.id}]:\n")
-    for _link_id, direction, kind, topic, note in links:
+    for _link_id, direction, kind, topic, note, _linked_id in links:
         note_s = f"  ({note})" if note else ""
         print(f"  {direction} {kind:12} [{_link_id}] {topic}{note_s}")
     con.close()
@@ -86,7 +86,7 @@ def cmd_related(args):
         con.close()
         return
     print(f"linked to [{args.id}]:\n")
-    for _link_id, direction, kind, topic, note in links:
+    for _link_id, direction, kind, topic, note, _linked_id in links:
         note_s = f"  ({note})" if note else ""
         print(f"  {direction} {kind:12} {topic}{note_s}")
     con.close()

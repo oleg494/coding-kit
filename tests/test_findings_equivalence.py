@@ -161,16 +161,16 @@ class FindingsInProcessScratchTest(unittest.TestCase):
         # Test _row_links helper return shape and direction from perspective of id_a
         links_a = findings._row_links(cur, id_a)
         self.assertEqual(len(links_a), 1)
-        link_id, direction, kind, topic, note = links_a[0]
+        link_id, direction, kind, topic, note, linked_id = links_a[0]
         self.assertEqual(direction, "->")
         self.assertEqual(kind, "extends")
         self.assertEqual(topic, "Topic Beta")
         self.assertEqual(note, "alpha to beta note")
+        self.assertEqual(linked_id, id_b)
 
         # Test _row_links helper from perspective of id_b (reverse direction)
         links_b = findings._row_links(cur, id_b)
-        self.assertEqual(len(links_b), 1)
-        link_id_b, direction_b, kind_b, topic_b, note_b = links_b[0]
+        link_id_b, direction_b, kind_b, topic_b, note_b, linked_id_b = links_b[0]
         self.assertEqual(link_id_b, link_id)
         self.assertEqual(direction_b, "<-")
         self.assertEqual(kind_b, "extends")
