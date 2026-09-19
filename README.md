@@ -281,6 +281,33 @@ prevents further spawning and interrupts a live child. Read the
 [supervisor contract](docs/research/2026-09-08-autonomous-mode.md) before
 configuring commands; a workspace is not a security sandbox.
 
+### Carry unfinished work into a fresh session
+
+Capture a task brief with `scripts/tools/handoff.py`. The brief is JSON with
+`goal`, `acceptance`, `constraints`, `pending`, and `observations`. Each
+observation has a `claim` and a nonempty `paths` list of workspace-relative
+regular files that support it. List only files you intend to fingerprint.
+
+```text
+python scripts/tools/handoff.py capture --workspace /path/to/repo --brief brief.json --output handoff.json
+python scripts/tools/handoff.py resume --workspace /path/to/repo --handoff handoff.json
+```
+
+Capture stores hashes, not file contents, and refuses to overwrite an existing
+handoff. Resume is read-only: it returns the complete task context and marks
+observations stale when their supporting files changed, disappeared, or became
+unsafe to read. Exit codes: `0` unchanged, `1` drift, `2` invalid input. Use
+`--json` on resume for structured output. Unchanged bytes are not proof that a
+claim is true, that tests passed, or that an action is authorized.
+
+Give the fresh agent the resume output and the workspace, not the previous chat.
+It must inspect stale evidence and preserve current user edits before continuing.
+For automatic worker launches, add `--handoff /path/to/handoff.json` to the
+supervisor invocation. The supervisor refreshes this context before each worker;
+the configured independent verifier remains the completion gate. Neither tool
+executes commands embedded in a handoff, snapshots the whole repository, or
+replaces the host's permission and sandbox controls.
+
 ## Inside the repository
 
 | Component | Entry point |

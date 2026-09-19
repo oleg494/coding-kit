@@ -142,8 +142,16 @@ skill's behavior does not depend on it.
 ```bash
 python scripts/tools/autonomous.py --workspace PATH --mission TEXT \
   --executor COMMAND --verify COMMAND \
-  [--state-dir PATH] [--max-iterations 10] [--timeout 600]
+  [--state-dir PATH] [--max-iterations 10] [--timeout 600] \
+  [--handoff FILE]
 ```
+
+`--handoff FILE` binds a captured handoff (see `scripts/tools/handoff.py`)
+into the persisted config: the report is regenerated before every executor
+launch and appended to the worker prompt as reinspection context; drift is
+never treated as completion, and the independent verifier stays the only
+completion gate. Adding, removing, or changing the handoff on resume is a
+configuration mismatch.
 
 - **Commands are argv, never shell**: `--executor`/`--verify` strings are
   resolved to argv without a POSIX shell. Windows `.cmd`/`.bat` wrappers need
