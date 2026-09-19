@@ -7,14 +7,17 @@ state.db) is first normalized into the trajectory-v1 record shape, and
 ALL audit logic consumes only that form. Per-harness parsing lives in
 exactly one place (the normalizer readers).
 
-Per session we count (same semantics as the v3 audit):
+Per session we count:
 - human_turns  — user records that are not tool results / reminders;
 - memory_calls — tool records whose name/arguments mention the memory
   engine (memory-warmup, search_all.py, findings.py, build.py, repomap,
   skills_search, doctor.py, check_file_sizes);
-- skill_reads  — distinct skill://<name> mentions anywhere in records;
+- skill_reads  — distinct skills targeted by explicit read-tool calls;
 - ops_markers  — distinct "Coding Agent OS" / "Execution Lock" /
   db-tools/search_all markers present anywhere in the records.
+
+Skill reads measure requests, not successful loads or applied guidance. Shell/eval
+reads and harness-native skill loaders are not inferred from free text.
 
 Sessions are segregated kit-internal vs real by patterns: coding-kit /
 kit-eval / KODEKITTEST / CLAUDETESTS in the directory slug or session
@@ -61,7 +64,13 @@ MEMORY_RE = re.compile(
     r"memory-warmup|search_all\.py|findings\.py|build\.py|repomap"
     r"|skills_search|doctor\.py|check_file_sizes")
 
-SKILL_READ_RE = re.compile(r"skill://([A-Za-z0-9_-]+)")
+SKILL_URI_RE = re.compile(r"skill://([A-Za-z0-9_-]+)(?:/SKILL\.md)?(?:[:?#].*)?$")
+SKILL_PATH_RE = re.compile(r"(?:^|/)skills/([A-Za-z0-9_-]+)/SKILL\.md(?:[:?#].*)?$")
+SKILL_READ_NOTE = (
+    "Skill reads are explicit read-tool requests, not successful loads or "
+    "proof of use. Shell/eval reads, native skill loaders and omitted tool "
+    "traffic are not measured; zero observed reads alone do not justify retirement."
+)
 OPS_MARKER_RE = re.compile(r"Coding Agent OS|Execution Lock|db-tools/search_all")
 HUMAN_EXCLUDE_RE = re.compile(
     r"<system-reminder>|Caveat:|tool_result|command-name|local-command")
@@ -74,6 +83,37 @@ def _kit(text: str) -> bool:
 
 def _mtime_date(p: Path) -> date:
     return datetime.fromtimestamp(p.stat().st_mtime).date()  # noqa: DTZ006
+
+
+def _skill_read_targets(name: str, arguments) -> set[str]:
+    # Hermes may wrap an already serialized function-arguments object.
+    for _ in range(2):
+        if not isinstance(arguments, str):
+            break
+        try:
+            arguments = json.loads(arguments)
+        except (ValueError, TypeError):
+            return set()
+    if not isinstance(arguments, dict):
+        return set()
+    if name == "multi_tool_use.parallel":
+        calls = arguments.get("tool_uses")
+        found: set[str] = set()
+        for call in calls if isinstance(calls, list) else []:
+            if isinstance(call, dict):
+                found.update(_skill_read_targets(
+                    call.get("recipient_name", ""), call.get("parameters")))
+        return found
+    if name not in ("read", "Read", "read_file", "functions.read"):
+        return set()
+    for key in ("path", "file_path", "absolute_path"):
+        target = arguments.get(key)
+        if isinstance(target, str):
+            target = target.replace("\\", "/")
+            match = SKILL_URI_RE.fullmatch(target) or SKILL_PATH_RE.search(target)
+            if match:
+                return {match[1]}
+    return set()
 
 
 def _audit_records(records: list) -> dict:
@@ -97,10 +137,10 @@ def _audit_records(records: list) -> dict:
             blob = f"{r.get('name') or ''} {r.get('arguments') or ''}"
             if MEMORY_RE.search(blob):
                 memory_calls += 1
+            skill_reads.update(_skill_read_targets(
+                r.get("name"), r.get("arguments")))
         blob = json.dumps(r, ensure_ascii=False)
         ops_seen += len(OPS_MARKER_RE.findall(blob))
-        for name in SKILL_READ_RE.findall(blob):
-            skill_reads.add(name)
     return {"human_turns": human_turns, "memory_calls": memory_calls,
             "skill_reads": skill_reads, "ops_markers": ops_seen,
             "first_human": first_human}
@@ -189,7 +229,8 @@ def audit(claude_root: Path, omp_root: Path, since,
         timespec="seconds"),
             "since": None if since == date.min else since.isoformat(),
             "roots": {"claude": str(claude_root), "omp": str(omp_root)},
-            "sessions": sessions, "aggregate": aggregate}
+            "sessions": sessions, "aggregate": aggregate,
+            "skill_read_note": SKILL_READ_NOTE}
 
 
 def _hermes_session_dates(db: Path, since: date) -> dict:
@@ -221,8 +262,9 @@ def _human(res: dict) -> str:
         out.append(f"{title}: {a['sessions']} sessions, "
                    f"{a['human_turns']} human turns, "
                    f"{a['memory_calls']} memory calls, "
-                   f"{a['skill_reads']} skill:// reads, "
+                   f"{a['skill_reads']} skills with read requests, "
                    f"{a['ops_markers']} OPS markers")
+    out.append(SKILL_READ_NOTE)
     real = res["aggregate"]["real"]
     if real["sessions"]:
         out.append(f"real-session memory calls per session: "
@@ -237,16 +279,18 @@ def _human(res: dict) -> str:
 
 def retirement_report(res: dict, all_skills: list[str],
                       skills_root=None) -> dict:
-    """Zero-use retirement proposal (wave3 Task 11): skills with 0
-    firings across the audited REAL sessions (kit-internal sessions are
-    excluded — their skill reads are evals/tests, not usage). Proposal
-    only: never deletes; retirement is an owner decision (v3.4.6
-    precedent: agent-ux removed after 0 real uses)."""
+    """Proposal for skills with no observed read requests in REAL sessions.
+
+    Kit-internal sessions are excluded. Never deletes: missing observations
+    are not proof of non-use; retirement remains an owner decision.
+    """
     skills_root = Path(skills_root) if skills_root else Path.home()
     fired: set[str] = set()
+    real_sessions = 0
     for s in res["sessions"]:
         if s["kit_internal"]:
             continue
+        real_sessions += 1
         fired.update(s["skill_reads"])
     if (skills_root / "skills").is_dir():
         installed = sorted(d.name for d in
@@ -257,11 +301,11 @@ def retirement_report(res: dict, all_skills: list[str],
     zero = sorted(s for s in installed if s not in fired)
     return {"since": res.get("since"),
             "action": "proposal-only",
-            "sessions_audited": len(res["sessions"]),
+            "sessions_audited": real_sessions,
             "skills_total": len(installed),
             "fired_count": len(fired),
             "count": len(zero),
-            "zero_use": zero}
+            "zero_use": zero, "skill_read_note": SKILL_READ_NOTE}
 
 
 def retirement_report_human(report: dict) -> str:
@@ -269,7 +313,8 @@ def retirement_report_human(report: dict) -> str:
             f"{report['sessions_audited']} real sessions audited)"),
            (f"action: {report['action']} — owner decides, nothing is "
             "deleted"),
-           (f"zero-use skills ({len(report['zero_use'])}/"
+           SKILL_READ_NOTE,
+           (f"skills with no observed reads ({len(report['zero_use'])}/"
             f"{report['skills_total']}):")]
     out += [f"  - {s}" for s in report["zero_use"]] or ["  (none)"]
     return "\n".join(out)
@@ -295,8 +340,8 @@ def main():
     ap.add_argument("--json", action="store_true",
                     help="machine-readable JSON output")
     ap.add_argument("--retirement-report", action="store_true",
-                    help="list skills with 0 firings in the audited "
-                         "window (proposal only — nothing is deleted)")
+                    help="list skills with no observed read requests in the "
+                         "audited window (proposal only — nothing is deleted)")
     args = ap.parse_args()
 
     since = (date.fromisoformat(args.since) if args.since

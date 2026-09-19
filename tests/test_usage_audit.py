@@ -187,7 +187,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         self.assertFalse(s["kit_internal"])
         self.assertEqual(s["human_turns"], 2)
         self.assertEqual(s["memory_calls"], 2)
-        self.assertEqual(s["skill_reads"], ["memory"])
+        self.assertEqual(s["skill_reads"], [])
         self.assertEqual(s["ops_markers"], 1)
 
     def test_kit_internal_omp(self):
@@ -202,6 +202,57 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         s = res["sessions"][0]
         self.assertTrue(s["kit_internal"])
         self.assertEqual(s["memory_calls"], 1)
+
+
+class SkillReadEvidenceTest(unittest.TestCase, FixtureBuilders):
+    def test_mentions_do_not_hide_unused_skills(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            rows = [
+                self.claude_user("Please consider skill://user-mentioned"),
+                self.claude_assistant(text="Used skill://claimed"),
+                self.claude_assistant(tools=[
+                    ("Read", {"path": "notes.txt", "i": "skill://intent"}),
+                ]),
+                {"type": "user", "message": {"role": "user", "content": [
+                    {"type": "tool_result", "tool_use_id": "t1",
+                     "content": "Available: skill://catalog-only"}]}},
+                self.claude_assistant(tools=[
+                    ("Write", {"path": "notes.txt", "content": "skill://written"}),
+                    ("Bash", {"command": "echo skill://echoed"}),
+                ]),
+            ]
+            _write_jsonl(root / "claude" / "project" / "s.jsonl", rows)
+            result = usage_audit.audit(root / "claude", root / "omp", None)
+            self.assertEqual(result["sessions"][0]["skill_reads"], [])
+            report = usage_audit.retirement_report(
+                result, ["claimed", "catalog-only"], skills_root=root)
+            self.assertEqual(report["zero_use"], ["catalog-only", "claimed"])
+
+    def test_explicit_read_targets_include_paths_and_parallel_calls(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            rows = [self.omp_session(), self.omp_message("user", "Fix search")]
+            targets = [
+                ("read", {"path": "skill://superpowers"}),
+                ("Read", {"file_path": "C:\\kit\\skills\\yagni\\SKILL.md"}),
+                ("read_file", {"absolute_path": "/kit/skills/ponytail/SKILL.md"}),
+                ("read", {"path": "skills/testing-discipline/SKILL.md:1-40"}),
+                ("read", {"path": "skill://superpowers:1-20"}),
+                ("multi_tool_use.parallel", {"tool_uses": [
+                    {"recipient_name": "functions.read", "parameters": {
+                        "path": "skill://fable-judge"}},
+                    {"recipient_name": "functions.write", "parameters": {
+                        "path": "notes.txt", "content": "skill://not-read"}},
+                ]}),
+            ]
+            rows.extend(self.omp_tool_call(name, args, id=f"c{i}")
+                        for i, (name, args) in enumerate(targets))
+            _write_jsonl(root / "omp" / "project" / "s.jsonl", rows)
+            result = usage_audit.audit(root / "claude", root / "omp", None)
+            self.assertEqual(result["sessions"][0]["skill_reads"], [
+                "fable-judge", "ponytail", "superpowers", "testing-discipline",
+                "yagni"])
 
 
 class AggregationTest(unittest.TestCase, FixtureBuilders):
