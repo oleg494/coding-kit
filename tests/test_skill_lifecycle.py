@@ -117,6 +117,7 @@ class RetirementReportTest(unittest.TestCase):
             report = usage_audit.retirement_report(
                 res, all_skills=["ponytail"])
         self.assertEqual(report["zero_use"], ["ponytail"])
+        self.assertEqual(report["sessions_audited"], 0)
 
     def test_human_report_names_skills(self):
         with tempfile.TemporaryDirectory() as td:
