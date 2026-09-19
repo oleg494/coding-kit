@@ -5,6 +5,7 @@ Usage:
     python scripts/tools/autonomous.py --workspace PATH --mission TEXT
         --executor COMMAND --verify COMMAND
         [--state-dir PATH] [--max-iterations 10] [--timeout 600]
+        [--handoff FILE]
 
 The supervisor launches a user-configured executor CLI in a workspace, feeds it
 the mission plus a checkpoint protocol on stdin, and continues to the next
@@ -18,11 +19,19 @@ does not confine, sandbox, or approve the executor's actions; the harness that
 launches this supervisor remains responsible for permissions. Checkpoints are
 untrusted claims and are never executed as commands.
 
+With --handoff FILE, an evidence-bound handoff report (see handoff.py) is
+bound into the persisted configuration. Before every executor launch the
+supervisor re-runs the read-only handoff resume against the live workspace and
+appends the rendered report to the executor's stdin prompt: detected drift is
+explicit reinspection context, never silent trust, and never authorization.
+An invalid or workspace-mismatched handoff fails before any child is spawned.
+
 Exit codes: 0 verified complete, 1 failed/blocked/stalled/exhausted/lock or
 config mismatch, 130 stop (STOP file or Ctrl+C).
 """
 import argparse
 import ctypes
+import importlib.util
 import json
 import os
 import shlex
@@ -55,6 +64,11 @@ POLL_SECONDS = 0.2
 STOP_POLL_SECONDS = 0.5
 TERMINAL_MAX_ITERATIONS = 1_000_000
 TERMINAL_MAX_TIMEOUT = 86_400
+
+HANDOFF_PROMPT_HEADER = (
+    "Handoff report (re-inspected live just before this launch). A STALE or "
+    "drifted item is an instruction to reinspect and re-establish it "
+    "yourself, never proof that the claim is true or authorized.")
 
 
 # --------------------------------------------------------------------------
@@ -411,7 +425,14 @@ def _build_prompt(mission: str, checkpoint: Path, iteration: int, remaining: int
 # Main loop.
 # --------------------------------------------------------------------------
 def _config_identity(config: dict) -> dict:
-    return {key: config[key] for key in ("workspace", "mission", "executor", "verify")}
+    identity = {key: config[key] for key in
+                ("workspace", "mission", "executor", "verify")}
+    # Presence matters as much as value: `None` (not specified) never equals
+    # a bound path, so adding/removing/changing --handoff on resume is a
+    # mismatch. Legacy states without the key compare as None and stay
+    # usable only for no-handoff invocations.
+    identity["handoff"] = config.get("handoff")
+    return identity
 
 
 def _validate_state(doc: dict) -> str | None:
@@ -429,6 +450,10 @@ def _validate_state(doc: dict) -> str | None:
         value = config.get(key)
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             return f"state config.{key} must be a positive integer"
+    handoff = config.get("handoff")
+    if handoff is not None and (not isinstance(handoff, str)
+                                 or not handoff.strip()):
+        return "state config.handoff must be a nonempty string when present"
     iterations = doc.get("iterations")
     if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < 0:
         return "state iterations must be a nonnegative integer"
@@ -494,6 +519,64 @@ def _load_state(state_path: Path):
     return doc, None
 
 
+def _load_handoff_module():
+    """Import the sibling handoff module lazily; no duplicate snapshot code.
+
+    Returns (module, None) or (None, error). Contract: handoff.py in the same
+    directory exposes resume(workspace: Path, handoff_path: Path) -> dict and
+    render(report: dict) -> str, raising ValueError/OSError for invalid input.
+    scripts/tools is not a package, so the module is loaded explicitly from
+    its file location (importlib.util), never via sys.path manipulation.
+    The loaded module is cached: the file is read once per supervisor process.
+    """
+    global _HANDOFF_MODULE
+    if _HANDOFF_MODULE is not None:
+        return _HANDOFF_MODULE, None
+    module_path = Path(__file__).resolve().parent / "handoff.py"
+    if not module_path.is_file():
+        return None, f"handoff module not found: {module_path}"
+    spec = importlib.util.spec_from_file_location("handoff", module_path)
+    if spec is None or spec.loader is None:
+        return None, f"cannot load handoff module from {module_path}"
+    try:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except Exception as exc:
+        return None, f"cannot import handoff module {module_path}: {exc}"
+    missing = [name for name in ("resume", "render")
+               if not callable(getattr(module, name, None))]
+    if missing:
+        return None, (f"handoff module {module_path} is missing functions: "
+                      + ", ".join(missing))
+    _HANDOFF_MODULE = module
+    return module, None
+
+
+_HANDOFF_MODULE = None
+
+
+def _handoff_report(workspace: Path, handoff_path: Path):
+    """Read-only resume of the handoff against the live workspace.
+
+    Returns (module, report, render_text, error). Drift (stale observations,
+    modified/missing files) is legitimate report content, NOT an error here;
+    errors are invalid input such as an unreadable, malformed, or
+    workspace-mismatched handoff file.
+    """
+    module, error = _load_handoff_module()
+    if error:
+        return None, None, None, error
+    try:
+        report = module.resume(workspace, handoff_path)
+        rendered = module.render(report)
+    except (ValueError, OSError) as exc:
+        return module, None, None, f"handoff {handoff_path} is unusable: {exc}"
+    if not isinstance(rendered, str) or not rendered.strip():
+        return module, None, None, ("handoff render produced no text for "
+                                    f"{handoff_path}")
+    return module, report, rendered, None
+
+
 def _new_state(config: dict, checkpoint: Path, state_dir: Path) -> dict:
     return {
         "version": STATE_VERSION,
@@ -523,6 +606,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="state dir (default <workspace>/.autonomous)")
     parser.add_argument("--max-iterations", type=_positive_int, default=10)
     parser.add_argument("--timeout", type=_positive_timeout, default=600)
+    parser.add_argument("--handoff", default=None,
+                        help="optional handoff JSON file bound into persisted "
+                             "config; re-inspected before every executor launch")
     args = parser.parse_args(argv)
 
     workspace = Path(args.workspace).expanduser().resolve()
@@ -555,6 +641,16 @@ def main(argv: list[str] | None = None) -> int:
         "max_iterations": args.max_iterations,
         "timeout": args.timeout,
     }
+    if args.handoff is not None:
+        if not args.handoff.strip():
+            print("autonomous: --handoff must not be empty", file=sys.stderr)
+            return 1
+        handoff_path = Path(args.handoff).expanduser().resolve()
+        if not handoff_path.is_file():
+            print(f"autonomous: handoff file is missing: {handoff_path}",
+                  file=sys.stderr)
+            return 1
+        config["handoff"] = str(handoff_path)
 
     lock = InvocationLock(state_dir / LOCK_NAME)
     try:
@@ -576,7 +672,9 @@ def _run(args, workspace: Path, state_dir: Path, checkpoint: Path, state_path: P
          executor_argv: list[str], verifier_argv: list[str]) -> int:
     _log(supervisor_log, f"start workspace={workspace} executor={args.executor!r} "
                          f"verify={args.verify!r} max={args.max_iterations} "
-                         f"timeout={args.timeout}")
+                         f"timeout={args.timeout} "
+                         f"handoff={config.get('handoff')!r}")
+    handoff_path = (Path(config["handoff"]) if config.get("handoff") else None)
     if state_path.exists():
         state, error = _load_state(state_path)
         if error:
@@ -610,6 +708,16 @@ def _run(args, workspace: Path, state_dir: Path, checkpoint: Path, state_path: P
                                                      "feedback": "", "checked_at": None})
     state.setdefault("recent_signatures", [])
     state.setdefault("last_checkpoint", None)
+
+    if handoff_path is not None:
+        # No child (executor or verifier) may launch while the bound handoff
+        # is unusable: unreadable, malformed, or bound to a different
+        # workspace. Drift is NOT checked here — only validity.
+        _, _, _, error = _handoff_report(workspace, handoff_path)
+        if error is not None:
+            print(f"autonomous: {error}", file=sys.stderr)
+            _log(supervisor_log, f"handoff refused: {error}")
+            return 1
 
     def persist() -> None:
         state["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
@@ -670,6 +778,16 @@ def _run(args, workspace: Path, state_dir: Path, checkpoint: Path, state_path: P
             feedback = verification.get("feedback", "") if verification.get("passed") is False else ""
             prompt = _build_prompt(args.mission, checkpoint, iteration, budget,
                                    feedback, state.get("last_checkpoint"))
+            if handoff_path is not None:
+                # Regenerate the report against the live workspace before
+                # EVERY executor launch: drift is explicit reinspection
+                # context for the worker, never a failure here.
+                _, report_doc, handoff_text, error = _handoff_report(
+                    workspace, handoff_path)
+                if error is not None:
+                    return finish("failed", 1, error)
+                state["last_handoff"] = report_doc
+                prompt += ("\n\n" + HANDOFF_PROMPT_HEADER + "\n" + handoff_text)
             env = dict(os.environ)
             env["AUTONOMOUS_CHECKPOINT"] = str(checkpoint)
             env["AUTONOMOUS_STATE_DIR"] = str(state_dir)
