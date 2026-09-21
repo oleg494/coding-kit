@@ -20,6 +20,7 @@ import json
 import os
 import sqlite3
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -400,6 +401,7 @@ def cmd_edit(args):
         print(f"no finding with id={args.id}")
         return
     sets, params = [], []
+    evidence_changed = False
     for col, val in (("topic", args.topic), ("text", args.text),
                      ("tags", args.tags), ("source", args.source),
                      ("verify_cmd", args.verify_cmd),
@@ -414,6 +416,14 @@ def cmd_edit(args):
         if val is not None:
             if col == "tags":
                 val = _norm_tags(val)
+            # Freshness: topic/text/source/file/symbol/verify_cmd ARE the
+            # evidence. An edit that actually changes one of them makes the
+            # old verified_at stamp a claim about the PRE-EDIT evidence —
+            # mark it so the SET loop below clears it. No-op values and
+            # tags/project/importance (bookkeeping) leave the stamp alone.
+            if col in ("topic", "text", "source", "verify_cmd",
+                       "file", "symbol") and val != row[col]:
+                evidence_changed = True
             sets.append(f"{col} = ?")
             params.append(val)
     if not sets:
@@ -435,6 +445,10 @@ def cmd_edit(args):
         con.close()
         sys.exit(2)
     params.append(args.id)
+    if evidence_changed:
+        # Empty string is the schema's unverified sentinel (DEFAULT ''),
+        # matching cmd_add; search_all.py reads bool(verified_at).
+        sets.append("verified_at = ''")
     # Columns are the fixed list above (topic/text/tags/source),
     # values are only parameters: no injection.
     cur.execute(f"UPDATE findings SET {', '.join(sets)} WHERE id = ?", params)  # noqa: S608 — columns whitelist, values params; nosemgrep
@@ -476,8 +490,22 @@ def cmd_verify(args):
     # P15 (D-F): verify_cmd is a SHELL line by design ('cd … && pytest');
     # shlex.split broke every stored multi-command value. Writers of this
     # store already hold the shell — an exec-allowlist is disproportionate.
-    out = _compat.run(cmd, shell=True,
-                      timeout=getattr(args, "timeout", None) or 300)
+    # Freshness: a TIMEOUT is a failed check too — the evidence hung
+    # instead of erroring. Catch it here so the clearing branch below is
+    # reached instead of crashing with the stale stamp retained.
+    try:
+        out = _compat.run(cmd, shell=True,
+                          timeout=getattr(args, "timeout", None) or 300)
+    except subprocess.TimeoutExpired:
+        print(f"[✗] FAILED (timeout after "
+              f"{getattr(args, 'timeout', None) or 300}s): "
+              f"\"{r['topic']}\" — last verified: {r['verified_at'] or 'never'}",
+              file=sys.stderr)
+        cur.execute("UPDATE findings SET verified_at = '' WHERE id = ?",
+                    (args.id,))
+        con.commit()
+        con.close()
+        sys.exit(1)
     tail = "\n".join(((out.stdout or "") + (out.stderr or "")).splitlines()[-5:])
     if out.returncode == 0:
         now = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
@@ -487,6 +515,13 @@ def cmd_verify(args):
         print(f"[✓] VERIFIED: \"{r['topic']}\" at {now}")
         con.close()
         return
+    # Freshness: a FAILED check proves the current evidence no longer
+    # passes — the prior stamp describes a state that just failed, so
+    # clear it (empty string = schema's unverified sentinel, matching
+    # cmd_edit). search_all.py reads bool(verified_at).
+    cur.execute("UPDATE findings SET verified_at = '' WHERE id = ?",
+                (args.id,))
+    con.commit()
     print(f"[✗] FAILED (rc={out.returncode}): \"{r['topic']}\" — "
           f"last verified: {r['verified_at'] or 'never'}")
     if tail:

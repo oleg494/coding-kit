@@ -3,7 +3,7 @@ name: brainstorming
 description: 'Use before designing features, components, new subsystems, or behavior changes. Resolve intent, constraints, interfaces and acceptance before implementation; scale design depth to uncertainty without adding approval gates to authorized work.'
 license: MIT
 metadata:
-  version: "4.6.1"
+  version: "4.6.2"
 ---
 
 # Brainstorming Ideas Into Designs
@@ -75,23 +75,6 @@ authorized. Commits follow AGENTS.md.
 - CSV-only shipped when CSV and JSON were requested: incomplete, not minimal.
 - A procedural skill says stop: reconcile it with scope and authority; do not
   leave reachable implementation undone or ignore an explicit user stop.
-
-## Developing the user's thinking
-
-When the user's request is an unfinished idea ("I want X but not sure what",
-"help me find directions"), do not demand a finished specification and do not
-pick one design for them. Offer two to four concrete, meaningfully different
-interpretations or examples, each with its consequence and a way to tell the
-interpretations apart; keep them as proposals the user chooses between.
-
-When the user states an unusual method with explicit constraints (hardware,
-scale, policy), evaluate it against those constraints before recommending the
-standard approach; if it satisfies them, work within it and name only the
-risks the stated constraints do not cover.
-
-The user's goal stays theirs: if they correct your interpretation of what they
-want, adopt the correction and continue from it; do not re-propose the
-rejected framing under a new name.
 
 ---
 

@@ -3,7 +3,7 @@ name: autonomous-work
 description: 'Use when the user broadly authorizes autonomous work selection and continuation ("do useful work", "choose what is worth doing", "keep going without asking", "work autonomously", "работай сам", "делай что полезно", "продолжай без вопросов") — not for ordinary bounded requests, which keep their existing scope. Covers evidence-backed work selection, verify-then-continue loops, durable mission/progress/handoff state, immediate stop and revocation, and the optional foreground supervisor CLI. Never implies authorization for outward, destructive, or spending actions.'
 license: MIT
 metadata:
-  version: "4.6.1"
+  version: "4.6.2"
 ---
 
 # Autonomous Work
@@ -142,8 +142,16 @@ skill's behavior does not depend on it.
 ```bash
 python scripts/tools/autonomous.py --workspace PATH --mission TEXT \
   --executor COMMAND --verify COMMAND \
-  [--state-dir PATH] [--max-iterations 10] [--timeout 600]
+  [--state-dir PATH] [--max-iterations 10] [--timeout 600] \
+  [--handoff FILE]
 ```
+
+`--handoff FILE` binds a captured handoff (see `scripts/tools/handoff.py`)
+into the persisted config: the report is regenerated before every executor
+launch and appended to the worker prompt as reinspection context; drift is
+never treated as completion, and the independent verifier stays the only
+completion gate. Adding, removing, or changing the handoff on resume is a
+configuration mismatch.
 
 - **Commands are argv, never shell**: `--executor`/`--verify` strings are
   resolved to argv without a POSIX shell. Windows `.cmd`/`.bat` wrappers need
