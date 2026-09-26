@@ -1,4 +1,40 @@
 # Changelog — Coding Agent OS
+- **Unreleased (2026-09-26) — outcome-driven work selection and restored ideation guidance:**
+  - `autonomous-work` now selects work by evidence of expected benefit and
+    names who uses the result. Value and evidence are both required; activity
+    counts and easily passing checks are not proof of usefulness. Keep
+    coordination proportional; safety monitors, measurements and recovery
+    logs remain appropriate when needed for the requested outcome.
+  - `OPS.md` ties completion claims to the requested outcome and discloses
+    simulated checks. For an abstract request, state a provisional observable
+    criterion rather than demanding a finished specification. An explicit
+    request is sufficient evidence of need. Remote changes require monitored
+    execution and recovery checks through the relevant consumer path or an
+    authorized independent observer, not necessarily the user's computer.
+  - Restored `brainstorming`'s released "Developing the user's thinking"
+    guidance in the source and repository mirror. Merge `0afa2f9` (2026-09-21)
+    omitted the section present in its first parent; the restored body matches
+    that parent modulo the version stamp. The MP session had already received
+    this guidance from the installed v4.6.1 copy, so its absence from the
+    repository does not explain that session's drift.
+  - Evidence limits: the earlier comparison of roughly 30 unused commits and
+    two consumable commits comes from an agent's self-assessment (session
+    `01a0a5aa-7ca2-738f-8d98-726200d64f0b`, JSONL line 3679), not an independent
+    usage measurement or controlled comparison. Historical cases motivate
+    the changes; they do not establish instruction-level causality.
+  - Removed the proposed heading-only `ReleasedSectionGuardTest`: isolated
+    mutations showed it passed with the guidance deleted or reversed and
+    failed when only the heading changed. No substring/hash guard replaces it.
+  - Behavioral smoke: seven stateless responses using the revised OPS,
+    autonomous-work and brainstorming passed manual scenario checks: broad
+    read-only review, useful task selection, protective run monitoring,
+    operator-side restore, bounded typo fix, corrected goal and unavailable
+    client-path verification. One response per case on the default alias;
+    this is not a tool-loop reliability or improvement measurement.
+  - Repository verification: final full suite 816 passed, 16 skipped,
+    491 subtests; focused checks 49 passed, 5 subtests; doctor 14/14 green;
+    file-size gate hard 0 (79 existing soft warnings); integrity verified
+    171 files; local installed mirrors synchronized with `deploy.py`.
 - **v4.6.2 (2026-09-19) — session continuity: evidence-bound handoff + findings freshness:**
   - **Portable handoff (`scripts/tools/handoff.py`, new):** `capture` validates a task brief (goal/acceptance/constraints/pending/observations) and snapshots sha256 of the union of observation paths — hashes only, never contents, no workspace scan; atomic no-clobber publication, fail-closed when the filesystem cannot publish atomically. `resume` is read-only: strict revalidation under the same canonical absolute workspace (bounded reads, duplicate-JSON-key rejection, RecursionError → clean exit 2) and a drift report (files unchanged|modified|missing|unsafe; observations stale|unchanged) with terminal-control-escaped rendering. `'unchanged'` is byte-identity only — never truth, tests, or authorization; nothing from a handoff is ever executed. Static path checks reject symlink/junction/drive/UNC/stream and reserved components; explicitly NOT a security sandbox (documented). Exit codes: 0 unchanged, 1 drift, 2 invalid input.
   - **Supervisor `--handoff FILE`:** binds into persisted config (presence-aware: add/remove/swap on resume is a mismatch; legacy no-handoff states stay compatible). The report is regenerated before EVERY executor launch and appended to the worker prompt as reinspection context; drift never gates or equates to completion; invalid/wrong-workspace handoff fails before any child spawn; verifier and STOP semantics unchanged.

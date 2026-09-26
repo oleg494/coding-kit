@@ -35,6 +35,13 @@ inspect available sources first and finish reachable authorized work.
 - Deliver every requested behavior and acceptance criterion. Minimalism
   reduces code and ceremony, not functionality, error handling or quality.
 - No placeholders, stubs, false completion, or a partial result relabeled MVP.
+- Tie progress and completion claims to the requested outcome; name any
+  simulated or stubbed parts. Use the user's criterion or, if absent, state
+  a provisional observable one and revise it with evidence or user feedback.
+- For state-changing remote/infrastructure operations, state blast radius
+  and rollback before execution and monitor the change. Verify recovery
+  through the relevant consumer path or an authorized independent observer;
+  report unavailable checks without claiming unverified recovery.
 - Keep read-only reviews and plan-only requests read-only/plan-only.
 - State real risks and blockers; do not hide them behind unconditional
   compliance or refuse already authorized work because a phase says to ask.
@@ -59,6 +66,9 @@ first   first     minimal      observed    first
 
 ### Phase 1: Plan (spec before code)
 - Define "what done means" — concretely, observably.
+- Name who benefits and the evidence of the need; an explicit user request
+  is sufficient. A red test, a convenient repo or sunk hours alone do not
+  determine priority.
 - Name the files you will touch — and what you will NOT touch.
 - Split complex work by independently verifiable outcomes, not file counts or microsteps.
 

@@ -68,9 +68,10 @@ evidence  smallest  observed   durable   continue
 objective
 ```
 
-1. **Select** the highest-value objective that is in scope and backed by
-   evidence (failing test, reported symptom, explicit TODO, uncovered contract,
-   known defect). Say in one line why it is the next thing.
+1. **Select** the highest-value in-scope objective with evidence of its
+   expected benefit: the user's request, a reported symptom, an observed
+   defect or a gap blocking the goal. State who will use the result and why
+   this objective takes priority, not merely which check is easy to pass.
 2. **Do** the smallest correct change that closes it — normal method skills
    still apply (plan → TDD → implement → verify → report).
 3. **Verify by observation**: run the specific check, scenario, or command that
@@ -84,6 +85,14 @@ objective
 
 - **Highest-value, not easiest-available**: prefer work that removes a real
   defect, unblocks a user goal, or closes a named gap.
+- **Value and evidence are both required**: ground expected usefulness in the
+  request or observed needs. A red test, convenient repository or sunk hours
+  alone do not establish priority. Activity counts are not proof of benefit.
+- **Process supports the result**: do not build dashboards, counters or
+  reports merely to display activity. Use only the coordination the task
+  needs. Safety monitors, measurements and recovery logs are justified when
+  necessary to deliver or verify the requested outcome. Waiting alone is not
+  progress; continue independent in-scope work when possible.
 - **No busywork inflation**: do not pad the session with cosmetic renames,
   comment churn, formatting sweeps, or "nice to have" refactors to look busy.
 - **No tiny-task ceiling**: there is no rule that only trivial tasks qualify;

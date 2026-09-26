@@ -1,7 +1,7 @@
 {
  "files": {
   "AGENTS.md": "f666cf47aa5f6ea36d1560b32a7dca010ed4ab27517a2ba9412c7b88a0c2e84a",
-  "OPS.md": "2fdec4edeaccb22188b27243c340f4062016e401dc290264692812b714030d4c",
+  "OPS.md": "d15343edc1e92aafc2edfa1582d703856b844e2c22b5fbe216836ec4547e407e",
   "SKILL_RUNTIME.md": "c55b1f9ad8c92c9e0f8d988638d7a78347dc1ea70eb0343784f7c6d842696b73",
   "adapters/UNIVERSAL.md": "5aa9868e7da4fba37c842a88454a4c9da4be6965886ea92e16f93c13110271d5",
   "adapters/antigravity.md": "aba535c2796a96a48aa89b6b7c93e8c00987084a536a8a0da66f08e1ccbb6570",
@@ -135,8 +135,8 @@
   "scripts/tools/skills_search.py": "f84c90dd050e667b052f78c335061d2b4f275531098f64194d2de20820aa0856",
   "scripts/tools/usage_audit.py": "41a03d3bb0ed2f7d1d375152ab0b120cab7cfb9cc3b41748bab967e7abd34d4a",
   "skills/architecture-simplicity/SKILL.md": "5ae7afbf39da2eae3bfd19cd888312eedced1899cd033266eb8cbd50e95aa4b8",
-  "skills/autonomous-work/SKILL.md": "6cdc49b2e3521ac574e8b54cf494b85c1aa5113713d76a4ba390e0ae0de07da8",
-  "skills/brainstorming/SKILL.md": "6bbc7b923361aa8f4486406d17995a02b1a0f592801c20f50a0855989c338896",
+  "skills/autonomous-work/SKILL.md": "03db105a345bba9f3d5b7ba95b43d894067fce158058b94b1a07974af80ea6c3",
+  "skills/brainstorming/SKILL.md": "3b581d4b430c35f4cd597db2e73351ae38c0e3d27d6bb6c8d4536dc1dfa119f0",
   "skills/code-graph-review/SKILL.md": "26e0f2c16d16e59d8e3224939ca76a460aedc406ac57003cf4e3667ec4d2ffea",
   "skills/code-review-and-quality/SKILL.md": "fa3a242059856878d5ccee62c0aa5be8502965dce955454961a2bd4978ed68ae",
   "skills/dashboard-design/SKILL.md": "d72bb3276c8be7137faced035feb906e1684658e282acf7c652665fa892a6d92",
