@@ -1,4 +1,27 @@
 # Changelog — Coding Agent OS
+- **Unreleased (2026-09-27) — stop unobserved trap-suite passes:**
+  - Trap input validation records `DRY_RUN`, zero behavioral passes and an
+    explicit validation-only CLI summary, matching the task runner's existing
+    convention. Invalid inputs still fail validation; live verdicts are unchanged.
+  - Candidate answers above the judge's 8000-character limit now fail in the
+    judge phase without calling the judge. Previously, a silent prefix could
+    pass while omitting a late violation. This is an evaluation-capacity error,
+    not evidence that the model violated the scenario.
+  - Removed the prompt-string test that endorsed a truncated-answer pass;
+    regressions cover valid/invalid dry-runs and the exact judge-limit boundary.
+    Red-first check: four failures and one passing boundary control; after the
+    fix all five cases passed. Actual CLI smoke changed `PASS`/`passed: 1` to
+    `DRY_RUN`/`passed: 0`; the real judge entrypoint rejected oversized evidence
+    before attempting a container launch.
+  - Integrated runner/ablation/trend checks: 118 passed, 6 container-dependent
+    skips. Full suite: 819 passed, 16 skipped, 491 subtests before removing an
+    extra prompt-wording test. Integrity: 171 files. Doctor: 13/14 checks pass;
+    its sole failure is an unchanged design-system eval fixture with LF in the
+    new worktree versus CRLF in installed copies (normalized bytes identical).
+  - Historical dry-run `ALL GREEN` entries mean input validation only; no old
+    results were regraded. No skill instructions or installed copies changed.
+    Docker's daemon was unavailable; no live-model or container-path success
+    is claimed, and no improvement in agent goal retention has been measured.
 - **Unreleased (2026-09-26) — outcome-driven work selection and restored ideation guidance:**
   - `autonomous-work` now selects work by evidence of expected benefit and
     names who uses the result. Value and evidence are both required; activity

@@ -147,7 +147,7 @@ def test_capability_skip_fail_row_carries_mast_mode(tmp_path):
     assert rows[0]["mast_mode"] == "FM-3.1"
 
 
-def test_dry_run_pass_row_carries_mast_mode(tmp_path):
+def test_dry_run_row_carries_mast_mode(tmp_path):
     f = _scenario_file(tmp_path, "FM-3.1")
     out = tmp_path / "dry.json"
     code = runner.run_scenarios(
@@ -155,7 +155,7 @@ def test_dry_run_pass_row_carries_mast_mode(tmp_path):
     assert code == 0
     doc = json.loads(out.read_text(encoding="utf-8"))
     row = doc["scenarios"][0]
-    assert row["verdict"] == "PASS" and row["attempts"] == []
+    assert row["verdict"] == "DRY_RUN" and row["attempts"] == []
     assert row["mast_mode"] == "FM-3.1"
 
 
