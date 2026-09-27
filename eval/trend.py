@@ -2,9 +2,15 @@
 """eval/trend.py — pass-rate history + failure evidence reporting.
 
 Reads the shared JSON store (eval/results_io.load_runs) and prints:
-  1. a markdown table of the newest run per (kind, model) with baseline deltas;
-  2. a Failure Evidence Packets section: failure details for non-PASS targets
-     in the newest run of each kind/model group (evidence only, no proposals).
+  1. a markdown table of the newest run per group with baseline deltas.
+     Groups are (kind, model) — plus, for trap/trigger, the run's
+     `comparison_id` (SHA256 over the canonical JSON of the actual suite
+     inputs). Runs with a missing/invalid id stay visible as separate
+     unknown rows without baseline comparison; legacy numeric baselines
+     are never used as a fallback for these kinds;
+  2. a Failure Evidence Packets section: failure details for non-PASS
+     targets in the newest run of each group (evidence only, no
+     proposals).
 
 Usage:
     python eval/trend.py                      # report to stdout
@@ -27,6 +33,52 @@ from ablation_report import render_ablation_section
 
 BASELINES_DIR = ROOT / "eval" / "baselines"
 KIND_ORDER = {"trap": 0, "tasks": 1, "trigger": 2, "rigor": 3}
+
+# Kinds whose runs carry a `comparison_id`: a SHA256 over the canonical
+# JSON of the actual suite inputs (prompt bytes, expectations, case
+# identity, scorer/protocol identity, repetitions, timeout, executor and
+# judge configuration). Two runs share a baseline only when their ids
+# match — same model is NOT enough.
+_COMPARISON_KINDS = frozenset({"trap", "trigger"})
+_HEX_DIGITS = frozenset("0123456789abcdef")
+
+
+def _valid_comparison_id(value: object) -> bool:
+    """True for a canonical 64-char lowercase-hex comparison id."""
+    return (isinstance(value, str) and len(value) == 64
+            and all(c in _HEX_DIGITS for c in value))
+
+
+def _comparison_id(r: dict) -> str | None:
+    """Valid comparison id of a run, or None when missing/malformed."""
+    cid = r.get("comparison_id")
+    return cid if _valid_comparison_id(cid) else None
+
+
+def _cohort_key(r: dict, kind: str) -> str:
+    """Third grouping component: comparison id, or a per-run unknown key.
+
+    Unknown (missing/invalid id) trap/trigger runs never merge into a
+    fabricated legacy cohort — each stays separate via its run_id.
+    """
+    if kind not in _COMPARISON_KINDS:
+        return ""
+    cid = _comparison_id(r)
+    if cid is not None:
+        return cid
+    rid = str(r.get("run_id") or r.get("utc") or "")
+    return "unknown:" + rid
+
+
+def _condition_cell(r: dict, kind: str) -> str:
+    """Table cell for the condition column (short id prefix)."""
+    if kind not in _COMPARISON_KINDS:
+        return "-"
+    cid = _comparison_id(r)
+    if cid is not None:
+        return cid[:8]
+    rid = str(r.get("run_id") or "")
+    return f"unknown:{rid[-8:]}" if rid else "unknown"
 
 
 def _is_canary_row(row: object) -> bool:
@@ -266,22 +318,58 @@ def _rate(r: dict) -> float | None:
     return None
 
 
-def _load_baseline(kind: str, baselines_dir: Path | None = None) -> dict[str, float]:
+def _load_baseline(kind: str, baselines_dir: Path | None = None) -> dict:
+    """Baseline rates for one kind.
+
+    For comparison kinds (trap/trigger) the stored layout is
+    `{model: {comparison_id: rate}}`; a numeric value under a model key
+    is a pre-cutover legacy entry and is deliberately ignored (never
+    used as a fallback for any cohort).
+
+    Other kinds keep the flat `{model: rate}` layout.
+    """
     b_dir = Path(baselines_dir) if baselines_dir is not None else BASELINES_DIR
     path = b_dir / f"{kind}.json"
     if not path.is_file():
         return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        if isinstance(data, dict):
-            out: dict[str, float] = {}
-            for k, v in data.items():
-                if isinstance(v, (int, float)) and not isinstance(v, bool):
-                    out[str(k)] = float(v)
-            return out
     except Exception:
-        pass
-    return {}
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    if kind not in _COMPARISON_KINDS:
+        out: dict[str, float] = {}
+        for k, v in data.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                out[str(k)] = float(v)
+        return out
+    cohorts: dict[str, dict[str, float]] = {}
+    for model, entry in data.items():
+        if not isinstance(entry, dict):
+            continue  # legacy numeric entry: no cohort comparison available
+        rates: dict[str, float] = {}
+        for cid, v in entry.items():
+            if _valid_comparison_id(cid) and isinstance(v, (int, float)) \
+                    and not isinstance(v, bool):
+                rates[cid] = float(v)
+        if rates:
+            cohorts[str(model)] = rates
+    return cohorts
+
+
+def _baseline_rate(baselines: dict, kind: str, model: str,
+                   comparison_id: str | None) -> float | None:
+    """Baseline rate for one table row, or None when not comparable.
+
+    Comparison kinds require a valid comparison id AND a stored baseline
+    under exactly that id; legacy numeric baselines never apply.
+    """
+    if kind not in _COMPARISON_KINDS:
+        return baselines.get(model)
+    if comparison_id is None:
+        return None
+    return baselines.get(model, {}).get(comparison_id)
 
 def _status_and_delta(rate: float | None, baseline_rate: float | None) -> tuple[str, str, str]:
     if baseline_rate is None:
@@ -485,27 +573,34 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
 
     lines = ["# Eval trends\n"]
 
-    # Group runs by (kind, model), keeping newest run by utc
-    grouped: dict[tuple[str, str], dict] = {}
+    # Group runs by (kind, model, cohort), keeping newest run by utc.
+    # For trap/trigger the cohort is the run's comparison_id; runs with a
+    # missing/invalid id stay separate via their run_id (never merged into
+    # a fabricated legacy cohort). Other kinds use "" (one row per
+    # (kind, model), as before).
+    grouped: dict[tuple[str, str, str], dict] = {}
     for r in table_runs:
         kind = str(r.get("kind") or "unspecified")
         model = str(r.get("model") or "unspecified")
-        existing = grouped.get((kind, model))
+        cohort = _cohort_key(r, kind)
+        existing = grouped.get((kind, model, cohort))
         if existing is None or str(r.get("utc", "")) >= str(existing.get("utc", "")):
-            grouped[(kind, model)] = r
+            grouped[(kind, model, cohort)] = r
     if grouped:
         canary_sections: list[str] = []
         lines.append(
-            "| kind | model | utc | score | baseline | delta | status | duration | reported cost |")
-        lines.append("|---|---|---|---|---|---|---|---|---|")
+            "| kind | model | utc | condition | score | baseline | delta | status | duration | reported cost |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|")
 
         sorted_groups = sorted(
             grouped.items(),
-            key=lambda item: (KIND_ORDER.get(item[0][0], 99), item[0][0], item[0][1])
+            key=lambda item: (KIND_ORDER.get(item[0][0], 99), item[0][0],
+                              item[0][1], item[0][2])
         )
 
         newest_runs = []
-        for (kind, model), r in sorted_groups:
+        seen_kinds = {str(r.get("kind") or "unspecified") for r in table_runs}
+        for (kind, model, cohort), r in sorted_groups:
             newest_runs.append(r)
             if kind == "tasks":
                 can_list = r.get("rows")
@@ -519,17 +614,27 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
                         f"pass-rate baselines)")
 
             utc_str = r.get("utc", "")[:16]
+            cond_str = _condition_cell(r, kind)
             score_str = _score(r)
             rate = _rate(r)
             baselines = _load_baseline(kind, baselines_dir=baselines_dir)
-            baseline_rate = baselines.get(model)
+            baseline_rate = _baseline_rate(baselines, kind, model,
+                                           _comparison_id(r))
             b_str, d_str, status_str = _status_and_delta(rate, baseline_rate)
-            lines.append(f"| {kind} | {model} | {utc_str} | {score_str} | {b_str} | {d_str} | {status_str} | {_duration_str(r)} | {_reported_cost_str(r)} |")
+            lines.append(f"| {kind} | {model} | {utc_str} | {cond_str} | {score_str} | {b_str} | {d_str} | {status_str} | {_duration_str(r)} | {_reported_cost_str(r)} |")
             if kind == "tasks":
                 accounting = _accounting_line(r)
                 if accounting:
                     lines.append(f"| accounting | {model} | {utc_str} | "
                                  f"{accounting} |")
+
+        if _COMPARISON_KINDS & seen_kinds:
+            lines += ["", (
+                "Note: matched comparison ids compare runs with identical "
+                "recorded inputs (prompts, expectations, cases, scorer and "
+                "executor/judge configuration). They do not control mutable "
+                "image contents, ambient skills, or provider alias changes, "
+                "and cannot establish causality."), ""]
 
         mast_block = render_mast_section(runs)
         if mast_block:
@@ -542,7 +647,21 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
             lines += packets
             lines.append("")
         else:
-            lines += ["all-green: no open failures", ""]
+            # Top-level totals may indicate failures even when the newest
+            # per-cohort rows carry no detailed failure evidence; never
+            # claim all-green in that case.
+            has_totals_failure = any(
+                (isinstance(r.get("passed"), (int, float))
+                 and isinstance(r.get("total"), (int, float))
+                 and r["passed"] < r["total"])
+                for r in newest_runs
+            )
+            if has_totals_failure:
+                lines += [
+                    "totals indicate failures (see table above); no "
+                    "detailed failure rows available", ""]
+            else:
+                lines += ["all-green: no open failures", ""]
 
     lines += render_ablation_section(ablate_runs, _duration_str, _reported_cost_str)
     return "\n".join(lines)
@@ -551,39 +670,33 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
 def update_baselines(results_dir: Path | None = None, baselines_dir: Path | None = None, n: int = 5) -> None:
     b_dir = Path(baselines_dir) if baselines_dir is not None else BASELINES_DIR
     b_dir.mkdir(parents=True, exist_ok=True)
-    runs = load_runs(results_dir=results_dir)
-    runs = [r for r in runs if not _is_dry_run(r)]
-    rates_by_group: dict[tuple[str, str], list[float]] = {}
-    for r in runs:
-        kind = r.get("kind")
-        model = r.get("model") or "unspecified"
-        if not kind:
+    rates_by_group: dict[tuple[str, str, str | None], list[float]] = {}
+    for run in load_runs(results_dir=results_dir):
+        if _is_dry_run(run):
             continue
-        rate = _rate(r)
+        kind = run.get("kind")
+        cid = _comparison_id(run) if kind in _COMPARISON_KINDS else None
+        if not kind or (kind in _COMPARISON_KINDS and cid is None):
+            continue
+        rate = _rate(run)
         if rate is not None:
-            rates_by_group.setdefault((kind, str(model)), []).append(rate)
+            key = (kind, str(run.get("model") or "unspecified"), cid)
+            rates_by_group.setdefault(key, []).append(rate)
 
-    kinds = set(k for k, _ in rates_by_group.keys())
-    for kind in sorted(kinds):
-        existing: dict[str, float] = {}
-        target_file = b_dir / f"{kind}.json"
-        if target_file.is_file():
-            try:
-                loaded = json.loads(target_file.read_text(encoding="utf-8"))
-                if isinstance(loaded, dict):
-                    existing = {str(k): float(v) for k, v in loaded.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
-            except Exception:
-                existing = {}
-
-        for (k, model), rates in rates_by_group.items():
-            if k == kind and rates:
-                last_n = rates[-n:]
-                avg = sum(last_n) / len(last_n)
-                existing[model] = round(avg, 4)
-
-        if existing:
-            content = json.dumps(existing, indent=2, sort_keys=True) + "\n"
-            target_file.write_text(content, encoding="utf-8", newline="\n")
+    for kind in sorted({key[0] for key in rates_by_group}):
+        existing = _load_baseline(kind, baselines_dir=b_dir)
+        for (group_kind, model, cid), rates in rates_by_group.items():
+            if group_kind != kind:
+                continue
+            recent = rates[-n:]
+            average = round(sum(recent) / len(recent), 4)
+            if kind in _COMPARISON_KINDS:
+                existing.setdefault(model, {})[cid] = average
+            else:
+                existing[model] = average
+        (b_dir / f"{kind}.json").write_text(
+            json.dumps(existing, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8", newline="\n")
 
 
 def main(argv: list[str] | None = None) -> int:

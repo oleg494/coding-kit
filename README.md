@@ -235,14 +235,24 @@ python eval/trigger_eval.py --queries eval/trigger_queries.json
 ```
 
 These commands validate evaluation inputs; they do **not** measure a live
-model's behavior.
+model's behavior. Trap dry-runs record `DRY_RUN` rows with `passed: 0`;
+exit zero means the inputs are valid, not that the model passed.
+
+Trap and trigger results carry `comparison_id`: a digest of executed prompts,
+expectations, selected cases, scorer code and execution settings. `trend.py`
+compares only matching IDs within a model. Unknown IDs stay visible without
+deltas and cannot seed baselines; existing run files are never rewritten.
+On `--update-baselines`, new trap/trigger baselines use
+`{model: {comparison_id: rate}}`; old numeric baselines are not reused.
+Matching IDs do not control mutable images, ambient skills or provider aliases,
+and do not prove that an instruction change caused an improvement.
 
 <details>
 <summary>Evaluation tools and what they measure</summary>
 
 | Tool | Purpose and boundary |
 |---|---|
-| [Trap-suite](eval/runner.py) | 31 adversarial policy scenarios. The judge defaults to the executor; use a distinct judge to reduce self-judging bias. Policy adherence is not task superiority. |
+| [Trap-suite](eval/runner.py) | Adversarial policy scenarios. The judge defaults to the executor; use a distinct judge to reduce self-judging bias. Answers over 8000 characters fail evaluation without a model verdict, rather than judging an incomplete prefix. Policy adherence is not task superiority. |
 | [Task smoke](eval/task_runner.py) | Six coding tasks, including two impossible canaries, with deterministic `verify.py` oracles. A smoke check, not a statistical benchmark. |
 | [Trigger evals](eval/trigger_eval.py) | Skill activation routing: 92 co-located queries across 13 skills with `--queries auto`; an 80-query central corpus provides fallback coverage. |
 | [Results store](eval/results_io.py) and [trend](eval/trend.py) | Structured results, explicit live/dry-run modes, failure categories, and comparisons of recorded runs. |

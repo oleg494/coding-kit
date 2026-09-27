@@ -21,84 +21,120 @@ def test_render_empty_store(tmp_path):
     assert "no results yet" in out
 
 
-def test_trend_groups_by_kind_and_model_without_hiding(tmp_path):
+def _cid(seed: str) -> str:
+    """Deterministic 64-char lowercase-hex comparison id."""
+    import hashlib
+    return hashlib.sha256(seed.encode()).hexdigest()
+
+
+def test_trend_groups_by_kind_model_and_condition(tmp_path):
     res_dir = tmp_path / "results"
     base_dir = tmp_path / "baselines"
     base_dir.mkdir(parents=True)
 
-    # Older run for m1
-    results_io.save_result("trap", "gpt-4o", {"passed": 16, "total": 18, "scenarios": []}, results_dir=res_dir)
-    # Newer run for m1
-    results_io.save_result("trap", "gpt-4o", {"passed": 18, "total": 18, "scenarios": []}, results_dir=res_dir)
-    # Run for m2
-    results_io.save_result("trap", "claude-3-7", {"passed": 17, "total": 18, "scenarios": []}, results_dir=res_dir)
+    cid_a = _cid("cond-a")
+    cid_b = _cid("cond-b")
+
+    # Older run for gpt-4o, condition A
+    results_io.save_result("trap", "gpt-4o", {"passed": 16, "total": 18, "scenarios": [], "comparison_id": cid_a}, results_dir=res_dir)
+    # Newer run for gpt-4o, condition A
+    results_io.save_result("trap", "gpt-4o", {"passed": 18, "total": 18, "scenarios": [], "comparison_id": cid_a}, results_dir=res_dir)
+    # Same model, different condition B — must NOT be hidden by the newer A run
+    results_io.save_result("trap", "gpt-4o", {"passed": 9, "total": 18, "scenarios": [], "comparison_id": cid_b}, results_dir=res_dir)
+    # Different model, condition A
+    results_io.save_result("trap", "claude-3-7", {"passed": 17, "total": 18, "scenarios": [], "comparison_id": cid_a}, results_dir=res_dir)
 
     out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
-    assert "| kind | model | utc | score | baseline | delta | status | duration | reported cost |" in out
-    assert "| trap | gpt-4o |" in out
+    assert out.startswith("# Eval trends")
+    # One row per (kind, model, condition); table lists all groups
+    assert sum(1 for ln in out.splitlines() if ln.startswith("| trap |")) == 3
+    # Newest run of condition A survives; the stale 16/18 does not
     assert "18/18" in out
-    # Stale run 16/18 should not appear in the table
     assert "16/18" not in out
+    # Condition B keeps its own row despite the same model
+    assert "9/18" in out
+    assert cid_a[:8] in out
+    assert cid_b[:8] in out
     assert "| trap | claude-3-7 |" in out
-    assert "17/18" in out
 
 
-def test_baseline_bands_and_boundaries(tmp_path):
+def test_same_model_different_conditions_not_averaged_or_compared(tmp_path):
+    """The regression that motivated comparison ids: two trap runs of the
+    same model under different prompt conditions (10/10 and 2/10) used to
+    collapse into one 60% average showing a single misleading -40pp
+    CRITICAL, hiding the other condition. With cohorts, each condition
+    gets its own row, its own baseline, and its own last-N average."""
     res_dir = tmp_path / "results"
     base_dir = tmp_path / "baselines"
     base_dir.mkdir(parents=True)
 
-    # Baseline is 90.0% (0.90) for all models
-    (base_dir / "trap.json").write_text(
-        json.dumps({
-            "m_ok_plus": 0.90,
-            "m_ok_zero": 0.90,
-            "m_ok_exact_minus3": 0.90,
-            "m_warn_minus301": 0.90,
-            "m_warn_minus5": 0.90,
-            "m_warn_minus799": 0.90,
-            "m_crit_exact_minus8": 0.90,
-            "m_crit_minus10": 0.90,
-        }),
-        encoding="utf-8"
-    )
+    cid_strict = _cid("prompt-strict")
+    cid_lenient = _cid("prompt-lenient")
 
-    # delta = +5.0pp -> OK
-    results_io.save_result("trap", "m_ok_plus", {"passed": 95, "total": 100, "scenarios": []}, results_dir=res_dir)
-    # delta = +0.0pp -> OK
-    results_io.save_result("trap", "m_ok_zero", {"passed": 90, "total": 100, "scenarios": []}, results_dir=res_dir)
-    # delta = -3.0pp -> OK (exact -3 boundary)
-    results_io.save_result("trap", "m_ok_exact_minus3", {"passed": 87, "total": 100, "scenarios": []}, results_dir=res_dir)
-    # delta = -3.01pp -> WARN
-    results_io.save_result("trap", "m_warn_minus301", {"passed": 8699, "total": 10000, "scenarios": []}, results_dir=res_dir)
-    # delta = -5.0pp -> WARN
-    results_io.save_result("trap", "m_warn_minus5", {"passed": 85, "total": 100, "scenarios": []}, results_dir=res_dir)
-    # delta = -7.99pp -> WARN
-    results_io.save_result("trap", "m_warn_minus799", {"passed": 8201, "total": 10000, "scenarios": []}, results_dir=res_dir)
-    # delta = -8.0pp -> CRITICAL (exact -8 boundary)
-    results_io.save_result("trap", "m_crit_exact_minus8", {"passed": 82, "total": 100, "scenarios": []}, results_dir=res_dir)
-    # delta = -10.0pp -> CRITICAL
-    results_io.save_result("trap", "m_crit_minus10", {"passed": 80, "total": 100, "scenarios": []}, results_dir=res_dir)
+    # Strict condition: 1.0 across two runs
+    results_io.save_result("trap", "m1", {"passed": 10, "total": 10, "comparison_id": cid_strict}, results_dir=res_dir)
+    results_io.save_result("trap", "m1", {"passed": 10, "total": 10, "comparison_id": cid_strict}, results_dir=res_dir)
+    # Lenient condition: 0.2, then 0.2 — regressed vs a 0.9 baseline
+    results_io.save_result("trap", "m1", {"passed": 2, "total": 10, "comparison_id": cid_lenient}, results_dir=res_dir)
+    results_io.save_result("trap", "m1", {"passed": 2, "total": 10, "comparison_id": cid_lenient}, results_dir=res_dir)
+
+    # Baselines per condition: strict 1.0, lenient 0.9
+    (base_dir / "trap.json").write_text(
+        json.dumps({"m1": {cid_strict: 1.0, cid_lenient: 0.9}}),
+        encoding="utf-8")
 
     out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    strict_rows = [ln for ln in out.splitlines()
+                   if ln.startswith("| trap | m1 |") and "10/10" in ln]
+    lenient_rows = [ln for ln in out.splitlines()
+                    if ln.startswith("| trap | m1 |") and "2/10" in ln]
+    assert len(strict_rows) == 1
+    assert len(lenient_rows) == 1
+    # Strict: +0.0pp OK against its own baseline
+    assert "| 100.0% | +0.0pp | OK |" in strict_rows[0]
+    # Lenient: -70.0pp CRITICAL against its own baseline — not a mixed
+    # 60% average
+    assert "| 90.0% | -70.0pp | CRITICAL |" in lenient_rows[0]
+    # No 60% mixed population anywhere
+    assert "60.0%" not in out
+    # Condition prefixes distinguish the rows
+    assert cid_strict[:8] in strict_rows[0]
+    assert cid_lenient[:8] in lenient_rows[0]
 
-    for line in out.splitlines():
-        if "| trap | m_ok_plus |" in line:
-            assert "+5.0pp | OK |" in line
-        elif "| trap | m_ok_zero |" in line:
-            assert "+0.0pp | OK |" in line
-        elif "| trap | m_ok_exact_minus3 |" in line:
-            assert "-3.0pp | OK |" in line
-        elif "| trap | m_warn_minus301 |" in line:
-            assert "-3.0pp | WARN |" in line or "-3.01" in line
-        elif "| trap | m_warn_minus5 |" in line:
-            assert "-5.0pp | WARN |" in line
-        elif "| trap | m_warn_minus799 |" in line:
-            assert "-8.0pp | WARN |" in line or "-7.99" in line
-        elif "| trap | m_crit_exact_minus8 |" in line:
-            assert "-8.0pp | CRITICAL |" in line
-        elif "| trap | m_crit_minus10 |" in line:
-            assert "-10.0pp | CRITICAL |" in line
+    # Update baselines: each condition averages only its own runs
+    trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=5)
+    data = json.loads((base_dir / "trap.json").read_text(encoding="utf-8"))
+    assert data["m1"][cid_strict] == 1.0
+    assert data["m1"][cid_lenient] == 0.2
+
+
+
+
+def test_status_and_delta_bands_and_boundaries():
+    # Baseline 0.90 for all cases; deltas in percentage points.
+    cases = [
+        # (rate, baseline, expected status)
+        (0.95, 0.90, "OK"),        # +5.0pp
+        (0.90, 0.90, "OK"),        # +0.0pp
+        (0.87, 0.90, "OK"),        # -3.0pp exact boundary
+        (0.8699, 0.90, "WARN"),    # -3.01pp
+        (0.85, 0.90, "WARN"),      # -5.0pp
+        (0.8201, 0.90, "WARN"),    # -7.99pp
+        (0.82, 0.90, "CRITICAL"),  # -8.0pp exact boundary
+        (0.80, 0.90, "CRITICAL"),  # -10.0pp
+    ]
+    for rate, baseline, expected in cases:
+        b_str, d_str, status_str = trend._status_and_delta(rate, baseline)
+        assert status_str == expected, (rate, d_str, status_str)
+        assert b_str == "90.0%"
+
+    # No baseline -> no delta, no status
+    assert trend._status_and_delta(0.5, None) == ("-", "-", "-")
+    # Baseline present, rate unknown -> baseline shown, no delta
+    b_str, d_str, status_str = trend._status_and_delta(None, 0.9)
+    assert b_str == "90.0%"
+    assert d_str == "-"
+    assert status_str == "-"
 
 
 def test_missing_and_malformed_baseline_tolerance(tmp_path):
@@ -126,10 +162,47 @@ def test_missing_and_malformed_baseline_tolerance(tmp_path):
     assert "| - | - | - |" in out3
 
     # 4. Non-numeric entry for model
-    (base_dir / "trap.json").write_text(json.dumps({"m1": "invalid"}), encoding="utf-8")
-    out4 = trend.render(results_dir=res_dir, baselines_dir=base_dir)
-    assert "| trap | m1 |" in out4
-    assert "| - | - | - |" in out4
+    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.5}), encoding="utf-8")
+    out_legacy = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    assert "| trap | m1 |" in out_legacy
+    assert "| - | - | - |" in out_legacy
+    assert "50.0%" not in out_legacy
+
+
+def test_unknown_condition_runs_visible_without_comparison(tmp_path):
+    res_dir = tmp_path / "results"
+    base_dir = tmp_path / "baselines"
+    base_dir.mkdir(parents=True)
+
+    # Two runs, same model, one with no id and one with a malformed id.
+    results_io.save_result("trap", "m1", {"passed": 1, "total": 2, "scenarios": []}, results_dir=res_dir)
+    results_io.save_result("trap", "m1", {"passed": 2, "total": 2, "scenarios": [], "comparison_id": "not-a-real-id"}, results_dir=res_dir)
+    # One run with a valid id that has no stored baseline
+    results_io.save_result("trigger", "m1", {"passed": 4, "fired": 3, "total": 4, "rows": [], "comparison_id": _cid("cond-a")}, results_dir=res_dir)
+
+    out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    # Missing/invalid ids stay visible as unknown, each as its own row
+    assert out.count("| trap | m1 |") == 2
+    assert "unknown" in out
+    assert "not-a-real-id" not in out
+    # No comparison available: dashes, no fabricated legacy cohort
+    assert "| - | - | - |" in out
+    # Valid id with no stored baseline: also no delta
+    assert "| trigger | m1 |" in out
+    trigger_row = [ln for ln in out.splitlines() if ln.startswith("| trigger | m1 |")]
+    assert trigger_row and "| - | - | - |" in trigger_row[0]
+
+
+def test_unknown_runs_with_same_id_suffix_are_not_hidden(tmp_path):
+    results = tmp_path / "results"
+    results.mkdir()
+    for index, passed in enumerate((1, 2)):
+        doc = {"schema_version": 1, "kind": "trap", "model": "m", "mode": "live",
+               "run_id": f"different-{index}-12345678", "utc": f"2026-09-27T0{index}:00:00Z",
+               "passed": passed, "total": 2}
+        (results / f"{index}.json").write_text(json.dumps(doc), encoding="utf-8")
+    report = trend.render(results, tmp_path / "baselines")
+    assert "1/2" in report and "2/2" in report
 
 
 def test_evidence_packets_all_three_kinds(tmp_path):
@@ -199,9 +272,11 @@ def test_evidence_packets_exclude_fixed_failures(tmp_path):
     res_dir = tmp_path / "results"
     base_dir = tmp_path / "baselines"
 
+    cid = _cid("cond-a")
+
     # Run 1 fails scope-creep
     results_io.save_result("trap", "m1", {
-        "passed": 17, "total": 18,
+        "passed": 17, "total": 18, "comparison_id": cid,
         "scenarios": [{
             "name": "scope-creep",
             "skill": "yagni",
@@ -210,9 +285,9 @@ def test_evidence_packets_exclude_fixed_failures(tmp_path):
         }]
     }, results_dir=res_dir)
 
-    # Run 2 passes all
+    # Run 2 (same condition) passes all
     results_io.save_result("trap", "m1", {
-        "passed": 18, "total": 18,
+        "passed": 18, "total": 18, "comparison_id": cid,
         "scenarios": [{
             "name": "scope-creep",
             "skill": "yagni",
@@ -243,26 +318,66 @@ def test_no_proposal_or_edit_wording(tmp_path):
     assert "Proposals" not in out
 
 
-def test_update_baselines_last_n_averaging(tmp_path):
+def test_update_baselines_cohort_last_n_averaging(tmp_path):
     res_dir = tmp_path / "results"
     base_dir = tmp_path / "baselines"
 
-    # 5 runs: 1.0, 0.8, 0.6, 0.9, 0.7
+    cid_a = _cid("cond-a")
+    cid_b = _cid("cond-b")
+
+    # Condition A: 5 runs for m1 with rates 1.0, 0.8, 0.6, 0.9, 0.7
     rates = [(10, 10), (8, 10), (6, 10), (9, 10), (7, 10)]
     for passed, total in rates:
-        results_io.save_result("trap", "m1", {"passed": passed, "total": total}, results_dir=res_dir)
+        results_io.save_result("trap", "m1", {"passed": passed, "total": total, "comparison_id": cid_a}, results_dir=res_dir)
 
-    # Update baselines with n=3 (averages 0.6, 0.9, 0.7 -> 2.2 / 3 = 0.7333)
+    # Condition B (same model): 2 runs with rates 1.0, 0.0
+    results_io.save_result("trap", "m1", {"passed": 10, "total": 10, "comparison_id": cid_b}, results_dir=res_dir)
+    results_io.save_result("trap", "m1", {"passed": 0, "total": 10, "comparison_id": cid_b}, results_dir=res_dir)
+
+    # Unknown-id run (no comparison_id): must be ignored by the update
+    results_io.save_result("trap", "m1", {"passed": 5, "total": 5}, results_dir=res_dir)
+
+    # Update with n=3: A averages 0.6, 0.9, 0.7 -> 0.7333;
+    # B averages both of its 2 runs -> 0.5
     trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=3)
 
     trap_baseline_file = base_dir / "trap.json"
     assert trap_baseline_file.is_file()
     data = json.loads(trap_baseline_file.read_text(encoding="utf-8"))
-    assert data["m1"] == 0.7333
+    assert data["m1"][cid_a] == 0.7333
+    assert data["m1"][cid_b] == 0.5
+    # The unknown-id run was not folded into any cohort
+    assert len(data["m1"]) == 2
 
-    # Check deterministic trailing LF
+    # Deterministic trailing LF
     raw = trap_baseline_file.read_bytes()
     assert raw.endswith(b"\n")
+
+    # A second update re-derives the same values (no drift, no growth)
+    trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=3)
+    data2 = json.loads(trap_baseline_file.read_text(encoding="utf-8"))
+    assert data2 == data
+
+
+def test_update_baselines_legacy_numeric_file_cutover(tmp_path):
+    res_dir = tmp_path / "results"
+    base_dir = tmp_path / "baselines"
+    base_dir.mkdir(parents=True)
+
+    cid = _cid("cond-a")
+    # Pre-cutover numeric baseline file
+    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.5}), encoding="utf-8")
+    results_io.save_result("trap", "m1", {"passed": 8, "total": 10, "comparison_id": cid}, results_dir=res_dir)
+
+    trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=5)
+    data = json.loads((base_dir / "trap.json").read_text(encoding="utf-8"))
+    # The numeric value 0.5 is not carried over; only the cohort entry exists
+    assert data == {"m1": {cid: 0.8}}
+
+    # Render with the pre-cutover numeric file never fabricates a baseline
+    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.5}), encoding="utf-8")
+    out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    assert "| - | - | - |" in out
 
 
 def test_cli_always_exits_zero(tmp_path, monkeypatch):
@@ -270,10 +385,12 @@ def test_cli_always_exits_zero(tmp_path, monkeypatch):
     base_dir = tmp_path / "baselines"
     base_dir.mkdir(parents=True)
 
-    # Baseline 1.0 (100%)
-    (base_dir / "trap.json").write_text(json.dumps({"m1": 1.0}), encoding="utf-8")
+    cid = _cid("cond-a")
+    # Baseline 1.0 (100%) under the same condition id
+    (base_dir / "trap.json").write_text(
+        json.dumps({"m1": {cid: 1.0}}), encoding="utf-8")
     # Result 0.8 (80%) -> delta -20.0pp -> CRITICAL
-    results_io.save_result("trap", "m1", {"passed": 8, "total": 10}, results_dir=res_dir)
+    results_io.save_result("trap", "m1", {"passed": 8, "total": 10, "comparison_id": cid}, results_dir=res_dir)
 
     # Normal render with CRITICAL status must exit 0 (warn-only)
     rc1 = trend.main(["--results-dir", str(res_dir), "--baselines-dir", str(base_dir)])
@@ -396,12 +513,15 @@ def test_malformed_substructures_tolerance(tmp_path):
     results_io.save_result("trigger", "m1", {
         "rows": [None, {"verdict": "PASS"}]
     }, results_dir=res_dir)
+    results_io.save_result("trap", "missing-score", {
+        "mode": "live", "passed": "unavailable", "total": 2,
+    }, results_dir=res_dir)
 
     out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
-    assert "all-green: no open failures" in out
     assert "| trap | m1 |" in out
     assert "| tasks | m1 |" in out
     assert "| trigger | m1 |" in out
+    assert "| trap | missing-score |" in out
 
 
 def test_dry_run_records_excluded_from_render_and_baselines(tmp_path):
@@ -435,8 +555,10 @@ def test_dry_run_records_excluded_from_render_and_baselines(tmp_path):
     assert not (base_dir / "tasks.json").exists()
 
     # 2. Add a live record alongside dry-run records
+    cid = _cid("cond-a")
     results_io.save_result("trigger", "m1", {
         "mode": "live",
+        "comparison_id": cid,
         "passed": 80,
         "fired": 40,
         "total": 80,
@@ -454,7 +576,7 @@ def test_dry_run_records_excluded_from_render_and_baselines(tmp_path):
     trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=5)
     assert (base_dir / "trigger.json").exists()
     data = json.loads((base_dir / "trigger.json").read_text(encoding="utf-8"))
-    assert data["m1"] == 1.0
+    assert data["m1"] == {cid: 1.0}
     assert not (base_dir / "tasks.json").exists()
 
 
@@ -494,9 +616,11 @@ def test_explicit_mode_and_legacy_zero_result_dry_run_filtering(tmp_path):
     }, results_dir=res_dir)
 
     # 5. Legacy live run without mode but with real attempts
+    cid = _cid("cond-a")
     results_io.save_result("trap", "m_legacy_live", {
         "passed": 18,
         "total": 18,
+        "comparison_id": cid,
         "scenarios": [{"name": "sc1", "verdict": "PASS", "attempts": [{"verdict": "PASS", "phase": "verdict"}]}],
     }, results_dir=res_dir)
 
@@ -515,7 +639,7 @@ def test_explicit_mode_and_legacy_zero_result_dry_run_filtering(tmp_path):
     assert tasks_data["m_live_explicit"] == 1.0
 
     trap_data = json.loads((base_dir / "trap.json").read_text(encoding="utf-8"))
-    assert trap_data["m_legacy_live"] == 1.0
+    assert trap_data["m_legacy_live"] == {cid: 1.0}
 
 
 def test_trigger_perfect_mixed_corpus_all_green(tmp_path):
@@ -628,7 +752,10 @@ def test_render_old_docs_dash_new_columns(tmp_path):
     out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
     row = [ln for ln in out.splitlines() if ln.startswith("| trap | gpt-4o |")]
     assert row, "expected a table row for gpt-4o"
-    assert row[0].endswith("| - | - |")
+    # old doc: no duration/cost -> trailing dashes; condition shows unknown
+    cells = [c.strip() for c in row[0].strip().strip("|").split("|")]
+    assert cells[3].startswith("unknown")
+    assert cells[-2:] == ["-", "-"]
 
 
 def test_ablate_excluded_from_main_table(tmp_path):

@@ -1,4 +1,44 @@
 # Changelog — Coding Agent OS
+- **Unreleased (2026-09-27) — compare matching eval conditions only:**
+  - Trap/trigger results now record digest-only comparison identity over exact
+    executed input snapshots, expectations, selected cases, scorer files,
+    repetitions, timeout and parsed executor/judge settings. Case ordering and
+    outcomes do not change the identity; raw command configuration is not stored.
+  - Trend keeps separate conditions visible and averages only matching IDs.
+    Missing/invalid IDs have no baseline or delta; a missing case fingerprint
+    makes the whole run unknown rather than silently comparing its valid subset.
+    Explicit baseline updates cut over to model/condition mappings; old numeric
+    baselines are not reused, and historical result files remain unchanged.
+  - Reproduction: 10/10 and 2/10 from different conditions previously became a
+    mixed 60% baseline and a false -40pp CRITICAL. The corrected real report CLI
+    displays separate populations. Regression checks also caught partial-input
+    identity and truncated unknown-run keys during integration.
+  - Scope: offline producer/storage/report behavior, with deterministic model
+    responses at the test boundary. Matching inputs do not control mutable images,
+    ambient skills or provider aliases and do not establish instruction causality.
+- **Unreleased (2026-09-27) — stop unobserved trap-suite passes:**
+  - Trap input validation records `DRY_RUN`, zero behavioral passes and an
+    explicit validation-only CLI summary, matching the task runner's existing
+    convention. Invalid inputs still fail validation; live verdicts are unchanged.
+  - Candidate answers above the judge's 8000-character limit now fail in the
+    judge phase without calling the judge. Previously, a silent prefix could
+    pass while omitting a late violation. This is an evaluation-capacity error,
+    not evidence that the model violated the scenario.
+  - Removed the prompt-string test that endorsed a truncated-answer pass;
+    regressions cover valid/invalid dry-runs and the exact judge-limit boundary.
+    Red-first check: four failures and one passing boundary control; after the
+    fix all five cases passed. Actual CLI smoke changed `PASS`/`passed: 1` to
+    `DRY_RUN`/`passed: 0`; the real judge entrypoint rejected oversized evidence
+    before attempting a container launch.
+  - Integrated runner/ablation/trend checks: 118 passed, 6 container-dependent
+    skips. Full suite: 819 passed, 16 skipped, 491 subtests before removing an
+    extra prompt-wording test. Integrity: 171 files. Doctor: 13/14 checks pass;
+    its sole failure is an unchanged design-system eval fixture with LF in the
+    new worktree versus CRLF in installed copies (normalized bytes identical).
+  - Historical dry-run `ALL GREEN` entries mean input validation only; no old
+    results were regraded. No skill instructions or installed copies changed.
+    Docker's daemon was unavailable; no live-model or container-path success
+    is claimed, and no improvement in agent goal retention has been measured.
 - **Unreleased (2026-09-26) — outcome-driven work selection and restored ideation guidance:**
   - `autonomous-work` now selects work by evidence of expected benefit and
     names who uses the result. Value and evidence are both required; activity

@@ -1,6 +1,7 @@
 """Versioned, append-only JSON result persistence for eval harnesses."""
 
 import datetime as _datetime
+import hashlib
 import json
 import ntpath
 import os
@@ -42,6 +43,41 @@ ALIAS_KEYS = frozenset(
 )
 _MAX_PUBLICATION_ATTEMPTS = 10
 _MAX_TEMP_ATTEMPTS = 10
+
+
+def canonical_sha256(value: object) -> str:
+    """Digest structured inputs without persisting their contents."""
+    blob = json.dumps(value, sort_keys=True, ensure_ascii=False,
+                      separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
+
+
+def files_digest(paths) -> str:
+    """Content identity of local scorer files, stable across workspace copies."""
+    entries = []
+    for item in paths:
+        item = Path(item)
+        try:
+            name = item.resolve().relative_to(ROOT).as_posix()
+        except (OSError, ValueError):
+            name = item.as_posix()
+        data = item.read_bytes()
+        entries.append({"path": name, "sha256": hashlib.sha256(data).hexdigest()})
+    entries.sort(key=lambda e: e["path"])
+    return canonical_sha256({"files": entries})
+
+
+def config_digest(record: object) -> str | None:
+    """Hash parsed executor fields; never persist raw commands or credentials."""
+    if not isinstance(record, dict):
+        return None
+    return canonical_sha256({
+        "mode": record.get("mode"),
+        "image": record.get("image"),
+        "argv": list(record.get("argv") or []),
+        "mounts": [list(m) for m in (record.get("mounts") or ())],
+        "network": bool(record.get("network")),
+    })
 
 
 def _git_sha() -> str:
