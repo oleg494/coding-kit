@@ -238,6 +238,15 @@ These commands validate evaluation inputs; they do **not** measure a live
 model's behavior. Trap dry-runs record `DRY_RUN` rows with `passed: 0`;
 exit zero means the inputs are valid, not that the model passed.
 
+Trap and trigger results carry `comparison_id`: a digest of executed prompts,
+expectations, selected cases, scorer code and execution settings. `trend.py`
+compares only matching IDs within a model. Unknown IDs stay visible without
+deltas and cannot seed baselines; existing run files are never rewritten.
+On `--update-baselines`, new trap/trigger baselines use
+`{model: {comparison_id: rate}}`; old numeric baselines are not reused.
+Matching IDs do not control mutable images, ambient skills or provider aliases,
+and do not prove that an instruction change caused an improvement.
+
 <details>
 <summary>Evaluation tools and what they measure</summary>
 

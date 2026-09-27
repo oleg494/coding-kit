@@ -1,4 +1,21 @@
 # Changelog — Coding Agent OS
+- **Unreleased (2026-09-27) — compare matching eval conditions only:**
+  - Trap/trigger results now record digest-only comparison identity over exact
+    executed input snapshots, expectations, selected cases, scorer files,
+    repetitions, timeout and parsed executor/judge settings. Case ordering and
+    outcomes do not change the identity; raw command configuration is not stored.
+  - Trend keeps separate conditions visible and averages only matching IDs.
+    Missing/invalid IDs have no baseline or delta; a missing case fingerprint
+    makes the whole run unknown rather than silently comparing its valid subset.
+    Explicit baseline updates cut over to model/condition mappings; old numeric
+    baselines are not reused, and historical result files remain unchanged.
+  - Reproduction: 10/10 and 2/10 from different conditions previously became a
+    mixed 60% baseline and a false -40pp CRITICAL. The corrected real report CLI
+    displays separate populations. Regression checks also caught partial-input
+    identity and truncated unknown-run keys during integration.
+  - Scope: offline producer/storage/report behavior, with deterministic model
+    responses at the test boundary. Matching inputs do not control mutable images,
+    ambient skills or provider aliases and do not establish instruction causality.
 - **Unreleased (2026-09-27) — stop unobserved trap-suite passes:**
   - Trap input validation records `DRY_RUN`, zero behavioral passes and an
     explicit validation-only CLI summary, matching the task runner's existing

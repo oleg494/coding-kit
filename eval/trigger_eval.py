@@ -48,6 +48,7 @@ HERE = Path(__file__).resolve().parent          # eval/
 ROOT = HERE.parent                              # kit root
 sys.path.insert(0, str(HERE))
 from runner import resolve_cmd, run_prompt      # same executor contract
+from results_io import canonical_sha256, config_digest, files_digest
 from telemetry import load_reported_usage, summarize_durations
 from behavior_oracles import behavior_fired, has_oracle
 
@@ -220,18 +221,32 @@ PRELUDE = (
 )
 
 
-def prompt_for(query: str) -> str:
-    prelude = PRELUDE.replace("<skills listing>", _render_listing())
+def prompt_for(query: str, *, listing: str | None = None) -> str:
+    """Prompt for one query. `listing` is a pre-rendered skills-listing
+    snapshot; when omitted it is read live. Reusing one snapshot across
+    repetitions and rows keeps executed prompt bytes stable even while the
+    skills directory changes mid-run."""
+    if listing is None:
+        listing = _render_listing()
+    prelude = PRELUDE.replace("<skills listing>", listing)
     return prelude + "User request: " + query + "\n"
 
 
 def run_query_detailed(cmd: dict, q: dict, runs: int,
-                       timeout: int = TIMEOUT_DEFAULT) -> dict:
+                       timeout: int = TIMEOUT_DEFAULT,
+                       listing: str | None = None) -> dict:
     """Runs one query `runs` times; records per-attempt timings and errors.
 
     Any execution error on an attempt fails the whole row, regardless of
     `should`; the first error and trace tail are promoted to row level.
+    `listing` is a pre-rendered skills-listing snapshot reused for every
+    attempt; omitted means it is read live once, before the first attempt.
+    The row records one `input_sha256` over the exact executed prompt
+    bytes (the snapshot the suite identity aggregates later).
     """
+    if listing is None:
+        listing = _render_listing()
+    prompt = prompt_for(q["query"], listing=listing)
     hits = 0
     attempts: list[dict] = []
     errors: list[str] = []
@@ -243,7 +258,7 @@ def run_query_detailed(cmd: dict, q: dict, runs: int,
         is_fired = False
         trace_tail = None
         try:
-            answer = run_prompt(cmd, prompt_for(q["query"]), timeout=timeout)
+            answer = run_prompt(cmd, prompt, timeout=timeout)
             is_fired = signal_fired(q["skill"], answer)
         except subprocess.TimeoutExpired as e:
             err_msg = f"TimeoutExpired: command timed out after {timeout}s"
@@ -278,6 +293,9 @@ def run_query_detailed(cmd: dict, q: dict, runs: int,
 
     fired_aggregate = hits * 2 > runs
     expected = bool(q.get("should", False))
+    input_sha256 = canonical_sha256(
+        {"query": q.get("query", ""), "skill": q.get("skill", ""),
+         "expected": expected, "prompt": prompt})
     is_pass = (not errors) and (fired_aggregate == expected)
     verdict = "PASS" if is_pass else "FAIL"
     total_dur = round(sum(a["duration_s"] for a in attempts), 4)
@@ -292,6 +310,7 @@ def run_query_detailed(cmd: dict, q: dict, runs: int,
         "mode": mode,
         "attempts": attempts,
     }
+    row["input_sha256"] = input_sha256
     if errors:
         row["error"] = "; ".join(errors)
     if first_trace:
@@ -300,10 +319,36 @@ def run_query_detailed(cmd: dict, q: dict, runs: int,
 
 
 def run_query(cmd: dict, q: dict, runs: int,
-              timeout: int = TIMEOUT_DEFAULT) -> tuple[str, bool]:
+              timeout: int = TIMEOUT_DEFAULT,
+              listing: str | None = None) -> tuple[str, bool]:
     """Runs one query `runs` times; majority vote decides triggered."""
-    res = run_query_detailed(cmd, q, runs, timeout=timeout)
+    res = run_query_detailed(cmd, q, runs, timeout=timeout, listing=listing)
     return res["query"], res["fired"]
+
+_TRIGGER_SCORER_FILES = ("trigger_eval.py", "behavior_oracles.py",
+                         "results_io.py", "runner.py")
+
+
+def _trigger_protocol_identity(*, runs: int, timeout: int, executor: dict | None) -> dict:
+    """Digest-only protocol identity for one trigger suite execution."""
+    return {
+        "kind": "trigger",
+        "scorer": files_digest(
+            (HERE / n for n in _TRIGGER_SCORER_FILES)),
+        "runs": int(runs),
+        "timeout": int(timeout),
+        "prompt_mode": "skill-listing",
+        "executor_config_sha256": config_digest(executor),
+    }
+
+
+def _suite_input_identity(rows: list[dict], protocol: dict) -> str | None:
+    """A missing input makes the whole population unknown, not a subset."""
+    if not rows or any(not isinstance(r.get("input_sha256"), str) for r in rows):
+        return None
+    return canonical_sha256({"protocol": protocol,
+                             "cases": sorted(r["input_sha256"] for r in rows)})
+
 
 def summarize(results: dict[str, list[tuple[str, bool, bool]]]) -> tuple[list[str], dict]:
     """Return (problem lines, per-skill stats)."""
@@ -401,11 +446,17 @@ def main() -> int:
     if args.only and not selected:
         print(f"--only {args.only}: no such skill in queries"); return 2
 
+    # Snapshot the listing and protocol identity before any executor call:
+    # the skills directory and local scorer files may change mid-run.
+    listing = _render_listing()
+    protocol = _trigger_protocol_identity(
+        runs=args.runs, timeout=args.timeout, executor=cmd)
+
     results: dict[str, list[tuple[str, bool, bool]]] = {}
     rows: list[dict] = []
     with ThreadPoolExecutor(max_workers=args.parallel) as pool:
         futs = {pool.submit(run_query_detailed, cmd, q, args.runs,
-                            args.timeout): q for q in selected}
+                            args.timeout, listing): q for q in selected}
         for fut in as_completed(futs):
             q = futs[fut]
             try:
@@ -447,7 +498,9 @@ def main() -> int:
                        passed=passed_count,
                        fired=fired_count,
                        misses=problems,
-                       rows=rows, reported_usage=reported_usage)
+                       rows=rows, reported_usage=reported_usage,
+                       comparison_id=_suite_input_identity(
+                           rows, protocol))
         return 1
     print("\nall measured skills above threshold")
     if args.json:
@@ -455,13 +508,16 @@ def main() -> int:
                    passed=passed_count,
                    fired=fired_count,
                    misses=[],
-                   rows=rows, reported_usage=reported_usage)
+                   rows=rows, reported_usage=reported_usage,
+                   comparison_id=_suite_input_identity(
+                       rows, protocol))
     return 0
 
 
 def _emit_json(args, mode: str, total: int, passed: int, fired: int,
                misses: list[str], rows: list[dict] | None = None,
-               reported_usage: dict | None = None) -> None:
+               reported_usage: dict | None = None,
+               comparison_id: str | None = None) -> None:
     if not getattr(args, "json", None):
         return
     sys.path.insert(0, str(HERE))
@@ -482,6 +538,10 @@ def _emit_json(args, mode: str, total: int, passed: int, fired: int,
         "rows": rows,
         "duration_s_total": total_s,
         "duration_s_mean": mean_s,
+        "prompt_mode": "skill-listing",
+        # None keeps a dry-run (or no executed rows) visible as an unknown
+        # cohort: no comparison, no fabricated 'legacy' baseline.
+        "comparison_id": comparison_id if mode == "live" else None,
     }
     if mode == "live" and reported_usage is not None:
         payload["reported_usage"] = reported_usage
