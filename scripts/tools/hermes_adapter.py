@@ -59,6 +59,19 @@ except (ImportError, ValueError):
     validate_image = _hermes_recovery.validate_image
     DeployTransaction = _deploy_tx.DeployTransaction
 
+try:
+    from . import kit_inventory
+except (ImportError, ValueError):
+    try:
+        import kit_inventory
+    except ImportError:
+        import importlib.util as _ilu
+        _ki_spec = _ilu.spec_from_file_location(
+            "kit_inventory",
+            Path(__file__).resolve().parent / "kit_inventory.py")
+        kit_inventory = _ilu.module_from_spec(_ki_spec)
+        _ki_spec.loader.exec_module(kit_inventory)
+
 CATEGORY = "coding-kit"
 EXT_DIR_NAME = "kit-skills"
 MARK_BEGIN = "<!-- kit:begin v{version} -->"
@@ -97,10 +110,17 @@ def kit_version(kit: Path) -> str:
 
 
 def kit_skills(kit: Path) -> list[Path]:
+    """Kit-owned skill dirs (profile.yml inventory, v4.7.0) with a
+    SKILL.md. Foreign dirs under kit/skills are never projected."""
     root = kit / "skills"
     if not root.is_dir():
         raise Conflict(f"kit skills/ not found: {root}")
-    return sorted((d for d in root.iterdir() if (d / "SKILL.md").is_file()),
+    try:
+        owned = set(kit_inventory.load_owned_skills(kit))
+    except kit_inventory.KitInventoryError as e:
+        raise Conflict(str(e)) from e
+    return sorted((d for d in root.iterdir()
+                   if d.name in owned and (d / "SKILL.md").is_file()),
                   key=lambda d: d.name)
 
 

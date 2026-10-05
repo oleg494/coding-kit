@@ -41,7 +41,9 @@ def _seed(root: Path):
     """Minimal kit tree covering every scope family."""
     _write(root / "OPS.md", "# ops\n")
     _write(root / "AGENTS.md", "# agents\n")
-    _write(root / "profile.yml", "version: \"3.5.0\"\n")
+    _write(root / "profile.yml",
+           "version: \"3.5.0\"\n"
+           "skills:\n  always_on:\n    - demo\n  domain: []\n")
     _write(root / "SKILL_RUNTIME.md", "# runtime\n")
     _write(root / "adapters" / "zcode.md", "# adapter\n")
     _write(root / "scripts" / "doctor.py", "x = 1\n")
@@ -186,6 +188,9 @@ class DoctorIntegrityTest(unittest.TestCase):
         shutil.copy2(KIT / "scripts" / "tools" / "integrity_manifest.py",
                      self.root / "scripts" / "tools"
                      / "integrity_manifest.py")
+        # v4.7.0: the tool depends on kit_inventory.py — copy it too
+        shutil.copy2(KIT / "scripts" / "tools" / "kit_inventory.py",
+                     self.root / "scripts" / "tools" / "kit_inventory.py")
         (self.root / "integrity-manifest.json").write_text(
             json.dumps({"kit_version": "test", "files":
                         integrity.build_manifest(self.root)}, indent=1),
@@ -235,6 +240,9 @@ class CliTest(unittest.TestCase):
         shutil.copy2(KIT / "scripts" / "tools" / "integrity_manifest.py",
                      self.root / "scripts" / "tools"
                      / "integrity_manifest.py")
+        # v4.7.0: the tool depends on kit_inventory.py — copy it too
+        shutil.copy2(KIT / "scripts" / "tools" / "kit_inventory.py",
+                     self.root / "scripts" / "tools" / "kit_inventory.py")
 
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -259,7 +267,10 @@ class CliTest(unittest.TestCase):
         self.assertTrue((self.root / "integrity-manifest.json").is_file())
         r = self._run("--root", str(self.root))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        _write(self.root / "profile.yml", "version: \"9.9.9\"\n")
+        # keep the skills inventory valid (v4.7.0): drift the version only
+        _write(self.root / "profile.yml",
+               "version: \"9.9.9\"\n"
+               "skills:\n  always_on:\n    - demo\n  domain: []\n")
         r = self._run("--root", str(self.root))
         self.assertEqual(r.returncode, 1)
         self.assertIn("profile.yml", r.stdout)

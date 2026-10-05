@@ -23,6 +23,18 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent          # scripts/tools/
 KIT = HERE.parent.parent                        # kit root
 DEFAULT_DIR = KIT / "skills"
+
+try:
+    from . import kit_inventory
+except (ImportError, ValueError):
+    try:
+        import kit_inventory
+    except ImportError:
+        import importlib.util as _ilu
+        _ki_spec = _ilu.spec_from_file_location(
+            "kit_inventory", HERE / "kit_inventory.py")
+        kit_inventory = _ilu.module_from_spec(_ki_spec)
+        _ki_spec.loader.exec_module(kit_inventory)
 DEFAULT_TOP = 8
 
 FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -54,8 +66,26 @@ def parse_skill(path: Path) -> dict | None:
 
 
 def catalog(skills_dir: Path) -> list[dict]:
+    """Parsable SKILL.md entries for kit-owned skills only (v4.7.0
+    inventory). With the default kit dir, foreign dirs (e.g. firecrawl
+    sources) are excluded; a --dir without a sibling profile.yml (custom
+    tree) keeps the whole directory as before."""
+    skills_dir = Path(skills_dir)
+    if skills_dir == DEFAULT_DIR:
+        owned = frozenset(kit_inventory.load_owned_skills(KIT))
+    else:
+        sibling = skills_dir.parent / "profile.yml"
+        if sibling.is_file():
+            owned = frozenset(
+                kit_inventory.load_owned_skills(
+                    skills_dir.parent, profile_path=sibling))
+        else:
+            owned = frozenset(
+                d.name for d in skills_dir.iterdir() if d.is_dir())
     out = []
     for p in sorted(skills_dir.glob("*/SKILL.md")):
+        if p.parent.name not in owned:
+            continue
         parsed = parse_skill(p)
         if parsed:
             out.append(parsed)

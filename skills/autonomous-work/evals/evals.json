@@ -6,6 +6,13 @@
     {"id": "autonomous-work-2", "prompt": "Resume the autonomous mission from its checkpoint, preserving my edits since yesterday.", "should_trigger": true},
     {"id": "autonomous-work-3", "prompt": "Fix only this off-by-one and show the targeted check. Do not touch anything else.", "should_trigger": false},
     {"id": "autonomous-work-4", "prompt": "Explain what an autonomous agent means. Do not run tools or edit files.", "should_trigger": false},
-    {"id": "autonomous-work-5", "prompt": "Audit this module read-only and stop after your findings.", "should_trigger": false}
+    {"id": "autonomous-work-5", "prompt": "Audit this module read-only and stop after your findings.", "should_trigger": false},
+    {"id": "autonomous-work-6", "prompt": "Продолжи работу над OMP, мне на почту наспамило. Восстанови прежнюю миссию из памяти.", "should_trigger": true},
+    {"id": "autonomous-work-7", "prompt": "Pick up the Atlas project where we left off; the task details are in project memory.", "should_trigger": true},
+    {"id": "autonomous-work-8", "prompt": "Continue only this typo correction and report. Do not resume the old autonomous mission.", "should_trigger": false},
+    {"id": "autonomous-work-9", "prompt": "You've made 30 tool calls on this objective — wrap it up now regardless of state.", "should_trigger": true},
+    {"id": "autonomous-work-10", "prompt": "The mission's first objective is verified and recorded; move on to the next one without rechecking it.", "should_trigger": true},
+    {"id": "autonomous-work-11", "prompt": "Write down the verified objective as a compact command/state/result/invalidation record in the handoff.", "should_trigger": true},
+    {"id": "autonomous-work-12", "prompt": "Stop after this single small fix even though the autonomous mission has more in-scope objectives.", "should_trigger": false}
   ]
 }

@@ -108,6 +108,22 @@ class SupplyChainWarnTest(unittest.TestCase):
         d = self.tmp / "skills" / name
         d.mkdir(parents=True)
         (d / "SKILL.md").write_text(body, encoding="utf-8")
+        # v4.7.0: fixture skills must be declared in the kit inventory
+        self._declare(name)
+
+    def _declare(self, name):
+        known = set()
+        mf = self.tmp / "profile.yml"
+        if mf.is_file():
+            for line in mf.read_text(encoding="utf-8").splitlines():
+                s = line.strip()
+                if s.startswith("- "):
+                    known.add(s[2:].strip())
+        known.add(name)
+        entries = "\n".join(f"    - {s}" for s in sorted(known))
+        mf.write_text(
+            "skills:\n  always_on:\n" + entries + "\n  domain: []\n",
+            encoding="utf-8", newline="\n")
 
     def test_doctor_flags_skills_without_license_or_hash(self):
         self._skill("skill-a", _SKILL_A)
@@ -125,6 +141,11 @@ class SupplyChainWarnTest(unittest.TestCase):
 
     def test_warn_tier_on_real_tree(self):
         (self.tmp / "skills").mkdir()
+        # v4.7.0: an empty tree still needs a (valid, empty-ish) inventory;
+        # declare a nonexistent slug — the check tolerates missing dirs
+        (self.tmp / "profile.yml").write_text(
+            "skills:\n  always_on:\n    - placeholder\n  domain: []\n",
+            encoding="utf-8", newline="\n")
         ok, _detail = doctor.check_skill_supply_chain()
         self.assertTrue(ok, "WARN tier never fails, even on an empty tree")
 

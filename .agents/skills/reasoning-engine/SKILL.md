@@ -3,7 +3,7 @@ name: reasoning-engine
 description: 'Always-on evidence-first reasoning for non-trivial tasks: define the outcome, inspect authoritative sources, resolve material uncertainty, act within scope and verify. Scale analysis to consequences rather than fixed step or source counts.'
 license: MIT
 metadata:
-  version: "4.6.2"
+  version: "4.7.0"
 ---
 
 # Reasoning Engine — the core of the agent's thinking
@@ -42,9 +42,13 @@ Before ANY non-trivial task:
 1. Check `skills/` — is there a skill for the task? (look at `description` in frontmatter)
 2. Load the primary skill → `read skills/<name>/SKILL.md`
 3. Follow the protocol from the skill
-4. Note the usage: `📚 skill-name`
 
 If routing was missed, load the relevant skill and address the actual gap; do not redo valid work merely to perform the ceremony.
+
+Cross-references to other skills are pointers, not a load order: a helper
+loads only for an unresolved question in its domain, and loading one does
+not cascade into loading the others. The host's mandatory skill policy
+always wins over this thrift.
 
 ## 5. Memory-First Protocol
 
@@ -55,7 +59,13 @@ Before answering "what do we know about X":
 python ~/.memory/db-tools/search_all.py "X"    # SEARCH FIRST
 ```
 - Found → answer with a link to the file.
-- Not found → honestly say "not in the database".
+- Not found → honestly say "not found in the searched scope" — but first
+  distinguish status: query a distinctive project token, then an alternate
+  token or history; a failed/unreachable search is "unavailable", not
+  "not found". An empty result from a working search is a negative for the
+  searched scope: report the scope, and keep searching while a materially
+  better query or source could change the next action — the stop condition
+  is evidence, not a retry count.
 - NEVER answer from conversation memory.
 
 ## 6. Operating spine
@@ -75,3 +85,22 @@ Prefer the simplest implementation satisfying every acceptance criterion;
 minimalism does not remove required behavior. Inspect relevant instructions
 when authority conflicts or execution stalls. Follow the host and user scope
 over a procedural skill gate; continue reachable work without phase reapproval.
+
+## 8. Honest evaluation reports
+
+When reporting an evaluation of a prompt/skill/model change, distinguish what
+was actually run:
+
+- **Input validation** — schema/sanity checks on prompts or scenario files.
+- **Stated-next-action text probe** — a model was asked what it would do;
+  its answer is a plan, not a behavior.
+- **Real tool task** — the model executed real work; outputs and effects
+  were observed.
+- **Controlled performance comparison** — same conditions, matched runs,
+  measured differences.
+
+Never promote self-judged text answers (N scored responses judged by the
+same setup) to a reliability or behavior result; label them exactly what
+they are. Record the resolved model and effort/reasoning level if actually
+available from the harness; otherwise record "unknown" — never guess a model
+name or effort to fill the field.

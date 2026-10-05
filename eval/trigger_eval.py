@@ -51,6 +51,7 @@ from runner import resolve_cmd, run_prompt      # same executor contract
 from results_io import canonical_sha256, config_digest, files_digest
 from telemetry import load_reported_usage, summarize_durations
 from behavior_oracles import behavior_fired, has_oracle
+from prompt_assembly import skill_manifest_names
 
 
 _SKILLS_DIR = Path(__file__).resolve().parents[1] / "skills"
@@ -65,9 +66,10 @@ def listing_entries() -> list[dict]:
     never gets replaced (live incident 2026-08-29) turns the run into a
     measurement of the executor's ambient global skills instead.
     """
+    owned = skill_manifest_names(_SKILLS_DIR)
     entries: list[dict] = []
     for d in sorted(_SKILLS_DIR.iterdir()) if _SKILLS_DIR.is_dir() else []:
-        if not d.is_dir():
+        if not d.is_dir() or d.name not in owned:
             continue
         text = (d / "SKILL.md").read_text(encoding="utf-8", errors="replace")[:4000]
         front = text.split("---", 2)
@@ -105,7 +107,9 @@ def load_queries(skills_root, legacy_path) -> list[dict]:
         except (json.JSONDecodeError, OSError):
             central = []
     covered: set[str] = set()
-    for d in sorted(p for p in skills_root.iterdir() if p.is_dir()):
+    owned = skill_manifest_names(skills_root)
+    for d in sorted(p for p in skills_root.iterdir()
+                    if p.is_dir() and p.name in owned):
         f = d / "evals" / "evals.json"
         if not f.is_file():
             continue

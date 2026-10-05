@@ -41,5 +41,25 @@
    "prompt": "fix the flaky assertion",
    "should_trigger": false
   }
+  ,{
+   "id": "fable-judge-8",
+   "prompt": "The eval report says reliability improved 27% from six self-scored text answers — judge that claim",
+   "should_trigger": true
+  },
+  {
+   "id": "fable-judge-9",
+   "prompt": "Check whether this evaluation was a real tool task or just a stated-next-action text probe",
+   "should_trigger": true
+  },
+  {
+   "id": "fable-judge-10",
+   "prompt": "write more trap scenarios for the suite",
+   "should_trigger": false
+  },
+  {
+   "id": "fable-judge-11",
+   "prompt": "reformat the verdict table as markdown",
+   "should_trigger": false
+  }
  ]
 }

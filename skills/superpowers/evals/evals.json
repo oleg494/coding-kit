@@ -40,6 +40,26 @@
    "id": "superpowers-7",
    "prompt": "summarize this file for me",
    "should_trigger": false
+  },
+  {
+   "id": "superpowers-8",
+   "prompt": "superpowers is already loaded — should I re-read it and every phase helper it references before implementing?",
+   "should_trigger": true
+  },
+  {
+   "id": "superpowers-9",
+   "prompt": "The superpowers skill lists the phase helper skills; load only the one whose domain question is unresolved, then implement",
+   "should_trigger": true
+  },
+  {
+   "id": "superpowers-10",
+   "prompt": "what is the weather today",
+   "should_trigger": false
+  },
+  {
+   "id": "superpowers-11",
+   "prompt": "give me a list of files in this folder",
+   "should_trigger": false
   }
  ]
 }

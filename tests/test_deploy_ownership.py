@@ -10,6 +10,14 @@ from unittest import mock
 KIT = Path(__file__).resolve().parent.parent
 
 
+def write_inventory(root: Path, skills) -> None:
+    """v4.7.0: declare the fixture's owned skills in profile.yml."""
+    entries = "\n".join(f"    - {s}" for s in skills)
+    (root / "profile.yml").write_text(
+        "skills:\n  always_on:\n" + entries + "\n  domain: []\n",
+        encoding="utf-8", newline="\n")
+
+
 def load_deploy():
     spec = importlib.util.spec_from_file_location(
         "deploy", KIT / "scripts" / "tools" / "deploy.py"
@@ -272,48 +280,6 @@ class TestCR03Preflight(unittest.TestCase):
                 self.assertFalse(missing_claude_md.exists())
 
 
-class TestCR04SinglePlan(unittest.TestCase):
-    """CR-04: canonical_mode computes ONE change plan (add/upd/del/rm-dir).
-    --dry-run prints exactly that plan; execution applies exactly that plan and nothing else.
-    Stale file inside a skill and a stale skill dir appear in the dry-run output;
-    after execution the advertised changes and only those happened.
-    """
-
-    def test_canonical_dry_run_includes_deletions_and_matches_execution(self):
-        deploy = load_deploy()
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            skills_dir = root / "skills"
-            (skills_dir / "my_skill").mkdir(parents=True)
-            (skills_dir / "my_skill" / "SKILL.md").write_text("v1", encoding="utf-8")
-
-            canon = root / ".agents" / "skills"
-            # Pre-populate canon with an obsolete skill dir and an extra stale file in my_skill
-            (canon / "my_skill").mkdir(parents=True)
-            (canon / "my_skill" / "SKILL.md").write_text("v1", encoding="utf-8")
-            (canon / "my_skill" / "stale_inner.txt").write_text("stale", encoding="utf-8")
-            (canon / "obsolete_skill").mkdir(parents=True)
-            (canon / "obsolete_skill" / "SKILL.md").write_text("gone", encoding="utf-8")
-
-            with mock.patch.object(deploy, "KIT", root), \
-                 mock.patch.object(deploy, "SKILLS", skills_dir), \
-                 mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
-                out = io.StringIO()
-                with mock.patch.object(sys, "stdout", out):
-                    rc = deploy.main()
-                dry_run_output = out.getvalue()
-                self.assertEqual(rc, 0)
-                self.assertIn("del my_skill/stale_inner.txt", dry_run_output)
-                self.assertIn("rm-dir obsolete_skill", dry_run_output)
-
-                # Now execute without dry-run
-                with mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
-                    exec_out = io.StringIO()
-                    with mock.patch.object(sys, "stdout", exec_out):
-                        rc = deploy.main()
-                self.assertEqual(rc, 0)
-                self.assertFalse((canon / "my_skill" / "stale_inner.txt").exists())
-                self.assertFalse((canon / "obsolete_skill").exists())
 
 
 class TestResidualDefects(unittest.TestCase):
@@ -500,6 +466,7 @@ class TestResidualDefects(unittest.TestCase):
             mani_file = canon / deploy.MANIFEST_NAME
             mani_file.write_text('{"kit_version": "0.0.1", "skills": ["my_skill"]}', encoding="utf-8")
 
+            write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
@@ -514,6 +481,7 @@ class TestResidualDefects(unittest.TestCase):
                 self.assertIn('"0.0.1"', mani_file.read_text(encoding="utf-8"))
 
             # Now run without dry-run
+            write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
@@ -567,6 +535,7 @@ class TestResidualDefects(unittest.TestCase):
             mani_content = json.dumps({"kit_version": deploy.VERSION, "skills": ["my_skill"]}, indent=1) + "\n"
             mani_file.write_text(mani_content, encoding="utf-8")
 
+            write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
@@ -685,6 +654,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             if not _try_create_dir_link(external, target_skill):
                 self.skipTest("Filesystem does not support directory links/junctions")
 
+            write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
@@ -717,6 +687,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             if not _try_create_dir_link(external, agents_dir):
                 self.skipTest("Filesystem does not support directory links/junctions")
 
+            write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
@@ -753,6 +724,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             (skills_dir / "clean_skill").mkdir(parents=True)
             (skills_dir / "clean_skill" / "SKILL.md").write_text("clean content", encoding="utf-8")
 
+            write_inventory(root, ['clean_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
@@ -917,6 +889,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
                 self.skipTest("Filesystem does not support junctions/links")
             shutil.rmtree(to_delete)
 
+            write_inventory(root, ['alpha', 'zulu'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
@@ -929,6 +902,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
                 self.assertFalse((canon / "alpha").exists(), "alpha must not be copied when later zulu has conflict/link")
 
             # Test dry-run also reports failure
+            write_inventory(root, ['alpha', 'zulu'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):

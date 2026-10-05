@@ -19,7 +19,10 @@ Checks:
 Usage:
     python scripts/doctor.py          # table + exit 1 on any failure
 """
+import importlib.util
 import json
+
+
 
 import os
 import re
@@ -41,19 +44,47 @@ except Exception:
 
 KIT = Path(__file__).resolve().parents[1]
 
+_inv_spec = importlib.util.spec_from_file_location(
+    "kit_inventory", KIT / "scripts" / "tools" / "kit_inventory.py")
+kit_inventory = importlib.util.module_from_spec(_inv_spec)
+_inv_spec.loader.exec_module(kit_inventory)
+
+
+def _owned_skill_names() -> list[str]:
+    """Kit-owned slugs from the profile inventory (v4.7.0). A missing or
+    invalid inventory raises KitInventoryError — callers report it as an
+    explicit failure; foreign dirs under skills/ are never adopted."""
+    return kit_inventory.load_owned_skills(KIT)
+
+
+def _owned_skill_dirs() -> list[Path]:
+    """Owned skill dirs (sorted). Raises KitInventoryError on a bad
+    inventory; foreign dirs under skills/ are excluded."""
+    skills = KIT / "skills"
+    owned = set(_owned_skill_names())
+    return sorted((d for d in skills.iterdir()
+                   if d.is_dir() and d.name in owned),
+                  key=lambda d: d.name)
+
 
 def check_manifest() -> tuple[bool, str]:
-    text = (KIT / "profile.yml").read_text(encoding="utf-8")
-    sec = text.split("always_on:")[-1].split("adapters:")[0]
-    declared = set(re.findall(r"^\s*-\s+([a-z0-9-]+)", sec, re.M))
+    """profile.yml skill inventory == owned dirs on disk (v4.7.0).
+
+    Foreign directories under skills/ (not in the inventory) are ignored:
+    the kit does not own them. A missing owned skill dir or an invalid
+    inventory FAILs."""
+    try:
+        declared = set(_owned_skill_names())
+    except kit_inventory.KitInventoryError as e:
+        return (False, f"invalid kit inventory: {e}")
     on_disk = {d.name for d in (KIT / "skills").iterdir() if d.is_dir()}
     missing = sorted(declared - on_disk)
-    extra = sorted(on_disk - declared)
-    if not missing and not extra:
-        return (True, f"{len(on_disk)} skills in sync")
-    return (False, " ".join(
-        ([f"profile-no-dirs: {missing}"] if missing else [])
-        + ([f"dirs-not-in-profile: {extra}"] if extra else [])))
+    if missing:
+        return (False, f"profile-no-dirs: {missing}")
+    foreign = sorted(on_disk - declared)
+    note = (f"; {len(foreign)} foreign dir(s) ignored"
+            if foreign else "")
+    return (True, f"{len(declared)} owned skills in sync{note}")
 
 
 def check_versions() -> tuple[bool, str]:
@@ -67,8 +98,14 @@ def check_versions() -> tuple[bool, str]:
 
 
 def check_frontmatter() -> tuple[bool, str]:
+    """name/description present in every OWNED skill's SKILL.md (v4.7.0:
+    foreign skills/ dirs are not validated by the kit)."""
+    try:
+        dirs = _owned_skill_dirs()
+    except kit_inventory.KitInventoryError as e:
+        return (False, f"invalid kit inventory: {e}")
     bad = []
-    for sk in sorted((KIT / "skills").iterdir()):
+    for sk in dirs:
         md = sk / "SKILL.md"
         if not md.is_file():
             bad.append(f"{sk.name}: no SKILL.md")
@@ -93,7 +130,8 @@ def check_frontmatter() -> tuple[bool, str]:
             bad.append(f"{sk.name}: name missing")
         if not re.search(r"^description:\s*\S+", fm, re.M):
             bad.append(f"{sk.name}: description missing")
-    return (not bad, f"{len(bad)} bad" if bad else "all present")
+    return (not bad, f"{len(bad)} bad" if bad
+            else f"{len(dirs)} owned, all present")
 
 
 # Agent Skills spec rules as data (wave3 Task 8, agentskills.io spec):
@@ -247,12 +285,14 @@ def check_frontmatter_spec() -> tuple[bool, str]:
     """agentskills.io spec conformance (wave3 Task 8). Hard violations
     FAIL the doctor; WARN tier (name != dir, compat > 500, version-less
     metadata) names slugs but keeps the kit green."""
+    try:
+        owned_dirs = _owned_skill_dirs()
+    except kit_inventory.KitInventoryError as e:
+        return (False, f"invalid kit inventory: {e}")
     bad: list[str] = []
     warned: list[str] = []
     total = 0
-    for sk in sorted((KIT / "skills").iterdir()):
-        if not sk.is_dir():
-            continue
+    for sk in owned_dirs:
         md = sk / "SKILL.md"
         if not md.is_file():
             bad.append(f"{sk.name}: no SKILL.md")
@@ -356,9 +396,13 @@ def check_skill_supply_chain() -> tuple[bool, str]:
     semantics): ok=True — the doctor stays green, the detail names the
     unlicensed skills. Skills are local-authored (no third-party installs),
     so licensing is a hygiene signal, not a gate (wave1 Task 1)."""
+    try:
+        owned_dirs = _owned_skill_dirs()
+    except kit_inventory.KitInventoryError as e:
+        return (False, f"invalid kit inventory: {e}")
     unlicensed = []
     total = 0
-    for sk in sorted((KIT / "skills").iterdir()):
+    for sk in owned_dirs:
         md = sk / "SKILL.md"
         if not md.is_file():
             continue
@@ -485,8 +529,11 @@ def check_skills_sync(expect_drift: bool = False) -> tuple[bool, str]:
     candidate branches without premature mirror deployment."""
     if not expect_drift:
         expect_drift = os.environ.get("EXPECT_SKILLS_DRIFT") == "1"
+    try:
+        names = sorted(_owned_skill_names())
+    except kit_inventory.KitInventoryError as e:
+        return (False, f"invalid kit inventory: {e}")
     master = KIT / "skills"
-    names = sorted(d.name for d in master.iterdir() if d.is_dir())
     master_names = set(names)
     candidates = [d for d in _DEPLOYED_SKILL_DIRS if d.is_dir()]
     if not candidates:

@@ -130,13 +130,34 @@ except (ImportError, ValueError):
             _fs.safe_write_text, _fs.safe_copytree, _fs.safe_rmtree,
             _fs.scan_skill_links)
 
+try:
+    from . import kit_inventory as _inventory
+except (ImportError, ValueError):
+    try:
+        import kit_inventory as _inventory
+    except ImportError:
+        import importlib.util as _ilu
+        _inv_spec = _ilu.spec_from_file_location(
+            "kit_inventory",
+            Path(__file__).resolve().parent / "kit_inventory.py")
+        _inv_mod = _ilu.module_from_spec(_inv_spec)
+        _inv_spec.loader.exec_module(_inv_mod)
+        _inventory = _inv_mod
+
 
 def home(p):
     return Path(p).expanduser()
 
 
 def master_skill_names():
-    return sorted(x.name for x in SKILLS.iterdir() if x.is_dir())
+    """Kit-owned skill slugs from profile.yml (v4.7.0 inventory).
+
+    A missing or invalid profile inventory raises KitInventoryError —
+    deploy fails loudly rather than adopting every directory on disk.
+    Foreign dirs under skills/ (e.g. firecrawl sources) are not listed,
+    never copied, never deleted.
+    """
+    return list(_inventory.load_owned_skills(KIT))
 
 
 def validate_manifest(dest: Path, mani: object) -> tuple[bool, str | None]:
@@ -658,8 +679,20 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
         for f in target.rglob("*"):
             if f.is_file() and not (src / f.relative_to(target)).exists():
                 plan.append({"op": "del-file", "target": f, "desc": f"del {n}/{f.relative_to(target)}"})
+    # Remove stale directories only when the previous kit manifest claimed
+    # them. Foreign directories in the canonical destination belong to the
+    # user and must survive canonical sync unchanged.
+    previously_owned: set[str] = set()
+    mani_file = canon / MANIFEST_NAME
+    if mani_file.is_file():
+        try:
+            previous = json.loads(mani_file.read_text(encoding="utf-8"))
+            if isinstance(previous, dict) and isinstance(previous.get("skills"), list):
+                previously_owned = {name for name in previous["skills"] if isinstance(name, str)}
+        except (OSError, ValueError):
+            previously_owned = set()
     for entry in sorted(canon.iterdir()):
-        if entry.is_dir() and entry.name not in names:
+        if entry.is_dir() and entry.name in previously_owned and entry.name not in names:
             bad_links = scan_skill_links(canon, entry)
             if bad_links:
                 plan.append({"op": "error", "target": entry, "desc": f"ERROR: stale dir {entry.name} contains link/escape: {', '.join(bad_links)}"})

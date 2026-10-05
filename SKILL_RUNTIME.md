@@ -1,6 +1,6 @@
 # Coding Agent OS — Skill Runtime
 
-> **v3.4.5** | For platforms with ≥16K context.
+> **v4.7.0** | For platforms with ≥16K context.
 > Superpowers: plan → TDD → implement → verify → report.
 > 8–16K context → core mode: OPS.md §1-5 + skill routing table only.
 > <8K context → compact mode: irreducible core retains action authorization rules, stop conditions, calibrated uncertainty, and applicability exceptions (see §1 below).
@@ -13,32 +13,19 @@
 PLAN → TDD → IMPLEMENT → VERIFY → REPORT
 ```
 
-### 2. PLAN
-- Define "what done means" — concretely, observably.
-- Name the scope: files you touch, files you do NOT touch.
-- Decompose by independent deliverables and shared interfaces, not file counts.
+The full method lives in one source: `skills/superpowers/SKILL.md`. Runtime
+keeps only the phase anchors:
 
-### 3. TDD
-- Red test → green code → refactor.
-- Define a behavior check before code; smoke probes and rendered UI checks are valid proof where appropriate.
-- Bug fix → Prove-It Pattern: reproduce FIRST, then verify the fix; keep regressions for plausible recurring bugs.
-
-### 4. IMPLEMENT
-- The smallest correct implementation of the complete requested behavior.
-- YAGNI removes unnecessary implementation weight, never acceptance criteria.
-- Match surrounding style.
-
-### 5. VERIFY
-- Test green? → observed.
-- Tests appropriate to the change green? → ran them; broaden when scope
-  warrants (shared code touched, or a failure the targeted check exposed).
-- Check applicable build/runtime paths, not an unrelated live process or production store.
-- Bug fix → TWINS: searched for the same pattern in the codebase.
-
-### 6. REPORT
-- Result first line.
-- Files touched.
-- What was verified.
+- **PLAN** — define "what done means" (concretely, observably); name files
+  touched and NOT touched; decompose by independent deliverables.
+- **TDD** — a behavior check before code; reproduce a bug before fixing it.
+- **IMPLEMENT** — the smallest correct implementation of the complete
+  request.
+- **VERIFY** — evidence appropriate to the change (broaden when scope
+  warrants); TWINS for bug fixes; applicable build/runtime paths only.
+  Reuse recorded evidence for an unchanged checked state — command, state,
+  result — and rerun on invalidating change, failure or unresolved concern.
+- **REPORT** — result first line; files touched; what was verified.
 
 ## Skill loading
 
@@ -49,6 +36,20 @@ PLAN → TDD → IMPLEMENT → VERIFY → REPORT
 4. MARK: 📚 skill-name
 ```
 
+No cascade loads: a cross-reference to a skill is a pointer, not a load
+order — load the helper only for an unresolved question in its domain.
+A method already in context is not reloaded because a phase named it. The
+host's mandatory skill policy always wins. Keep prompts concise: no extra
+skill layers beyond the domain need.
+
+## Continuation before planning
+
+"Continue/resume/pick up" or "продолжи работу" first recovers the project
+mission from memory and available history; see `autonomous-work`. Preserve
+goal, original user grants, current corrections and remaining acceptance.
+Do not reset to a new mission, broad audit or blanket local-only restriction.
+Expired/revoked grants remain unavailable; missing authority is asked narrowly.
+
 ## Autonomous work (opt-in)
 
 Broad authorization to choose and continue useful work ("do useful work",
@@ -58,6 +59,9 @@ durable evidence, continue. It is task opt-in, not an always-on skill and not
 a `MODE:` override — `STRICT_AUDIT` and read-only tasks stay read-only, and
 outward/destructive/spending actions still need explicit authorization.
 Stop/revocation (`стоп`/`stop`, `STOP` file, explicit revoke) wins immediately.
+Once the current objective's acceptance and applicable checks are satisfied,
+stop rechecking it unless evidence is invalidated. Bounded work ends with the
+report; an active autonomous mission proceeds to its next useful objective.
 
 ## Cross-chat memory (hierarchy)
 
@@ -69,6 +73,13 @@ python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source p
 ```
 
 Boundary rule: portable → `~/.memory/Wiki/`; project-specific → `WORK/<project>/docs/` + `build.py -r`.
+
+Search status before absence: query a distinctive project token first, then
+alternate tokens or history. Unreachable/failed search → "unavailable", not
+"not found". Empty result from a working search is a negative for the
+searched scope — report the scope, not categorical absence. Keep searching
+while a materially better query or source could change the next action; the
+stop condition is evidence, not a retry count.
 
 ## Irreducible Core & Exceptions
 

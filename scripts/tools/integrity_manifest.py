@@ -46,6 +46,18 @@ except Exception:  # noqa: S110,BLE001 — reconfigure is optional
 KIT = Path(__file__).resolve().parents[2]
 MANIFEST_NAME = "integrity-manifest.json"
 
+try:
+    from . import kit_inventory
+except (ImportError, ValueError):
+    try:
+        import kit_inventory
+    except ImportError:
+        import importlib.util as _ilu
+        _ki_spec = _ilu.spec_from_file_location(
+            "kit_inventory",
+            Path(__file__).resolve().parent / "kit_inventory.py")
+        kit_inventory = _ilu.module_from_spec(_ki_spec)
+        _ki_spec.loader.exec_module(kit_inventory)
 # (kind, pattern) rows: kind "file" = exact relpath, "glob" = fnmatch over
 # the whole tree, "tree" = all *.py under a directory prefix.
 _FILE_SCOPE = ("OPS.md", "AGENTS.md", "profile.yml", "SKILL_RUNTIME.md",
@@ -55,8 +67,9 @@ _GLOB_SCOPE = ("adapters/*.md", "eval/*.py", "eval/scenarios/*.md",
 _TREE_SCOPE = ("scripts", "memory/db-tools", "memory/scripts")
 
 
-def in_scope(rel: str) -> bool:
-    """True when rel (posix) belongs to the control plane."""
+def in_scope(rel: str, root: Path | None = None) -> bool:
+    """True when rel (posix) belongs to the control plane. root defaults
+    to KIT (callers that pass --root use the tree they operate on)."""
     # eval/results is a mutable evidence archive: new artifacts land there
     # on every validation run — pinning them would flag ADDED drift and
     # block deploys (deploy.integrity_gate exits 3). Everything else under
@@ -75,8 +88,15 @@ def in_scope(rel: str) -> bool:
         if rel.startswith("scripts/"):
             return True
     if rel.startswith("skills/") and rel.endswith("/SKILL.md"):
-        return True
+        slug = rel.split("/")[1]
+        return slug in _owned_slugs(root if root is not None else KIT)
     return any(fnmatch.fnmatchcase(rel, pat) for pat in _GLOB_SCOPE)
+
+
+def _owned_slugs(root: Path) -> frozenset[str]:
+    """Kit-owned skill slugs from the required profile inventory."""
+    root = Path(root)
+    return frozenset(kit_inventory.load_owned_skills(root))
 
 
 def scope_files(root: Path) -> list[Path]:
@@ -86,7 +106,7 @@ def scope_files(root: Path) -> list[Path]:
     for p in root.rglob("*"):
         if p.is_file():
             rel = p.relative_to(root).as_posix()
-            if in_scope(rel):
+            if in_scope(rel, root):
                 out.append(p)
     return [p for _, p in sorted(
         (p.relative_to(root).as_posix(), p) for p in out)]

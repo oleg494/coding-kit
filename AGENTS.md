@@ -70,6 +70,16 @@ Self-check when stuck or contradicted: compare the active rule with user scope a
 
 ```
 REQUEST
+├─ "continue/resume/pick up" / "продолжи работу" ──→ RECOVER FIRST:
+│     context missing? Search project memory with a distinctive token; open
+│     the relevant handoff and original user grants in available history.
+│     Recover goal, scope, authority, verified state, blockers and next action.
+│     Resume that mission, not a new audit or a newly invented task.
+│     Apply current corrections; a new complaint does not silently replace
+│     the mission. Stop/revocation and expired grants still constrain actions.
+│     Missing records? Retry project aliases/history before asking narrowly.
+│     See autonomous-work for mission recovery; bounded work stays bounded.
+│
 ├─ "what do we know about X" / "remind me" ──→ MEMORY-FIRST:
 │     python ~/.memory/db-tools/search_all.py "X"
 │     found → check lifecycle badges: [superseded by #N] → resolve to #N
@@ -108,6 +118,15 @@ REQUEST
 ```
 
 Load the matching skill once when its topic applies; use `scripts/tools/skills_search.py` if the route is unclear. Load phase helpers when needed, not the entire chain at startup.
+
+**No cascade loads.** A cross-reference ("Details: testing-discipline") is a
+pointer, not a trigger: load the referenced skill only when its domain
+question is actually unresolved — you need the rule, not the citation. A
+method already in context is not reloaded because a phase named it: entering
+VERIFY with superpowers active does not re-load verification-before-completion
+unless honest verification is the open question. A helper loads for an
+unresolved question in its domain, never to decorate a phase. The host's
+mandatory skill policy always wins over this thrift.
 
 Topic rules are JIT fragments, not boot text (v3.8.0): money/value logic → `money-path-safety`; test discipline and the TDD gate → `testing-discipline`; destructive-command confirmation → `git-workflow-and-versioning`; memory-trust/ASI06 → `security-and-hardening`. When the topic fires, load the skill — the rule is inside.
 

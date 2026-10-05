@@ -33,6 +33,11 @@ def load_adapter():
 def make_kit(root: Path, skills=("alpha", "beta"), version="9.9.9-test") -> Path:
     root.mkdir(parents=True, exist_ok=True)
     (root / "VERSION").write_text(version + "\n", encoding="utf-8")
+    # v4.7.0: the kit owns exactly what profile.yml declares
+    entries = "\n".join(f"    - {s}" for s in skills)
+    (root / "profile.yml").write_text(
+        "skills:\n  always_on:\n" + entries + "\n  domain: []\n",
+        encoding="utf-8", newline="\n")
     for s in skills:
         d = root / "skills" / s
         d.mkdir(parents=True)

@@ -3,7 +3,7 @@ name: fable-judge
 description: 'Adversarial verification of finished work: re-runs the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
 license: MIT
 metadata:
-  version: "4.6.2"
+  version: "4.7.0"
 ---
 
 
@@ -76,3 +76,19 @@ Standing rules: judging changes nothing (read and run only; fixes happen only if
 `/fable-judge suite <target>` runs the trap suite against a target configuration: a newly installed skill, a different model, a modified prompt. The suite lives in `eval/scenarios/` with execution and validation managed via `python eval/runner.py --inline-skills`.
 
 For each scenario in `eval/scenarios/*.md` (defining scenario prompt, trap, and expected behavior), run the harness via `python eval/runner.py --inline-skills --executor "<cli>"` (with `--judge "<cli>"` when gating). The harness evaluates execution against the scenario's expected ground truth, delivering per-scenario scores, attempt durations, and failure traces. One seed per scenario is a smoke test; multiply repeats (`--repeat N`) for confidence.
+
+Report what the run actually was, never more:
+
+- **Input validation** — prompts/scenario files checked for schema/sanity.
+- **Stated-next-action text probe** — the model answered "what would you
+  do"; that is a plan, not observed behavior.
+- **Real tool task** — the model executed work; outputs and effects were
+  observed against ground truth.
+- **Controlled performance comparison** — matched conditions, measured
+  differences.
+
+Self-judged text answers scored by the same setup that produced them are
+not a reliability result; label them as text probes. Record the resolved
+model and effort/reasoning level only if the harness actually reports them;
+otherwise record "unknown". A judge who cannot distinguish these is part of
+the overclaim it exists to refute.

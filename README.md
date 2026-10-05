@@ -139,6 +139,24 @@ Ask the agent to save a decision when it is worth carrying into another
 session. Memory writes need authorization; a read-only review should not
 silently modify your knowledge base.
 
+On "continue work on X", the agent first recovers the project's mission,
+original user grants and next action from memory and available history.
+Current corrections override old scope; expired or revoked grants do not
+revive. Missing records require a focused question, not an invented mission.
+Verification closes once the current objective is evidenced: bounded tasks
+end with a report; active autonomous missions move to the next useful objective.
+These are instruction contracts, not runtime enforcement or measured speedups.
+
+Skill cross-references are pointers, not a cascading load order. Load a helper
+for its actual domain need; host-mandated loads still take precedence. Reuse
+verification tied to unchanged source, dependencies and environment; rerun
+when a relevant change or failure invalidates that evidence.
+
+`profile.yml` declares the kit-owned skills. Third-party skills beside them
+(including Firecrawl) are not kit release assets and remain untouched by kit
+validation and synchronization. This boundary does not stop your agent from
+independently discovering or using those skills.
+
 Your knowledge lives in `~/.memory/` (or `MEMORY_ROOT`), **outside the kit
 repository**. The clone contains methodology and tooling, not your personal
 project history. Do not commit your memory store or assume it is a sandbox
@@ -238,6 +256,11 @@ These commands validate evaluation inputs; they do **not** measure a live
 model's behavior. Trap dry-runs record `DRY_RUN` rows with `passed: 0`;
 exit zero means the inputs are valid, not that the model passed.
 
+Report input validation, stated-next-action text probes, executed tool tasks
+and controlled comparisons separately. Record the resolved model and reasoning
+level when observed; otherwise label them unknown. A self-assessed text probe
+is not a tool-loop success rate, speedup, or Sol-versus-Astra comparison.
+
 Trap and trigger results carry `comparison_id`: a digest of executed prompts,
 expectations, selected cases, scorer code and execution settings. `trend.py`
 compares only matching IDs within a model. Unknown IDs stay visible without
@@ -254,7 +277,7 @@ and do not prove that an instruction change caused an improvement.
 |---|---|
 | [Trap-suite](eval/runner.py) | Adversarial policy scenarios. The judge defaults to the executor; use a distinct judge to reduce self-judging bias. Answers over 8000 characters fail evaluation without a model verdict, rather than judging an incomplete prefix. Policy adherence is not task superiority. |
 | [Task smoke](eval/task_runner.py) | Six coding tasks, including two impossible canaries, with deterministic `verify.py` oracles. A smoke check, not a statistical benchmark. |
-| [Trigger evals](eval/trigger_eval.py) | Skill activation routing: 92 co-located queries across 13 skills with `--queries auto`; an 80-query central corpus provides fallback coverage. |
+| [Trigger evals](eval/trigger_eval.py) | Skill activation routing: use `--queries auto` for current co-located cases; an 80-query central corpus provides fallback coverage. |
 | [Results store](eval/results_io.py) and [trend](eval/trend.py) | Structured results, explicit live/dry-run modes, failure categories, and comparisons of recorded runs. |
 | [Telemetry](eval/telemetry.py) | Measures duration. Optional usage totals are user-reported, not independently measured token cost. |
 | [Ablation](eval/ablate.py) | Compares prompts with and without an inlined skill. Ambient skills remain uncontrolled; results are descriptive, not causal. |

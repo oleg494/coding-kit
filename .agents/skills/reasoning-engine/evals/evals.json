@@ -1,0 +1,45 @@
+{
+ "skill_name": "reasoning-engine",
+ "evals": [
+  {
+   "id": "reasoning-engine-0",
+   "prompt": "This migration touches the payments ledger — think it through before you start",
+   "should_trigger": true
+  },
+  {
+   "id": "reasoning-engine-1",
+   "prompt": "Compare two designs for the retry queue and pick one with reasons",
+   "should_trigger": true
+  },
+  {
+   "id": "reasoning-engine-2",
+   "prompt": "Is the eval claim 'reliability improved 27%' actually supported by what was run?",
+   "should_trigger": true
+  },
+  {
+   "id": "reasoning-engine-3",
+   "prompt": "The semantic search service is down — what does that mean for our 'no prior findings' conclusion?",
+   "should_trigger": true
+  },
+  {
+   "id": "reasoning-engine-4",
+   "prompt": "hello",
+   "should_trigger": false
+  },
+  {
+   "id": "reasoning-engine-5",
+   "prompt": "translate this paragraph to German",
+   "should_trigger": false
+  },
+  {
+   "id": "reasoning-engine-6",
+   "prompt": "what is the syntax for a list comprehension in Python",
+   "should_trigger": false
+  },
+  {
+   "id": "reasoning-engine-7",
+   "prompt": "add a comma to this sentence in the README",
+   "should_trigger": false
+  }
+ ]
+}

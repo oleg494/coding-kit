@@ -8,6 +8,48 @@ host harness) remain outside this module's purview.
 import re
 from pathlib import Path
 
+try:
+    from kit_inventory import KitInventoryError, load_owned_skills
+except ImportError:  # direct execution: resolve the sibling module file
+    import importlib.util as _ilu
+    _inv = _ilu.spec_from_file_location(
+        "kit_inventory",
+        Path(__file__).resolve().parents[1] / "scripts" / "tools"
+        / "kit_inventory.py")
+    _inv_mod = _ilu.module_from_spec(_inv)
+    _inv.loader.exec_module(_inv_mod)
+    KitInventoryError = _inv_mod.KitInventoryError
+    load_owned_skills = _inv_mod.load_owned_skills
+
+_InventoryError = KitInventoryError  # re-export for consumers/tests
+
+KIT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SKILLS_DIR = KIT_ROOT / "skills"
+
+
+def skill_manifest_names(skills_root: Path, *,
+                          profile_path: Path | None = None) -> frozenset[str]:
+    """Kit-owned skill slugs for the kit owning `skills_root`.
+
+    Resolves the kit root from the default (in-kit) skills directory;
+    for out-of-tree skills roots WITHOUT a sibling profile.yml the
+    whole directory is owned (synthetic eval fixtures, standalone
+    temp copies). A present-but-invalid profile raises
+    KitInventoryError — explicit failure, never silent adoption.
+    """
+    root = Path(skills_root)
+    if profile_path is None:
+        if root == DEFAULT_SKILLS_DIR:
+            profile_path = KIT_ROOT / "profile.yml"
+        else:
+            sibling = root.parent / "profile.yml"
+            profile_path = sibling if sibling.is_file() else None
+    if profile_path is None:
+        return frozenset(
+            d.name for d in root.iterdir() if d.is_dir())
+    return frozenset(load_owned_skills(
+        profile_path.parent, profile_path=profile_path))
+
 _FRONTMATTER = re.compile(
     r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|\Z)", re.DOTALL)
 
@@ -46,18 +88,20 @@ def _body_of(text: str) -> str:
 
 
 def skill_manifest(skills_root: Path, *,
-                   disable: frozenset = frozenset()) -> list[dict]:
+                   disable: frozenset = frozenset(),
+                   profile_path: Path | None = None) -> list[dict]:
     """`[{name, description}]` sorted by name, excluding `disable` names.
 
-    Malformed or missing SKILL.md files are skipped, never raised.
+    Only kit-owned skills (profile.yml inventory, v4.7.0) are listed;
+    foreign directories under skills_root are ignored. Malformed or
+    missing SKILL.md files are skipped, never raised. A present-but-
+    invalid inventory raises KitInventoryError.
     """
-    try:
-        dirs = [p for p in skills_root.iterdir() if p.is_dir()]
-    except OSError:
-        dirs = []
+    skills_root = Path(skills_root)
+    owned = skill_manifest_names(skills_root, profile_path=profile_path)
     entries: list[dict] = []
-    for d in dirs:
-        content = _read_skill(skills_root, d.name)
+    for d in sorted(owned):
+        content = _read_skill(skills_root, d)
         if content is None:
             continue
         fm = parse_frontmatter(content)

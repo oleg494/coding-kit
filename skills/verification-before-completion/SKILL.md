@@ -3,7 +3,7 @@ name: verification-before-completion
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
 license: MIT
 metadata:
-  version: "4.6.2"
+  version: "4.7.0"
 ---
 
 # Verification Before Completion
@@ -17,24 +17,24 @@ metadata:
 ## The Iron Law
 
 ```
-NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+NO COMPLETION CLAIMS WITHOUT APPLICABLE VERIFICATION EVIDENCE
 ```
 
-Evidence is keyed to the checked state: revision/snapshot, exact command,
-scope, environment, and run timestamp. Reuse existing evidence until an
-invalidation condition occurs (code change, failure, or unresolved concern);
-report that provenance instead of treating the chat turn as a clock.
-If no valid evidence exists for the current checked state, you cannot claim it passes.
+"Applicable" means evidence valid for the current checked state:
+revision/snapshot, exact command, scope, environment, run timestamp.
+Reuse existing evidence until an invalidation condition occurs (code
+change, failure, or unresolved concern) and report that provenance instead
+of treating the chat turn as a clock; a fresh invocation is required only
+when no valid evidence for the checked state exists.
 ## The Gate Function
 
 ```
 BEFORE claiming a verified result:
 
 1. IDENTIFY: What command proves this claim?
-2. RUN: Execute that command fresh and completely when no valid evidence
-   exists for the current checked state — "FULL" means no truncated or
-   partial run of the check that proves THIS claim, not every check the
-   repo happens to have
+2. RUN: Execute that command completely when no applicable evidence exists
+   for the current checked state — "complete" means no truncated or partial
+   run of the check that proves THIS claim, not every check the repo has
 3. READ: Full output, check exit code, count failures
 4. VERIFY: Does output confirm the claim?
    - If NO: State actual status with evidence
@@ -57,7 +57,7 @@ check exposed.
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
 | Tests pass | Test command output: 0 failures on checked state | Unchecked assumption, "should pass" |
-| Linter clean | Linter output: 0 errors | Partial check, extrapolation |
+| Linter clean | Linter output: 0 errors | Extrapolating to the claim's scope; a different check's output for that scope |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
 | Regression test works | Red-green cycle verified | Test passes once |
@@ -70,7 +70,7 @@ check exposed.
 - Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
 - About to commit/push/PR without verification
 - Trusting agent success reports
-- Relying on partial verification
+- Extrapolating a partial check to the full claimed scope without narrowing the claim
 - Thinking "just this once"
 - Tired and wanting work over
 - **ANY wording implying success without having run verification**
@@ -85,7 +85,7 @@ check exposed.
 | "Linter passed" | Linter ≠ compiler |
 | "Agent said success" | Verify independently |
 | "I'm tired" | Exhaustion ≠ excuse |
-| "Partial check is enough" | Partial proves nothing |
+| "Partial check is enough" | Partial proves only its own scope: narrow the claim to it, or run the full check |
 | "Different words so rule doesn't apply" | Spirit over letter |
 
 ## Key Patterns
@@ -127,6 +127,13 @@ Planning, delegation and a task transition do not themselves require running
 unrelated checks. Reuse evidence only while it covers the checked state;
 an independent judge may rerun it to establish independent observation.
 Calibrated uncertainty is valid reporting, never a substitute for proof.
+
+**Unavailable ≠ passed ≠ failed.** When the primary check cannot run
+(service down, environment missing), report it as unavailable. An
+alternative check substitutes only if it actually proves the same contract;
+if it proves less, explicitly narrow the claim to what it does prove and
+report the required check as unavailable — never report the original claim
+as verified. Do not retry the same dead service in a loop.
 
 ---
 

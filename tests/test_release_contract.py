@@ -30,9 +30,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXPECTED_VERSION = "4.6.2"
+EXPECTED_VERSION = "4.7.0"
 EXPECTED_SKILL_COUNT = 37
-EXPECTED_SCENARIO_COUNT = 38
 EXPECTED_TRIGGER_QUERY_COUNT = 80
 EXPECTED_TASK_COUNT = 6
 
@@ -51,9 +50,12 @@ STALE_RESULT_BASENAMES = frozenset({
     "trigger-20260825-225622-672610-b3d402e4-91d5-41a8-8331-bfd26b8bc34f.json",
 })
 
-# Same regexes scripts/doctor.py uses (checks 1 & 2).
-_SKILL_ENTRY_RE = re.compile(r"^\s*-\s+([a-z0-9-]+)", re.M)
+# Same regexes scripts/doctor.py uses (check 2).
 _VERSION_RE = re.compile(r'^version:\s*"([^"]+)"', re.M)
+
+# Files that constitute the "current public release text".
+_PUBLIC_DOC_NAMES = ("README.md", "OPS.md", "AGENTS.md", "SKILL_RUNTIME.md",
+                     "CONTRIBUTING.md", "SECURITY.md", "profile.yml")
 
 # Personal machine path in ANY separator form: slash, single backslash, or
 # JSON-escaped double backslash. Built from parts so this meta-test's own
@@ -64,22 +66,23 @@ _USER = "ole" + "g2"
 _SEP = r"[\\/]+"
 _PERSONAL_PATH_RE = re.compile(_DRIVE + _SEP + _DIR + _SEP + _USER)
 
-# Files that constitute the "current public release text".
-_PUBLIC_DOC_NAMES = ("README.md", "OPS.md", "AGENTS.md", "SKILL_RUNTIME.md",
-                     "CONTRIBUTING.md", "SECURITY.md", "profile.yml")
-
-
-def _manifest_section() -> str:
-    text = (ROOT / "profile.yml").read_text(encoding="utf-8")
-    return text.split("always_on:")[-1].split("adapters:")[0]
-
 
 def _declared_skills() -> set:
-    return set(_SKILL_ENTRY_RE.findall(_manifest_section()))
+    """Owned inventory (profile.yml, v4.7.0) — single source of truth."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "kit_inventory",
+        ROOT / "scripts" / "tools" / "kit_inventory.py")
+    inv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(inv)
+    return set(inv.load_owned_skills(ROOT))
 
 
 def _on_disk_skills() -> set:
-    return {d.name for d in (ROOT / "skills").iterdir() if d.is_dir()}
+    """Owned dirs on disk: inventory ∩ skills/ (foreign dirs ignored)."""
+    all_dirs = {d.name for d in (ROOT / "skills").iterdir()
+                if d.is_dir()}
+    return all_dirs & _declared_skills()
 
 
 def _public_release_files() -> list:
@@ -245,11 +248,9 @@ class ContextMonitorAbsentTest(unittest.TestCase):
 
 
 class AssetCountsContractTest(unittest.TestCase):
-    def test_scenario_count_is_38(self):
-        scenarios = list((ROOT / "eval" / "scenarios").glob("*.md"))
-        self.assertEqual(len(scenarios), EXPECTED_SCENARIO_COUNT,
-                         f"eval/scenarios/*.md count must be {EXPECTED_SCENARIO_COUNT}, found {len(scenarios)}")
-
+    # v4.7.0: the incidental scenario-count pin (test_scenario_count_is_38)
+    # was removed — obsolete all-disk assumption; scenario churn is not a
+    # release contract. Trigger queries / task counts stay pinned.
     def test_trigger_queries_count_is_80(self):
         query_file = ROOT / "eval" / "trigger_queries.json"
         self.assertTrue(query_file.is_file(), "eval/trigger_queries.json must exist")

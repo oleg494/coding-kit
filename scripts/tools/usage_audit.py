@@ -52,6 +52,19 @@ HERMES_DB = HOME / "AppData" / "Local" / "hermes" / "state.db"
 KIT = Path(__file__).resolve().parents[2]
 _spec = importlib.util.spec_from_file_location(
     "transcript_normalize", KIT / "eval" / "transcript_normalize.py")
+
+try:
+    from . import kit_inventory
+except (ImportError, ValueError):
+    try:
+        import kit_inventory
+    except ImportError:
+        import importlib.util as _ilu
+        _ki_spec = _ilu.spec_from_file_location(
+            "kit_inventory",
+            Path(__file__).resolve().parent / "kit_inventory.py")
+        kit_inventory = _ilu.module_from_spec(_ki_spec)
+        _ki_spec.loader.exec_module(kit_inventory)
 tn = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(tn)
 
@@ -293,9 +306,15 @@ def retirement_report(res: dict, all_skills: list[str],
         real_sessions += 1
         fired.update(s["skill_reads"])
     if (skills_root / "skills").is_dir():
-        installed = sorted(d.name for d in
-                           (skills_root / "skills").iterdir()
-                           if d.is_dir())
+        profile = skills_root / "profile.yml"
+        if profile.is_file():
+            installed = sorted(
+                kit_inventory.load_owned_skills(
+                    skills_root, profile_path=profile))
+        else:
+            installed = sorted(d.name for d in
+                               (skills_root / "skills").iterdir()
+                               if d.is_dir())
     else:
         installed = all_skills
     zero = sorted(s for s in installed if s not in fired)

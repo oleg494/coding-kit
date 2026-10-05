@@ -48,6 +48,9 @@ class TestDeployRollbackRegression(unittest.TestCase):
             (skills_dir / "beta" / "SKILL.md").write_text("beta new", encoding="utf-8")
             (skills_dir / "gamma").mkdir(parents=True)
             (skills_dir / "gamma" / "SKILL.md").write_text("gamma new", encoding="utf-8")
+            (root / "profile.yml").write_text(
+                "skills:\n  always_on:\n    - alpha\n    - beta\n    - gamma\n  domain: []\n",
+                encoding="utf-8")
 
             canon = root / ".agents" / "skills"
             canon.mkdir(parents=True)

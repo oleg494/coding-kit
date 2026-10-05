@@ -41,5 +41,25 @@
    "prompt": "what is the weather today",
    "should_trigger": false
   }
+  ,{
+   "id": "dev-wiki-8",
+   "prompt": "The semantic search service is refusing connections — does that mean we have no prior findings on this?",
+   "should_trigger": true
+  },
+  {
+   "id": "dev-wiki-9",
+   "prompt": "search the memory base for the rerank experiment; try the project token first, then aliases",
+   "should_trigger": true
+  },
+  {
+   "id": "dev-wiki-10",
+   "prompt": "build a new tracking system for our verification results",
+   "should_trigger": false
+  },
+  {
+   "id": "dev-wiki-11",
+   "prompt": "delete this wiki entry",
+   "should_trigger": false
+  }
  ]
 }

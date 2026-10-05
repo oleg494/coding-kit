@@ -1,0 +1,45 @@
+{
+ "skill_name": "verification-before-completion",
+ "evals": [
+  {
+   "id": "verification-before-completion-0",
+   "prompt": "I think it works now — can you confirm it's done before we merge?",
+   "should_trigger": true
+  },
+  {
+   "id": "verification-before-completion-1",
+   "prompt": "We changed deps.py since the last green run — is the suite still green?",
+   "should_trigger": true
+  },
+  {
+   "id": "verification-before-completion-2",
+   "prompt": "The lint check service is unreachable; what can we honestly claim about the build?",
+   "should_trigger": true
+  },
+  {
+   "id": "verification-before-completion-3",
+   "prompt": "write the release notes for the last tag",
+   "should_trigger": false
+  },
+  {
+   "id": "verification-before-completion-4",
+   "prompt": "rename this local variable for readability",
+   "should_trigger": false
+  },
+  {
+   "id": "verification-before-completion-5",
+   "prompt": "explain how CI pipelines work",
+   "should_trigger": false
+  },
+  {
+   "id": "verification-before-completion-6",
+   "prompt": "fix the typo in the docstring",
+   "should_trigger": false
+  },
+  {
+   "id": "verification-before-completion-7",
+   "prompt": "pick a color scheme for the dashboard",
+   "should_trigger": false
+  }
+ ]
+}

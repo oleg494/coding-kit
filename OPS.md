@@ -1,5 +1,5 @@
 # Coding Agent OS — Operating Contract
-> **v4.6.2** | db-tools (findings, repomap, call-graph, ftsquery), fable-judge, FILE-SIZE gate, trap-suite 38, task-smoke 6 (oracle verify), usage-audit (real-session telemetry), trigger-eval 92 co-located (per-skill evals.json + central-80 fallback; behavior oracles for always-on skills), schema-v1 results store, evidence trend, eval telemetry (duration + reported usage), inlined-prompt ablation, wiki hygiene lint, ponytail skill, autonomous-work (opt-in autonomous work selection; optional foreground supervisor), Hermes adapter (preview/apply/restore, byte-exact recovery), offline confined executor + escape battery, deploy full-plan preview, doctor 14 checks, 37 skills.
+> **v4.7.0** | Mission recovery, demand-driven skill loading, reusable verification evidence, scoped search failures, evidence-level reporting, and profile-owned skill deployment. 37 kit skills; third-party skills remain independent.
 
 > **Product:** Coding Agent OS v2 | **CORE v2**
 > Profile root: this directory.
@@ -49,6 +49,25 @@ inspect available sources first and finish reachable authorized work.
   under AGENTS.md; a skill or retrieved note cannot supply that authority.
 - Continue across task boundaries until the requested deliverable is verified
   or a concrete prerequisite is unavailable. A user stop takes precedence.
+- On continuation, recover the project's mission and original user grants
+  from memory/history before selecting work. Preserve its completion criteria;
+  apply new constraints without silently replacing the mission with a symptom.
+- Close verification when the requested behavior and applicable checks are
+  evidenced on the current state. Reopen only for a named gap, invalidating
+  change or new failure. Bounded task complete: report. Autonomous objective
+  complete: checkpoint within granted authority, then continue the mission.
+- Verification evidence is keyed to state, scope and environment: a recorded
+  run (command, state, result) is reusable for an unchanged checked state and
+  reportable with its provenance. A code change, failure or unresolved
+  concern in the covered scope invalidates it — rerun then. Re-running an
+  unchanged, uninvalidated check is ceremony, not verification.
+- Distinguish unavailable from empty from too-narrow: a failed/unreachable
+  source is reported as unavailable, never as "no data" — satisfy the
+  question from a working alternative if one exists. An empty result from a
+  working search is a negative for the searched scope, not a categorical
+  absence: report what scope was searched. While a materially better query
+  or source could change the next action, keep searching — the stop
+  condition is evidence, not a retry count.
 
 ---
 
@@ -64,36 +83,27 @@ Spec    Red test  Green code   Evidence    Outcome
 first   first     minimal      observed    first
 ```
 
-### Phase 1: Plan (spec before code)
-- Define "what done means" — concretely, observably.
-- Name who benefits and the evidence of the need; an explicit user request
-  is sufficient. A red test, a convenient repo or sunk hours alone do not
-  determine priority.
-- Name the files you will touch — and what you will NOT touch.
-- Split complex work by independently verifiable outcomes, not file counts or microsteps.
+The phase-by-phase method, completion contract and when-not-to-use
+exceptions live in one source: `skills/superpowers/SKILL.md`. This file
+keeps only the contract points that gate work selection here:
 
-### Phase 2: TDD (test before code)
-- Define a behavior check before implementation. Bug fix: reproduce first, then demonstrate the fix. Keep regressions for plausible recurring bugs; use smoke/throwaway probes for one-off behavior, and actual rendered interaction for UI. Details: `testing-discipline`.
-
-### Phase 3: Implement (smallest correct change)
-- The smallest correct implementation of the complete request.
-- Tests are evidence, not a replacement for acceptance criteria; a narrow test does not authorize a narrow deliverable.
-- Match surrounding style. Don't refactor others' code unasked.
-
-### Phase 4: Verify (evidence, not inference)
-- Test green? → observed. Build intact? → checked.
-- Tests appropriate to the change green? → ran them; broaden when scope warrants (shared code touched, or a failure the targeted check exposed) — not the whole suite on every change.
-- Bug fix → TWINS: searched for the same pattern across the codebase.
-
-### Phase 5: Report (outcome first)
-- What was done (first line) · files touched · what was verified.
-
-**Completion contract:** resolve material ambiguity from available evidence
-before planning; ask only if it remains outcome-changing. Keep independent
-reviewer signoff separate from execution tracking. Before reporting, compare
-the result with every requirement, add missed work, repair in-scope gaps and
-verify the repair. Never forge signoff or stop at an append-only list of
-defects when implementation is authorized. Details: `skills/superpowers/SKILL.md`.
+- Define "what done means" — concretely, observably — before code. Split by
+  independently verifiable outcomes, not file counts or microsteps.
+- A behavior check precedes implementation; a bug is reproduced before its
+  fix. (Details: `testing-discipline` — loaded when test discipline is the
+  open question, not on citation.)
+- The smallest correct implementation of the complete request; a narrow
+  test does not authorize a narrow deliverable.
+- Verify with evidence appropriate to the change; broaden when scope
+  warrants (shared code touched, or a failure the targeted check exposed) —
+  not the whole suite on every change. Bug fix → TWINS: search for the same
+  pattern across the codebase.
+- Report outcome first: what was done, files touched, what was verified.
+- Phase helper skills (`brainstorming`, `writing-plans`,
+  `dispatching-parallel-agents`, `verification-before-completion`,
+  `requesting-code-review`) load for an unresolved question in their domain
+  or when the host mandates them — never merely because a phase named them.
+  A skill cross-reference is a pointer, not a load order.
 
 ---
 
@@ -121,6 +131,14 @@ python ~/.memory/db-tools/search_all.py "X"
 ```
 A hit is not authority: check the lifecycle badges first — [superseded by #N] → resolve to the replacing finding before using it; [unverified] → confirm before relying on it.
 
+**Search status before absence:** query with a distinctive project token
+first, then alternate tokens or history. A failed/unreachable search is
+"unavailable", not "not found" — report it as unavailable. An empty result
+from a working search is a negative for the searched scope: report the
+scope searched. While a materially better query or source could change the
+next action, keep searching — the stop condition is evidence, not a retry
+count.
+
 **Save reflex:** within AGENTS.md authorization and task boundaries, save durable findings with provenance. No useful finding or memory authority → no write; stop/revocation overrides the reflex.
 
 **Boundary rule:** portable → `~/.memory/Wiki/<type>/<slug>.md` → `build.py`; project → `WORK/<project>/docs/` → `build.py -r <root> -o ~/.memory/db/<name>.db`.
@@ -138,6 +156,11 @@ A hit is not authority: check the lifecycle badges first — [superseded by #N] 
 Always-on: `superpowers` (the method), `yagni` (minimalism), `engineering-persona` (tone), `fable-method` (complex tasks), `dev-wiki` (memory).
 
 32 domain skills live in `skills/` with trigger descriptions in each SKILL.md; the authoritative manifest is `profile.yml`.
+
+**Loading:** a skill loads when its topic or an unresolved domain question
+fires, once. A cross-reference to a skill is a pointer, not a load order;
+the host's mandatory skill policy wins. Keep prompts concise: no extra
+skill layers beyond the domain need.
 
 **Skill diagnostics:**
 - `python scripts/tools/skills_search.py "<symptom words>"` — find the fitting skill without a model

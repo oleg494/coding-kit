@@ -1,9 +1,9 @@
 ---
 name: autonomous-work
-description: 'Use when the user broadly authorizes autonomous work selection and continuation ("do useful work", "choose what is worth doing", "keep going without asking", "work autonomously", "работай сам", "делай что полезно", "продолжай без вопросов") — not for ordinary bounded requests, which keep their existing scope. Covers evidence-backed work selection, verify-then-continue loops, durable mission/progress/handoff state, immediate stop and revocation, and the optional foreground supervisor CLI. Never implies authorization for outward, destructive, or spending actions.'
+description: 'Use for broad autonomous work or recovering a prior project mission on "continue", "resume", "pick up", "продолжи работу". Recover scope and original user grants before selecting work. Bounded tasks stay bounded; continuation does not create outward, destructive, or spending authority.'
 license: MIT
 metadata:
-  version: "4.6.2"
+  version: "4.7.0"
 ---
 
 # Autonomous Work
@@ -27,35 +27,40 @@ manufacturing a task for the user and without pretending completion.
 - If no useful in-scope work remains, say so plainly and stop. Idle is an
   honest outcome; invented work is not.
 
-### Agree boundaries once on activation
+### Activation and continuation
 
-Before selecting or executing autonomous work, establish one explicit boundary
-agreement with the user. This happens on autonomous activation, not session
-startup, ordinary bounded requests, or every iteration.
+Before selecting or executing a new autonomous mission, establish one explicit boundary agreement with the user. This happens on autonomous activation, not session startup, bounded requests, or every iteration.
 
-- Read the current request and any still-valid explicit user grants first.
-  If they already cover the agreement, acknowledge them briefly and proceed;
-  do not ask the user to repeat an answer.
-- Otherwise ask one compact, grouped question covering the missing boundaries:
-  project/mission and exclusions; duration (propose today, in the user's local
-  date); local edits and verification; commits and ordinary push (repository
-  and branch); dependency installs and memory writes; paid experiments and an
-  explicit spending/quota limit. Use known project context rather than asking
-  for facts available in the repository. Offer conservative defaults, not an
-  exhaustive questionnaire. Wait for the answer before starting autonomous work.
-- Unspecified outward, destructive, spending, installation and memory-write
-  permissions remain ungranted. Silence, a broad autonomy request, or this
-  skill's text is not approval. Force push, releases, deploy, payments and
-  shared-data deletion are separate grants, never bundled into ordinary push.
-  If pushing triggers deployment, that effect also needs authorization.
-- Briefly confirm the agreed scope, grants, limits and expiry. Retain the
-  user's actual authorization and its provenance in the authorized mission
-  state; a generated summary cannot expand it. If state writes are not
-  authorized, keep the agreement in the current conversation only.
-- Continue without repeated confirmations while the agreement is valid.
-  After expiry, or when scope/target changes, ask only for the missing renewal
-  or extension. Resume/compaction does not reset expiry or restore revoked
-  grants. Stop and revocation always take precedence.
+Continuation language (`continue`, `resume`, `pick up`, `продолжи работу`) is a recovery request when a prior project mission may exist. Recover first; do not treat it as a new mission or a symptom-only task.
+If current context already establishes the task and authority, reuse it;
+do not rediscover the mission for a self-contained bounded continuation.
+
+1. Search project memory with a distinctive project token; inspect the latest relevant handoff, status, and available prior user grants.
+2. Recover the mission, acceptance criteria, scope, authority, verified state, blockers, and next action.
+3. Apply current user corrections as constraints or new objectives without silently replacing the recovered mission.
+4. Revalidate expiry, revocation, workspace, and current files. Saved completion is evidence history, never live truth.
+5. If the mission and unexpired grants are recoverable, continue without a new boundary questionnaire. If recovery is incomplete, retry project aliases/history, then ask only for the missing outcome-changing fact.
+
+For a new autonomous mission, read current requests and still-valid grants first. If they already cover the boundary agreement, acknowledge them briefly; otherwise ask one compact grouped question covering mission/exclusions, duration, local edits and verification, commits/push, installs/memory writes, and paid experiments. Unspecified outward, destructive, spending, installation, and memory-write permissions remain ungranted.
+
+Continue without repeated confirmations while the valid agreement remains in scope. Expiry, scope change, or revocation requires only the missing renewal; stop/revocation always wins.
+
+Recover authority from original user instructions with source, scope and any
+expiry; a generated summary cannot grant permission. Preserve valid grants,
+including explicitly authorized publication, rather than imposing local-only
+work by default. Ordinary push never grants force push, deploy or release;
+a push that triggers deployment needs that additional authority. Missing one
+grant blocks only dependent work. Never revive revoked or expired grants from
+a vague continuation request, or invent an expiry the user did not set.
+
+### Recovery is not reset
+
+An active mission keeps its original completion criteria across sessions. A new symptom, complaint, or blocker is added to that mission unless the user explicitly replaces the goal. Do not launch a broad audit, new worktree, parallel worker, or external research before recovery shows it is necessary.
+Once recovery settles the next action, stop reconstructing unrelated history.
+If no mission survives project-token/alias searches and available history,
+ask which goal to resume; unrelated TODOs are not a mission. Multiple plausible
+missions require only a choice between them. Current explicit scope overrides
+old autonomy; an explicit replacement goal replaces the old mission.
 
 ## Core loop
 
@@ -76,6 +81,10 @@ objective
    still apply (plan → TDD → implement → verify → report).
 3. **Verify by observation**: run the specific check, scenario, or command that
    covers the change. Unverified work is not a completed objective.
+   Once acceptance and applicable checks are evidenced on the current state,
+   close this objective's verification. Repeat only for a named missing check,
+   invalidating source/environment change or new failure; then move to the
+   next mission objective, not another review of the same unchanged result.
 4. **Record** the evidence and the resulting state durably (file, test, log,
    changelog, handoff) so a later session can resume without re-deriving it.
 5. **Next**: pick the next objective and continue. Do not ask permission for
@@ -97,6 +106,14 @@ objective
   comment churn, formatting sweeps, or "nice to have" refactors to look busy.
 - **No tiny-task ceiling**: there is no rule that only trivial tasks qualify;
   a large objective may be decomposed and executed step by step.
+- **No call/time quotas**: number of tool calls, turns or elapsed time never
+  by itself ends an objective or forces a summary — continuation to the next
+  objective runs until useful in-scope work is exhausted or a real
+  prerequisite is missing. The optional supervisor's `--max-iterations` and
+  `--timeout` are process-restart bounds, not completion criteria.
+- **No blanket tool rulings**: no global "always force / always native /
+  always rebuild" rule; choose the mechanism per task from evidence and the
+  user's actual constraint.
 - **No invented scope or success**: never expand the mission, and never report
   completion you did not observe. "Probably works" is not done.
 - **Stop when the mission is complete**: when the in-scope work is done,
@@ -108,6 +125,8 @@ Before pausing, handing off, or ending an autonomous stretch, record:
 
 - **Mission** — what the user authorized, in their words.
 - **Scope** — what is in and explicitly out.
+- **Authority** — original user grant and source, targets, limits, any expiry
+  and revocation; distinguish user instructions from generated summaries.
 - **Completed** — each finished item with its verification evidence.
 - **Current objective** — what is in flight right now.
 - **Blockers** — what stopped progress, and exactly what would unblock it.
@@ -115,6 +134,11 @@ Before pausing, handing off, or ending an autonomous stretch, record:
 
 State lives in files, not in conversation memory. A handoff that exists only
 in chat is not durable.
+
+Verification entries in a handoff are compact records — command, state,
+scope/environment, result, invalidation condition (change, failure,
+unresolved concern) — reusable for an unchanged checked state. A handoff
+records what happened; it is not a new subsystem to build or maintain.
 
 ## Stop & revocation
 

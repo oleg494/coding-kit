@@ -146,14 +146,23 @@ class SpecRuleCasesTest(unittest.TestCase):
 
 
 class KitPatchedRowTest(unittest.TestCase):
-    """check_frontmatter_spec against a tmp KIT (test_doctor.py pattern)."""
+    """check_frontmatter_spec against a tmp KIT (test_doctor.py pattern).
+    v4.7.0: the fixture declares its skills in profile.yml — the kit owns
+    only what the inventory lists."""
+
+    def _kit_with(self, td: str, slug: str, fm: str) -> Path:
+        root = Path(td)
+        (root / "skills").mkdir()
+        (root / "profile.yml").write_text(
+            "skills:\n  always_on:\n    - " + slug + "\n  domain: []\n",
+            encoding="utf-8", newline="\n")
+        write_skill(root, slug, fm)
+        return root
 
     def test_bad_skill_fails_row_and_names_it(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            (root / "skills").mkdir()
-            write_skill(root, "bad_name",
-                        "---\nname: bad_name\ndescription: 'x'\n---\n")
+            root = self._kit_with(td, "bad_name",
+                                  "---\nname: bad_name\ndescription: 'x'\n---\n")
             with mock.patch.object(doctor, "KIT", root):
                 ok, detail = doctor.check_frontmatter_spec()
         self.assertFalse(ok)
@@ -161,10 +170,8 @@ class KitPatchedRowTest(unittest.TestCase):
 
     def test_clean_tree_passes(self):
         with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            (root / "skills").mkdir()
-            write_skill(root, "clean-skill",
-                        "---\nname: clean-skill\ndescription: 'x'\n---\n")
+            root = self._kit_with(td, "clean-skill",
+                                  "---\nname: clean-skill\ndescription: 'x'\n---\n")
             with mock.patch.object(doctor, "KIT", root):
                 ok, detail = doctor.check_frontmatter_spec()
             self.assertTrue(ok, detail)

@@ -1,4 +1,30 @@
 # Changelog — Coding Agent OS
+- **v4.7.0 — mission recovery and owned-skill boundaries:**
+  - Continuation recovers the prior project mission, original user grants,
+    verified state and next action. A new complaint does not silently replace
+    the mission; current scope, expiry and revocation still take precedence.
+  - Skill cross-references no longer imply cascading loads. Phase helpers
+    address actual domain needs; mandatory host instructions still apply.
+  - Verification evidence is reusable for the checked state, scope and
+    environment. Relevant changes invalidate it; unchanged checks are not
+    repeated merely because another phase or chat turn has started.
+  - Search failures are unavailable sources, not proof of absence. Memory
+    searches start with project tokens and use working alternatives; negative
+    conclusions stay scoped to the sources and queries actually searched.
+  - Reports distinguish input validation, text-only next-action probes,
+    executed tasks and controlled comparisons. Unknown model/effort remains
+    unknown; no Sol-versus-Astra speedup or reliability improvement is claimed.
+  - Kit tooling uses the `profile.yml` skill inventory, not every neighbouring
+    directory. Third-party skills are not adopted, versioned or shipped by kit.
+  - Includes the previously unreleased eval comparison-identity and truthful
+    dry-run changes documented below; historical results are not regraded.
+  - Verification: full suite 840 passed, 16 skipped, 491 subtests passed;
+    doctor 14/14 green after local rollout; integrity verified 176 files;
+    file-size gate hard violations 0. Real isolated deploy tests cover owned
+    copying, foreign preservation and rollback. Structural validation: 42
+    scenarios, six tasks and 80 central trigger queries (not model passes).
+  - Text-only probes are retained under `eval/results/` with unknown resolved
+    model/effort and manual-assessment limits; no measured speedup is claimed.
 - **Unreleased (2026-09-27) — compare matching eval conditions only:**
   - Trap/trigger results now record digest-only comparison identity over exact
     executed input snapshots, expectations, selected cases, scorer files,

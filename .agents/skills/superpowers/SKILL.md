@@ -3,7 +3,7 @@ name: superpowers
 description: 'Always-on development method: plan, check, implement, verify, report. Use for non-trivial tasks. Define observable acceptance before code, reproduce bugs before fixes, and complete the requested outcome without procedural permission gates.'
 license: MIT
 metadata:
-  version: "4.6.2"
+  version: "4.7.0"
 ---
 
 # Superpowers — main development method
@@ -26,9 +26,15 @@ Kit v2: each phase has a granular skill helper. A phase is not replaced, but dee
 
 - PLAN → `brainstorming` (design questions, spec), `writing-plans` (execution plan)
 - IMPLEMENT → `dispatching-parallel-agents` (parallel slices), per-plan implementation with checkpoints
-- VERIFY → `verification-before-completion` (fresh output), `requesting-code-review`, `fable-judge` (adversarial)
+- VERIFY → `verification-before-completion` (applicable evidence for the current state), `requesting-code-review`, `fable-judge` (adversarial)
 - Debug → `systematic-debugging`
 - Git → `using-git-worktrees`, `finishing-a-development-branch`
+
+These are pointers, not a load order. A helper loads for an unresolved
+question in its domain (a real design question, a verification-honesty
+problem, a debugging unknown) — never merely because a phase named it, and
+never cascaded: loading one helper does not pull the others. The host's
+mandatory skill policy always wins over this thrift.
 
 ## Phase 1: PLAN
 

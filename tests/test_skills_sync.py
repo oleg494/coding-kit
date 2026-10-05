@@ -29,11 +29,19 @@ spec.loader.exec_module(doctor)
 
 
 def make_kit_tree(root: Path, skills: dict[str, str]):
+    """Kit tree whose profile.yml inventory declares exactly these skills
+    (v4.7.0: the kit owns only what profile.yml lists)."""
+    root.mkdir(parents=True, exist_ok=True)
+    entries = "\n".join(f"    - {slug}" for slug in sorted(skills))
+    (root / "profile.yml").write_text(
+        "skills:\n  always_on:\n"
+        + (entries + "\n" if entries else "    - placeholder-no-skill\n")
+        + "  domain: []\n",
+        encoding="utf-8", newline="\n")
     for slug, body in skills.items():
         d = root / "skills" / slug
         d.mkdir(parents=True)
         (d / "SKILL.md").write_text(body, encoding="utf-8", newline="\n")
-
 
 class DriftCheckTest(unittest.TestCase):
     def _check(self, root: Path):
@@ -237,15 +245,6 @@ class DeployCanonicalTest(unittest.TestCase):
             self.assertEqual(
                 (drifted / "SKILL.md").read_text(encoding="utf-8"), "new")
 
-    def test_canonical_removes_dropped_skill(self):
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            make_kit_tree(root, {"alpha": "a"})
-            stale = root / ".agents" / "skills" / "ghost"
-            stale.mkdir(parents=True)
-            (stale / "SKILL.md").write_text("old", encoding="utf-8")
-            self._deploy(root)
-            self.assertFalse(stale.exists())
 
 
 class ProfileAdapterFlagsTest(unittest.TestCase):

@@ -52,6 +52,11 @@ class DoctorVersionWarnTest(unittest.TestCase):
     def test_version_missing_warns_not_fails(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
+            # v4.7.0: fixture declares its skills in profile.yml
+            (root / "profile.yml").write_text(
+                "skills:\n  always_on:\n    - no-version\n"
+                "    - has-version\n  domain: []\n",
+                encoding="utf-8", newline="\n")
             write_skill(root, "no-version")
             write_skill(root, "has-version",
                         'metadata:\n  version: "3.7.0"\n')
@@ -141,13 +146,22 @@ class RetirementReportTest(unittest.TestCase):
 class StampedCorpusTest(unittest.TestCase):
     # Since v4.0.2 the WHOLE corpus is restamped at every release
     # boundary (parent integrator) — one kit version, one skill version.
-    def test_all_36_skills_stamped(self):
+    def test_all_owned_skills_stamped(self):
         import re
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "kit_inventory",
+            KIT / "scripts" / "tools" / "kit_inventory.py")
+        inv = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(inv)
+        owned = set(inv.load_owned_skills(KIT))
         for md in sorted(KIT.glob("skills/*/SKILL.md")):
+            slug = md.parent.name
+            if slug not in owned:
+                continue  # foreign skill dirs are not kit property
             fm = md.read_text(encoding="utf-8").split("---")[1]
             m = re.search(r"^metadata:\s*\n(?:\s+.*)*?^\s+version:\s*"
                           r"\"?([0-9.]+)\"?", fm, re.MULTILINE)
-            slug = md.parent.name
             self.assertIsNotNone(m, f"{slug}: no metadata.version")
             expected = (KIT / "VERSION").read_text(encoding="utf-8").strip()
             self.assertEqual(m.group(1), expected,

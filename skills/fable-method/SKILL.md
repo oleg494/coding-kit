@@ -4,7 +4,7 @@ description: A step-by-step problem-solving loop (classify the ask, define done,
 license: MIT
 trigger: /fable-method
 metadata:
-  version: "4.6.2"
+  version: "4.7.0"
 ---
 
 # The Fable Method

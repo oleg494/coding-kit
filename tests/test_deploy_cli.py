@@ -447,12 +447,15 @@ class DeployPreviewSubprocessTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 0,
                              f"isolated full deploy failed: {proc.stdout}{proc.stderr}")
 
-            source_skills = sorted(p.name for p in (kit_copy / "skills").iterdir() if p.is_dir())
+            inventory = load_deploy()._inventory.load_owned_skills(kit_copy)
+            source_skills = sorted(inventory)
             deployed = home / ".claude" / "skills"
             deployed_skills = {k: v for k, v in snapshot(deployed).items()
                                if not k.startswith(".kit-manifest.json")}
-            self.assertEqual(deployed_skills, snapshot(kit_copy / "skills"),
-                             "deployed skills must be byte-identical to the master copy")
+            expected = {k: v for k, v in snapshot(kit_copy / "skills").items()
+                        if k.split("/", 1)[0] in inventory}
+            self.assertEqual(deployed_skills, expected,
+                             "only profile-owned skills must be deployed byte-identically")
             manifest = json.loads((deployed / ".kit-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(sorted(manifest["skills"]), source_skills)
             for router in (home / "AGENTS.md", home / ".omp" / "agent" / "AGENTS.md"):
