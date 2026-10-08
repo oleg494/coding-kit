@@ -3,7 +3,7 @@ name: writing-plans
 description: Use when you have a spec or requirements for a multi-step task, before touching code
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Writing Plans
@@ -39,7 +39,7 @@ Use the task tracker or chat when sufficient. Create a plan file only when
 requested or required by an applicable project workflow; the default location
 then is `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`. Link the existing
 spec rather than copying it. A fixed header, code for every line, or a commit
-step per task is not required. Commits follow AGENTS.md.
+step per task is not required. Commits follow OPS.md §1.
 
 ## Self-review
 

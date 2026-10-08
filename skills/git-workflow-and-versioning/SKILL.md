@@ -1,9 +1,9 @@
 ---
 name: git-workflow-and-versioning
-description: Structures git workflow practices. Use when making any code change. Use when committing, branching, resolving conflicts, or when you need to organize work across multiple parallel streams. Use when cutting a release, choosing a semantic version bump, tagging, or writing a changelog.
+description: Git workflow and versioning practices. Use when committing, branching, resolving conflicts, organizing work across multiple parallel streams, cutting a release, choosing a semantic version bump, tagging, or writing a changelog.
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Git Workflow and Versioning
@@ -112,7 +112,7 @@ MAJOR.MINOR.PATCH
   └── Breaking change — consumers must change their code
 ```
 
-## Destructive Commands (AGENTS.md authorization)
+## Destructive Commands (OPS.md §1 authorization)
 
 Destructive commands require explicit user confirmation first: `git reset --hard`, `git clean -fd`, `git push --force`, `rm -rf`, `drop table`, deleting `*.db`. Reversible commands — no ceremony.
 

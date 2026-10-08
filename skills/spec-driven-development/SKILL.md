@@ -3,14 +3,14 @@ name: spec-driven-development
 description: Creates specs before coding. Use when starting a new project, feature, or significant change and no specification exists yet. Use when requirements are unclear, ambiguous, or only exist as a vague idea. Use when a single requirement spans several independently testable capabilities.
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Spec-Driven Development
 
 ## Overview
 
-Capture observable requirements before code. Reuse an existing spec or the user's explicit acceptance criteria; write only the missing design. Authorization follows AGENTS.md, not phase approval.
+Capture observable requirements before code. Reuse an existing spec or the user's explicit acceptance criteria; write only the missing design. Authorization follows OPS.md §1, not phase approval.
 
 ## When to Use
 
@@ -130,7 +130,7 @@ Execute dependency-ordered tasks with focused checks; parallelize independent ow
 - Update when decisions change
 - Update when scope changes
 - Save durable specs when requested or required by the project; otherwise a concise task plan can suffice
-- Commits and PRs require authority under AGENTS.md
+- Commits and PRs require authority under OPS.md §1
 
 ## Red Flags
 - Coding before acceptance or a check is defined

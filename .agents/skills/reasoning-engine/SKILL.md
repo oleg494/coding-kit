@@ -1,14 +1,14 @@
 ---
 name: reasoning-engine
-description: 'Always-on evidence-first reasoning for non-trivial tasks: define the outcome, inspect authoritative sources, resolve material uncertainty, act within scope and verify. Scale analysis to consequences rather than fixed step or source counts.'
+description: 'Evidence-first reasoning for non-trivial tasks: define the outcome, inspect authoritative sources, resolve material uncertainty, act within scope and verify. Use when a question needs a reasoned, source-checked answer and no task-specific skill covers it. Scale analysis to consequences rather than fixed step or source counts.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Reasoning Engine — the core of the agent's thinking
 
-Always-on skill. Apply before every non-trivial action.
+Core reasoning spine (OPS §2); apply to non-trivial questions and actions when no task-specific skill covers them.
 
 ## 1. Reason to the next observable result
 
@@ -32,18 +32,15 @@ options at every step. A small local change needs less process than a migration.
 ## 3. Complexity
 
 Scale planning and verification by coupled outcomes, uncertainty and consequences.
-Use the full fable-method loop for complex work, not because tool calls crossed a quota.
+Use fable-method only for explicit invocation or an uncovered judgment task.
 
-## 4. Skill-First Mandate
+## 4. Demand-driven skills
 
-**Zero rule:** writing code/a solution from scratch when a skill exists = failure.
-
-Before ANY non-trivial task:
-1. Check `skills/` — is there a skill for the task? (look at `description` in frontmatter)
-2. Load the primary skill → `read skills/<name>/SKILL.md`
-3. Follow the protocol from the skill
-
-If routing was missed, load the relevant skill and address the actual gap; do not redo valid work merely to perform the ceremony.
+Select a skill from its description when it resolves a concrete unanswered
+domain question. The core method is already in OPS; a broad trigger does not
+require another full workflow. Reuse loaded guidance and existing evidence.
+If routing missed useful guidance, address the actual gap without redoing
+valid work for ceremony.
 
 Cross-references to other skills are pointers, not a load order: a helper
 loads only for an unresolved question in its domain, and loading one does
@@ -75,7 +72,7 @@ DEFINE OUTCOME → INSPECT → DECIDE → ACT → VERIFY → REPORT
 ```
 
 Use memory when prior decisions matter; save durable findings only within
-AGENTS.md authorization. A read-only request or user stop does not permit a
+OPS.md §1 authorization. A read-only request or user stop does not permit a
 write-back. No useful finding means no memory artifact is needed.
 
 ## 7. Decisions and self-check

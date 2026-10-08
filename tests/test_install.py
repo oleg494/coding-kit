@@ -93,8 +93,9 @@ class InstallTest(unittest.TestCase):
             self.assertTrue(seeded.is_file(), f"Wiki/{name} must be seeded")
 
     def test_seeded_root_is_warmup_clean(self):
-        """Observable warmup integrity on a fresh install (real CLI,
-        isolated root, separate process)."""
+        """Observable warmup status on a fresh install (real CLI,
+        isolated root, separate process). Default mode is the compact
+        availability summary; integrity is the --full diagnostic."""
         self.assertEqual(install.main(), 0)
         warmup = self.root / "scripts" / "memory-warmup.py"
         r = subprocess.run(
@@ -104,11 +105,24 @@ class InstallTest(unittest.TestCase):
             env={**os.environ, "MEMORY_ROOT": str(self.root)},
         )
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
-        self.assertIn("Integrity: OK", r.stdout,
-                      "fresh install must pass warmup integrity: "
+        self.assertIn("memory: available", r.stdout,
+                      "fresh install must report healthy memory: "
                       + r.stdout[-400:])
         self.assertNotIn("missing", r.stdout,
                          "fresh install must not report missing cycle files")
+        self.assertNotIn("Integrity", r.stdout,
+                         "default warmup must stay compact (no full diagnostics)")
+
+        r_full = subprocess.run(
+            [sys.executable, str(warmup), "--full"],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120,
+            env={**os.environ, "MEMORY_ROOT": str(self.root)},
+        )
+        self.assertEqual(r_full.returncode, 0, r_full.stderr[-400:])
+        self.assertIn("Integrity: OK", r_full.stdout,
+                      "fresh install must pass warmup integrity via --full: "
+                      + r_full.stdout[-400:])
 
     def test_rerun_preserves_existing_wiki_cycle_files(self):
         """Seed is absent-only: a re-run never overwrites a user's

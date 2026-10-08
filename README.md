@@ -80,22 +80,23 @@ shell expansion of `~` in script arguments.
 
 ### 2. Connect your agent
 
-Merge a pointer to this clone's [AGENTS.md](AGENTS.md) and
-[OPS.md](OPS.md) into your agent's rules file. Use an absolute path to the
-clone so the files remain reachable from other projects. Preserve your
-existing instructions; do not replace them wholesale.
+Merge a pointer to this clone's [OPS.md](OPS.md) into your agent's rules file.
+Use an absolute path so the contract remains reachable from other projects.
+Load it once; [AGENTS.md](AGENTS.md) is only a repository router. Preserve
+existing instructions rather than replacing them wholesale.
 
-Copy or link the contents of [skills/](skills/) into the agent's skill
-directory, preserving unrelated skills. These are user-level changes and
-can affect every project opened with that agent.
+Copy or link only the 37 skills declared in [profile.yml](profile.yml) into
+the agent's skill directory, preserving unrelated skills. Skill bodies load
+on demand; no full method chain or memory warmup is required at startup.
+These user-level changes can affect every project opened with that agent.
 
 | Agent | Rules file | Skills |
 |---|---|---|
 | Claude Code | `~/.claude/CLAUDE.md` | `~/.claude/skills/` |
-| Oh My Pi (OMP) | `~/.omp/agent/AGENTS.md` | Auto-discovers `~/.claude/skills/` |
+| Oh My Pi (OMP) | `~/.omp/agent/AGENTS.md` | `~/.agents/skills/` with user-agent skill discovery enabled |
 | Antigravity | `~/AGENTS.md` | `~/.agents/skills/` |
 | ZCode | `~/.zcode/AGENTS.md` | `~/.zcode/skills/` |
-| Hermes | `SOUL.md` | Point `config.yaml` → `skills.external_dirs` at the clone's `skills/` |
+| Hermes | Delimited block in `SOUL.md` | Generated owned-skill projection via [Hermes adapter](adapters/hermes.md) |
 
 The OMP paths above match the kit's [deployment targets](scripts/tools/deploy.py).
 See the [Antigravity](adapters/antigravity.md) and [ZCode](adapters/zcode.md)
@@ -156,6 +157,24 @@ when a relevant change or failure invalidates that evidence.
 (including Firecrawl) are not kit release assets and remain untouched by kit
 validation and synchronization. This boundary does not stop your agent from
 independently discovering or using those skills.
+
+### Ownership and lightweight navigation
+
+The kit owns its contract, declared skills, memory scripts and generated
+routers. Approval mode, sandboxing, model/provider routing, compaction and
+third-party tools such as Graphify or Firecrawl belong to the host/user setup;
+kit releases neither change those settings nor claim to repair host rules.
+
+Use targeted source search and LSP for ordinary code navigation. For an
+existing indexed project, `python memory/db-tools/repomap.py project --db
+<project.db> --tokens 1500` gives a bounded map without installing a graph
+stack. Confirm indexed relationships against current source; an index may be
+stale. This is not a replacement for Graphify's multimodal graph-building
+features, which ordinary coding tasks do not require.
+
+Memory availability is an explicit check: `python
+memory/scripts/memory-warmup.py`; add `--full` only for diagnostic feeds and
+integrity inspection. No automatic global findings feed or memory writes.
 
 Your knowledge lives in `~/.memory/` (or `MEMORY_ROOT`), **outside the kit
 repository**. The clone contains methodology and tooling, not your personal

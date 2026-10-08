@@ -3,14 +3,14 @@ name: test-driven-development
 description: Drives development with tests. Use when implementing any logic, fixing any bug, or changing any behavior. Use when you need to prove that code works, when a bug report arrives, or when you're about to modify existing functionality.
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Test-Driven Development
 
 ## Overview
 
-Define acceptance and a behavior check before implementation. For bug fixes, reproduce the bug before changing its source, then show the reproduction passes. Existing contract tests, isolated smoke probes and actual rendered UI checks can provide appropriate evidence; a permanent test must defend a plausible failure.
+Define acceptance and a behavior check before implementation. For bug fixes, reproduce the failure where reproduction is needed for diagnosis or regression defense; a user-supplied failure report is ground truth for the symptom, and prior failure evidence remains valid for an unchanged state. Show the reproduction (or the valid prior evidence) passes after the fix. Existing contract tests, isolated smoke probes and actual rendered UI checks can provide appropriate evidence; a permanent test must defend a plausible failure. State explicitly when reproduction is unavailable rather than claiming an unrun one.
 
 ## The TDD Cycle
 
@@ -24,7 +24,7 @@ Define acceptance and a behavior check before implementation. For bug fixes, rep
 ```
 
 ### Step 1: RED — Write a Failing Test
-For a bug or new missing behavior, observe the check fail for the intended reason before the fix. A passing check can establish existing behavior, but cannot establish that it reproduced the reported bug. Do not manufacture failures in unrelated behavior.
+For a bug or new missing behavior, observe the check fail for the intended reason before the fix — freshly, or by reusing prior failure evidence valid for the unchanged state. A passing check can establish existing behavior, but cannot establish that it reproduced the reported bug; a user-supplied failure report is ground truth for the symptom. Do not manufacture failures in unrelated behavior.
 
 ### Step 2: GREEN — Make It Pass
 Write the smallest correct implementation of the full request, not just the subset exercised by the current test. Don't over-engineer or drop acceptance criteria.
@@ -82,7 +82,7 @@ it('is idempotent — completing already-completed task is a no-op', ...);
 ```
 
 ## Verification
-- [ ] Bug/new-behavior reproduction failed for the intended reason before the fix
+- [ ] Bug/new-behavior reproduction failed for the intended reason before the fix (fresh run, or prior failure evidence valid for the unchanged state; unavailable reproduction is stated, not faked)
 - [ ] The same behavior check passes after implementation
 - [ ] Applicable existing checks pass on the final state; broaden for shared code or exposed failures
 - [ ] Kept tests defend observable contracts rather than wording or internal wiring

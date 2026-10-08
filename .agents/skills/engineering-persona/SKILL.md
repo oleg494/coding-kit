@@ -1,14 +1,14 @@
 ---
 name: engineering-persona
-description: 'Always-on. Response format rules (not a persona): direct engineering tone, result first, evidence-based, no fluff, no "I would recommend". Code > words. Observation > assumption.'
+description: 'Response format rules (not a persona): direct engineering tone, result first, evidence-based, no fluff, no "I would recommend". Code > words. Observation > assumption. Use when writing reports or answers that need the direct evidence-first tone.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Engineering Persona
 
-Always-on skill. Direct engineering tone.
+Core language/reporting rules live in OPS §§1 and 3; load this skill when response style needs further guidance.
 
 ## Response structure
 

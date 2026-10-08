@@ -30,7 +30,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-EXPECTED_VERSION = "4.7.0"
 EXPECTED_SKILL_COUNT = 37
 EXPECTED_TRIGGER_QUERY_COUNT = 80
 EXPECTED_TASK_COUNT = 6
@@ -122,15 +121,12 @@ def _active_release_text() -> str:
 
 
 class VersionContractTest(unittest.TestCase):
-    def test_version_equals_3_4_6(self):
-        self.assertEqual(
-            (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
-            EXPECTED_VERSION)
-
-    def test_profile_version_equals_3_4_6(self):
-        m = _VERSION_RE.search((ROOT / "profile.yml").read_text(encoding="utf-8"))
-        self.assertIsNotNone(m, "profile.yml must declare version")
-        self.assertEqual(m.group(1), EXPECTED_VERSION)
+    def test_profile_matches_release_version(self):
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertRegex(version, r"^\d+\.\d+\.\d+$")
+        match = _VERSION_RE.search((ROOT / "profile.yml").read_text(encoding="utf-8"))
+        self.assertIsNotNone(match, "profile.yml must declare version")
+        self.assertEqual(match.group(1), version)
 
 
 

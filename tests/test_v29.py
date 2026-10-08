@@ -381,7 +381,7 @@ class WarmupUnsureFeedTest(unittest.TestCase):
         fx = _FakeRoot()
         try:
             self._seed(fx)
-            r = _run(WARMUP, [], fx.env)
+            r = _run(WARMUP, ["--full"], fx.env)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             out = r.stdout
             # contradictions: newest 2 links only, both endpoint topics shown
@@ -414,11 +414,96 @@ class WarmupUnsureFeedTest(unittest.TestCase):
         finally:
             fx.close()
 
-    def test_json_feed_is_list_of_lines_with_pull_hint(self):
+    def test_default_warmup_is_compact_availability_summary(self):
+        """v4.8: the default invocation is a compact read-only summary —
+        no unsure feed, no high-priority findings, no integrity scan, no
+        git nudges; --full keeps the diagnostics."""
+        fx = _FakeRoot()
+        try:
+            self._seed(fx)
+            r = _run(WARMUP, [], fx.env)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            out = r.stdout
+            # availability line reflects real content (wiki.db is built
+            # only via build.py; stats counts remain read-only)
+            self.assertIn("memory:", out)
+            self.assertIn("full diagnostics", out)
+            # unrelated findings feeds must stay out of the default mode
+            self.assertNotIn("contradiction:", out)
+            self.assertNotIn("unanchored:", out)
+            self.assertNotIn("pull: search_all.py", out)
+            self.assertNotIn("Integrity", out)
+            self.assertNotIn("git stale", out)
+        finally:
+            fx.close()
+
+    def test_default_json_reflects_requested_mode(self):
+        """--json mirrors the mode: default carries availability,
+        --full carries the diagnostic keys."""
         fx = _FakeRoot()
         try:
             self._seed(fx)
             r = _run(WARMUP, ["--json"], fx.env)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            data = json.loads(r.stdout)
+            self.assertIn("available", data)
+            self.assertNotIn("stats", data)
+            self.assertNotIn("findings", data)
+            self.assertNotIn("recent", data)
+            self.assertNotIn("integrity", data)
+            self.assertNotIn("high_priority", data)
+
+            r2 = _run(WARMUP, ["--json", "--full"], fx.env)
+            self.assertEqual(r2.returncode, 0, r2.stdout + r2.stderr)
+            data2 = json.loads(r2.stdout)
+            for key in ("stats", "recent", "findings", "integrity",
+                        "git_stale_days", "high_priority"):
+                self.assertIn(key, data2)
+            self.assertNotIn("available", data2)
+        finally:
+            fx.close()
+
+    def test_default_warmup_reports_missing_memory_not_healthy(self):
+        """Unavailability must be explicit, never silent health."""
+        fx = _FakeRoot()
+        try:
+            r = _run(WARMUP, [], fx.env)  # nothing seeded, no wiki.db
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertIn("missing", r.stdout)
+            self.assertIn("findings: not present", r.stdout)
+            self.assertNotIn("memory: available", r.stdout)
+        finally:
+            fx.close()
+
+    def test_default_rejects_unusable_stores_without_mutating_them(self):
+        for kind in ("corrupt", "empty_schema", "directory"):
+            with self.subTest(kind=kind):
+                fx = _FakeRoot()
+                try:
+                    stores = [fx.root / "db" / name for name in ("wiki.db", "research.db")]
+                    for store in stores:
+                        if kind == "directory":
+                            store.mkdir()
+                        elif kind == "corrupt":
+                            store.write_bytes(b"not a SQLite database")
+                        else:
+                            sqlite3.connect(store).close()
+                    before = {p.name: p.read_bytes() for p in stores if p.is_file()}
+                    result = _run(WARMUP, ["--json"], fx.env)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(json.loads(result.stdout)["available"],
+                                     {"wiki": "unreadable", "findings": "unreadable"})
+                    self.assertEqual(before, {p.name: p.read_bytes() for p in stores if p.is_file()})
+                    self.assertEqual(sorted(p.name for p in (fx.root / "db").iterdir()),
+                                     ["research.db", "wiki.db"])
+                finally:
+                    fx.close()
+
+    def test_json_feed_is_list_of_lines_with_pull_hint(self):
+        fx = _FakeRoot()
+        try:
+            self._seed(fx)
+            r = _run(WARMUP, ["--json", "--full"], fx.env)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             feed = json.loads(r.stdout)["findings"]
             self.assertIsInstance(feed, list)
@@ -432,7 +517,7 @@ class WarmupUnsureFeedTest(unittest.TestCase):
     def test_missing_research_db_degrades_to_empty(self):
         fx = _FakeRoot()
         try:
-            r = _run(WARMUP, ["--json"], fx.env)  # no research.db seeded
+            r = _run(WARMUP, ["--json", "--full"], fx.env)  # no research.db seeded
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             self.assertEqual(json.loads(r.stdout)["findings"], [])
         finally:
@@ -445,7 +530,7 @@ class WarmupUnsureFeedTest(unittest.TestCase):
                 try:
                     self._seed(fx)
                     # Before superseding: links (5,6) and (3,4) are newest.
-                    r1 = _run(WARMUP, ["--json"], fx.env)
+                    r1 = _run(WARMUP, ["--json", "--full"], fx.env)
                     self.assertEqual(r1.returncode, 0, r1.stdout + r1.stderr)
                     feed1 = json.loads(r1.stdout)["findings"]
                     self.assertTrue(any(
@@ -470,7 +555,7 @@ class WarmupUnsureFeedTest(unittest.TestCase):
                     con.close()
 
                     # The next active contradiction (#1 vs #2) takes its place.
-                    r2 = _run(WARMUP, ["--json"], fx.env)
+                    r2 = _run(WARMUP, ["--json", "--full"], fx.env)
                     self.assertEqual(r2.returncode, 0, r2.stdout + r2.stderr)
                     feed2 = json.loads(r2.stdout)["findings"]
                     self.assertFalse(any(

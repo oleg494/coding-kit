@@ -3,7 +3,7 @@ name: security-and-hardening
 description: Hardens code against vulnerabilities. Use when handling user input, authentication, data storage, or external integrations. Use when building any feature that accepts untrusted data, manages user sessions, or interacts with third-party services. Use when personal data or privacy compliance (GDPR, CCPA) is involved.
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Security and Hardening
@@ -49,7 +49,7 @@ Authentication flows, sensitive-data categories, external integrations, CORS,
 uploads and rate limits require explicit requirements and security review,
 not automatic reapproval. Implement and verify already-requested local changes.
 Ask only when available evidence cannot resolve a consequential scope choice
-or when the next action lacks authority under AGENTS.md, such as transmitting
+or when the next action lacks authority under OPS.md §1, such as transmitting
 real personal data, changing live permissions or activating an external service.
 Keep authorization for implementation separate from authorization for deployment.
 

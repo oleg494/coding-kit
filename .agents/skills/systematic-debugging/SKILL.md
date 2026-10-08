@@ -3,7 +3,7 @@ name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Systematic Debugging
@@ -62,7 +62,8 @@ You MUST complete each phase before proceeding to the next.
    - Can you trigger it reliably?
    - What are the exact steps?
    - Does it happen every time?
-   - If not reproducible → gather more data, don't guess
+   - A user-reported failure is ground truth for the symptom; reproduce locally when diagnosis needs it, when building a regression check, or when the report alone is insufficient to localize.
+   - Not reproducible with available evidence → gather more data, don't guess; say what is unavailable rather than assuming the report wrong.
 
 3. **Check Recent Changes**
    - What changed that could cause this?
@@ -172,12 +173,11 @@ You MUST complete each phase before proceeding to the next.
 
 **Fix the root cause, not the symptom:**
 
-1. **Create Failing Test Case**
-   - Simplest possible reproduction
-   - Automated test if possible
-   - One-off test script if no framework
-   - MUST have before fixing
-   - Use the `test-driven-development` skill for writing proper failing tests
+1. **Establish Failure Evidence**
+   - Accept applicable user-reported or prior failure evidence.
+   - Reproduce when needed to distinguish causes or defend a regression.
+   - Use an existing check or isolated probe; state unavailable evidence.
+   - Load `test-driven-development` only if test design remains unresolved.
 
 2. **Implement Single Fix**
    - Address the root cause identified

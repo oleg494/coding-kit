@@ -1,20 +1,20 @@
 ---
 name: code-graph-review
-description: 'Use BEFORE a commit or change review, when you need to understand "what this N-file change will break": blast radius over the diff, affected execution paths, dead code, architectural hubs/bridges, weak spots, rename with preview. Do not use for code search — CRG is for structural diff analysis, not navigation.'
+description: 'Understand "what this N-file change will break": blast radius over the diff, affected execution paths, dead code, rename impact. Use when the code-review-graph MCP is available and a graph exists, or when the user explicitly invokes a graph-based review; otherwise native source search/LSP (find references, definitions) covers change impact. Do not use for code search/navigation.'
 license: MIT
-compatibility: git repo with a built graph (code-review-graph MCP)
+compatibility: 'git repo; code-review-graph MCP when available, otherwise LSP/source search'
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Code graph review: what will the change break
 
-The code-review-graph MCP server answers "what will this N-file change break" — impact/blast radius over the DIFF, dead-code, communities, flows.
+Answers "what will this N-file change break". The graph path applies only when the code-review-graph MCP server and a built graph exist in this environment; otherwise use the native fallback — there is no obligation to install or build a graph for review. Never claim graph-level findings (hubs, communities, flows) that a native search did not produce.
 
-## Workflow (order of application)
+## Workflow (graph path — code-review-graph MCP present)
 
-1. **Changes ready → diagnose first** (lsp): 0 errors before any linter.
-2. **Rebuild the graph** — `build_or_update_graph_tool` (incrementally). A stale graph = false analysis.
+1. **Choose applicable diagnostics** — use configured LSP and repository checks; unrelated diagnostics are not an automatic blocker.
+2. **Check graph freshness** — update incrementally only when writes are authorized. For a read-only review with stale graph data, use current source/LSP and state the graph limitation.
 3. **Run `detect_changes`** — diff → risk score, priorities (what to look at first), test gaps. This is the main review tool.
 4. **Assess blast radius** — `get_impact_radius` (BFS depth over the diff), `get_review_context` (code snippets). Ask: "what will the N-file change break".
 5. **Check affected flows** — `get_affected_flows`/`list_flows`: which user paths pass through the changed files.
@@ -22,7 +22,14 @@ The code-review-graph MCP server answers "what will this N-file change break" �
 7. **Dead code / rename** — `refactor_tool(mode="dead_code")`; `refactor_tool(mode="rename")` → `apply_refactor_tool`.
 8. **Verify dead-code false positives via lsp** (`find_references`), don't delete blindly.
 
-## Table: task → tool
+## Native fallback (no MCP / no graph)
+
+- List the changed symbols (diff → names), then find references/definitions via LSP or source search to enumerate direct callers.
+- Walk callers one level for shared code; report which call sites you actually checked rather than implying exhaustive reachability.
+- Rename impact: search all usages of the old name; show the replacement preview per site.
+- Dead code: search for references; report "no references found in sources searched", not "dead" as an absolute.
+
+## Table: task → tool (graph path)
 
 | Task | Tool |
 |---|---|
@@ -37,4 +44,5 @@ The code-review-graph MCP server answers "what will this N-file change break" �
 ## Pitfalls
 
 - **dead-code produces false positives** on callback patterns and `Thread(target=...)` — verify via lsp, don't delete blindly.
-- The graph builds/updates incrementally: `build_or_update_graph_tool` after changes — otherwise the data is stale.
+- A stale graph is not evidence of current reachability. Update only within authorization or use current source instead.
+- The native path answers direct-impact questions; do not present it as graph-equivalent whole-system analysis.

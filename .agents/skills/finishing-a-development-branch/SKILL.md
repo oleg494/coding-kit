@@ -1,9 +1,9 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work
+description: Use when a verified local change needs an authorized integration decision, merge, publication, or worktree cleanup.
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Finishing a Development Branch
@@ -57,7 +57,7 @@ is material and unresolved, present the relevant tradeoffs: local merge,
 publication/PR, or keeping the branch. No fixed option count or exact wording.
 
 Discarding work is never a suggested finish step. It requires explicit
-authorization naming the work and destructive effect under AGENTS.md.
+authorization naming the work and destructive effect under OPS.md §1.
 
 ## Step 5: Execute Choice
 

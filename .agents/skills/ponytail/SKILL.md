@@ -3,7 +3,7 @@ name: ponytail
 description: 'Use for coding tasks to minimize implementation weight without reducing requested behavior: reuse existing code, prefer stdlib/native, avoid speculative abstractions, fix root causes and verify the complete observable result.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Ponytail — lazy senior dev mode
@@ -73,7 +73,9 @@ off. Leave the calibration knob — the physical world needs tuning a minimal
 model cannot see.
 
 Logic without evidence is unfinished. Define a suitable observable check;
-for bugs, reproduce before fixing. Keep regressions that defend plausible
+for bugs, use applicable reported/prior evidence and reproduce when needed
+for diagnosis or regression. Verify the affected behavior after the fix;
+report unavailable checks. Keep regressions that defend plausible
 bugs, reuse existing test conventions, and use smoke/throwaway probes when
 appropriate. No fixed test-count quota, framework ban or one-line exemption
 for consequential behavior. See testing-discipline.

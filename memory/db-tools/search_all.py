@@ -3,9 +3,9 @@
 """Search ALL workspace databases at once (srclight multi-repo pattern:
 ATTACH + UNION). "Where does this live" in a single query — across all
 agent, wiki and project databases db/*.db PLUS the findings store
-research.db (P11/D-G: AGENTS.md §4 routes "what do we know about X"
-here, so findings_fts must answer too — before this the store was
-structurally invisible because it has no files_fts).
+research.db as well. OPS §5 routes "what do we know about X" here, so the
+findings store must answer too — before this it was structurally invisible
+because it has no files_fts.
 
 Results print as ONE global bm25 merge-sort (best first) instead of
 alphabetical db order: a strong wiki.db hit must not rank below a weak

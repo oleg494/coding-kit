@@ -1,98 +1,49 @@
 # Coding Agent OS — Skill Runtime
 
-> **v4.7.0** | For platforms with ≥16K context.
-> Superpowers: plan → TDD → implement → verify → report.
-> 8–16K context → core mode: OPS.md §1-5 + skill routing table only.
-> <8K context → compact mode: irreducible core retains action authorization rules, stop conditions, calibrated uncertainty, and applicability exceptions (see §1 below).
-> Answer the user in THEIR language. Everything else — English.
-## For every non-trivial task
+> **v4.8.0** | Host integration notes, not another operating contract.
 
-### 1. SUPER POWERS (always)
+## Startup
 
-```
-PLAN → TDD → IMPLEMENT → VERIFY → REPORT
-```
+Point the host's instruction file at the clone's absolute `OPS.md` path and
+load it once. `AGENTS.md` is a short repository router; do not embed its body
+plus OPS plus every method skill. If the host already loaded the current
+contract, a second pointer must not cause another read.
 
-The full method lives in one source: `skills/superpowers/SKILL.md`. Runtime
-keeps only the phase anchors:
+`profile.yml` declares the 37 kit-owned skills. Its `always_on` list is empty:
+the core principles are in OPS, while full skill bodies load on demand.
+Expose short descriptions; read the primary skill for an explicit invocation
+or an unresolved domain question. Cross-references do not trigger more loads.
+Host mandatory loading rules take precedence and may limit these savings.
 
-- **PLAN** — define "what done means" (concretely, observably); name files
-  touched and NOT touched; decompose by independent deliverables.
-- **TDD** — a behavior check before code; reproduce a bug before fixing it.
-- **IMPLEMENT** — the smallest correct implementation of the complete
-  request.
-- **VERIFY** — evidence appropriate to the change (broaden when scope
-  warrants); TWINS for bug fixes; applicable build/runtime paths only.
-  Reuse recorded evidence for an unchanged checked state — command, state,
-  result — and rerun on invalidating change, failure or unresolved concern.
-- **REPORT** — result first line; files touched; what was verified.
+## Host boundaries
 
-## Skill loading
+Use native search, symbol tools, task/delegation and approval APIs. Do not copy
+another platform's tool names, shell syntax or agent-type arguments literally.
+Installed third-party skills are not kit-owned; deployment must preserve them.
+Host approval mode, sandboxing, model roles, network routing and context
+compaction are host configuration, not effects of this instruction file.
 
-```
-1. IDENTIFY: check skills/ — is there a skill for the task?
-2. LOAD: read skills/<name>/SKILL.md
-3. APPLY: follow the Protocol/Workflow section
-4. MARK: 📚 skill-name
-```
+A read-only request is a scope rule, not a technical sandbox. Choose the host's
+read-only mode where available; do not infer permission from an auto-approved
+tool. Local implementation checks and external effects follow OPS §1.
 
-No cascade loads: a cross-reference to a skill is a pointer, not a load
-order — load the helper only for an unresolved question in its domain.
-A method already in context is not reloaded because a phase named it. The
-host's mandatory skill policy always wins. Keep prompts concise: no extra
-skill layers beyond the domain need.
+## Memory
 
-## Continuation before planning
+No automatic warmup, global findings feed, recursive integrity scan or save
+ritual. Retrieve memory when prior decisions matter, using project/topic scope.
+Explicit availability check: `python memory/scripts/memory-warmup.py` from the
+clone, or the installed script under `~/.memory/scripts/`. Full diagnostics:
+add `--full`. `MEMORY_ROOT` selects the store; no mode may silently migrate it.
 
-"Continue/resume/pick up" or "продолжи работу" first recovers the project
-mission from memory and available history; see `autonomous-work`. Preserve
-goal, original user grants, current corrections and remaining acceptance.
-Do not reset to a new mission, broad audit or blanket local-only restriction.
-Expired/revoked grants remain unavailable; missing authority is asked narrowly.
+## Completion and constrained context
 
-## Autonomous work (opt-in)
+OPS §§1–3 remain the irreducible core: authority, stop/read-only boundaries,
+complete requested outcomes, applicable evidence and honest limitations.
+When context is constrained, omit optional procedures before these safeguards.
+Recover a continued mission from history/memory, including its grants and
+verification provenance; do not reset it to a new task.
 
-Broad authorization to choose and continue useful work ("do useful work",
-"keep going without asking", "работай сам") loads skill `autonomous-work`:
-select the highest-value in-scope objective, verify by observation, record
-durable evidence, continue. It is task opt-in, not an always-on skill and not
-a `MODE:` override — `STRICT_AUDIT` and read-only tasks stay read-only, and
-outward/destructive/spending actions still need explicit authorization.
-Stop/revocation (`стоп`/`stop`, `STOP` file, explicit revoke) wins immediately.
-Once the current objective's acceptance and applicable checks are satisfied,
-stop rechecking it unless evidence is invalidated. Bounded work ends with the
-report; an active autonomous mission proceeds to its next useful objective.
-
-## Cross-chat memory (hierarchy)
-
-```bash
-python ~/.memory/scripts/memory-warmup.py                    # warmup
-python ~/.memory/db-tools/search_all.py "X"                  # search all bases
-python ~/.memory/db-tools/build.py                           # rebuild index
-python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source path
-```
-
-Boundary rule: portable → `~/.memory/Wiki/`; project-specific → `WORK/<project>/docs/` + `build.py -r`.
-
-Search status before absence: query a distinctive project token first, then
-alternate tokens or history. Unreachable/failed search → "unavailable", not
-"not found". Empty result from a working search is a negative for the
-searched scope — report the scope, not categorical absence. Keep searching
-while a materially better query or source could change the next action; the
-stop condition is evidence, not a retry count.
-
-## Irreducible Core & Exceptions
-
-- **Authorization rules:** AGENTS.md is the source of truth. Requested local changes proceed through design and implementation without approval stalls. Commits and outward/destructive actions require the authority defined there.
-- **Uncertainty & stop conditions:** Stop tool actions immediately on user revocation. Otherwise inspect evidence and finish reachable work; report a concrete missing prerequisite, not a phase or fixed retry-count gate.
-- **Applicability exceptions (When NOT to use full cycle):**
-  - Typo or other non-behavioral edit → verify is enough. A one-line behavior fix still needs a reproduction and a relevant check.
-  - Pure documentation → plan + verify.
-  - Read-only investigation/review → findings and recommendation only; no side-effect memory or file writes unless asked.
-
-## Never
-- Change behavior without defined acceptance and a suitable check
-- Build abstractions without present value / clear change boundary
-- Add dependencies without measuring the pain
-- Claim "done" without evidence
-- Answer from conversation memory — use the database
+A bounded task ends after the verified deliverable and report. An explicitly
+autonomous mission continues within its grant; it cannot override a stop,
+read-only instruction or missing external authority. See `autonomous-work`
+only when mission recovery or autonomous execution is the open question.

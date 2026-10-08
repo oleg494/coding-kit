@@ -1,9 +1,9 @@
 ---
 name: verification-before-completion
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires applicable verification evidence (run when no valid evidence exists; valid prior evidence reusable for the unchanged state) before making any success claims; evidence before assertions always
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Verification Before Completion
@@ -98,8 +98,8 @@ check exposed.
 
 **Regression tests (TDD Red-Green):**
 ```
-PASS: Observe the bug fail in isolation before the fix; apply the fix; observe the same check pass. If the fix already exists, demonstrate the failure in a disposable pre-fix copy, not by reverting the user's working tree.
-❌ "I've written a regression test" (without red-green verification)
+PASS: Use applicable before-fix failure evidence, then exercise the same behavior after the fix. For a regression-test claim, establish that the test detects the defect, using an isolated pre-fix copy if needed; never revert the user's tree.
+If before-fix evidence is unavailable, report that limitation and the narrower after-fix observation. Do not claim a demonstrated red-green regression.
 ```
 
 **Build:**

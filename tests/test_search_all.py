@@ -10,10 +10,10 @@ Two layers:
    in finally even when execute() raises (a leaked handle keeps the .db
    writable-locked for the rest of the run on Windows).
 
-2. P11 findings union (plan D-G): research.db used to be structurally
-   invisible (list_searchable_dbs admits only files_fts databases), so
-   AGENTS.md §4's documented reflex `search_all.py "X"` answered
-   "not found" while findings.py found hits in the very same store.
+2. P11 findings union: research.db used to be structurally invisible
+   (list_searchable_dbs admits only files_fts databases), so the documented
+   `search_all.py "X"` reflex answered "not found" while findings.py found
+   hits in the same store.
    Contract: findings print as `[research] finding#<id> <topic> …<snippet>`
    plus a `findings.py show <id>` hint, and ALL results (files dbs +
    findings) come out in ONE global bm25 order — never alphabetical db
@@ -495,7 +495,7 @@ class GlobalMergeOrderTest(unittest.TestCase):
 
 
 class AgentsCommandContractTest(unittest.TestCase):
-    """(c) The LITERAL AGENTS.md §4 reflex, end-to-end as a subprocess:
+    """(c) The OPS §5 memory-search command, end-to-end as a subprocess:
 
         python <engine>/search_all.py "workflowz"
 

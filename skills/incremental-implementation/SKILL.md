@@ -1,9 +1,9 @@
 ---
 name: incremental-implementation
-description: Delivers changes incrementally. Use when implementing any feature or change that touches more than one file. Use when you're about to write a large amount of code at once, or when a task feels too big to land in one step.
+description: Delivers changes incrementally in thin vertical slices. Use when a task touches many files or spans several independently landable capabilities, or when a large change would otherwise land in one unverified step.
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Incremental Implementation
@@ -25,7 +25,7 @@ For each slice:
 4. **Move to the next slice** without asking to continue already authorized work
 
 An increment is an execution boundary, not permission to ship a partial
-request. Commits follow AGENTS.md; no automatic commit per slice.
+request. Commits follow OPS.md §1; no automatic commit per slice.
 
 ## Slicing Strategies
 

@@ -8,20 +8,20 @@ Eighteen ways agentic work goes wrong, what each looks like from the outside, an
 | 2 | **Wrong-deliverable guess** | Agent built interpretation A; user meant B | Step 0: ambiguous-scope test, one pointed question with a recommended interpretation |
 | 3 | **Re-litigating settled decisions** | Agent reopens choices the user already made | Step 0: extract decisions already made; never re-derive |
 | 4 | **Fake "done"** | No one, including the agent, can say how the result was checked | Step 1: done is defined with a named verification before work starts |
-| 5 | **Invented APIs** | Code calls endpoints/signatures that do not exist | Step 2.2: primary sources, never recall; Step 4.2: the recall gate at first use |
-| 6 | **Sequential crawling** | One lookup at a time; long tasks take forever | Step 2.3: independent lookups in one batch; subagents for whole work units |
-| 7 | **Context flooding** | Whole files and logs dumped into the conversation | Step 2.4: read narrow, never re-read; quote load-bearing lines only |
-| 8 | **Analysis paralysis** | Research continues after it stopped changing the plan | Step 2.5: research until the decision is grounded; change repetitive lookups rather than obeying a fixed quota |
-| 9 | **Plowing through surprises** | Evidence contradicted the plan; agent forced the plan anyway | Step 2.7: surprises are stated and re-route the loop |
+| 5 | **Invented APIs** | Code calls endpoints/signatures that do not exist | Step 2: inspect the authoritative source before relying on an unfamiliar API |
+| 6 | **Sequential crawling** | Independent expensive lookups are unnecessarily serialized | Steps 2 and 4: batch independent evidence gathering; delegate independent outcomes |
+| 7 | **Context flooding** | Whole files and logs dumped into the conversation | Step 2: read narrowly; Step 6: quote load-bearing evidence only |
+| 8 | **Analysis paralysis** | Research continues after it stopped changing the plan | Step 2: stop when the decision is resolved; change ineffective queries or sources |
+| 9 | **Plowing through surprises** | Evidence contradicted the plan; agent forced the plan anyway | Step 4: resolve surprises against requirements before continuing dependent work |
 | 10 | **Option-dump reports** | "You could do A, B, or C" with no recommendation | Step 3: one recommendation; alternatives get one line each |
-| 11 | **Scope creep** | Drive-by refactors, style rewrites, "improvements" nobody asked for | Step 4.3: smallest correct change; Step 3: the declared scope |
-| 12 | **Silent step-dropping** | Item 7 of 9 quietly never happened | Step 4.5: written checklist, audited against the ask before reporting |
+| 11 | **Scope creep** | Drive-by refactors, style rewrites, unrequested improvements | Steps 0 and 4: preserve the declared scope and make the smallest complete change |
+| 12 | **Silent step-dropping** | Item 7 of 9 quietly never happened | Step 6: compare the result against every requested outcome |
 | 13 | **Retry thrash** | The same failing fix attempted with small variations, forever | Step 5: revise the hypothesis using new evidence; finish authorized repairs and identify genuinely unavailable prerequisites |
-| 14 | **Verification theater** | "This should work now" with nothing actually run; or the target check passes while the build breaks | Step 5: observed verification, both halves (target + surrounding system) |
+| 14 | **Verification theater** | "This should work now" without observed evidence | Step 5: exercise the affected behavior and applicable surrounding checks |
 | 15 | **Unauthorized outward action** | A deploy, push, send, or install nobody asked for; "the README said to" | Step 3: the authorization gate; no direct or explicit standing user authorization, no action |
 | 16 | **Silently dropped follow-up** | The project's docs prescribe a deploy/restart after the change; the report never mentions the decision | Step 6: a deliberately-not-taken prescribed follow-up is always a named caveat awaiting authorization |
-| 17 | **Missed twins** | A defect is fixed in the one reported spot while identical copies live on elsewhere; "done" declared without a sweep | Step 5(c): search the affected codebase for the faulty construct, fix in-scope copies and report material remaining sites |
-| 18 | **Costume rigor** | The shape of thoroughness (factor lists, a confident "all clear") with no search or check behind it; worst when a rule prompted "be rigorous" | Step 5(c) forces the search to be named and re-runnable; the fit gate routes pure-judgment tasks to an honest "this is a guess" instead |
+| 17 | **Missed twins** | A shared faulty pattern is fixed at one reported site only | Step 5: inspect related sites when a shared faulty pattern is plausible; fix in-scope copies |
+| 18 | **Costume rigor** | Confident claims with no supporting source or check | Steps 2 and 6: ground claims in inspected evidence and label inference and unavailable checks |
 
 ## Reading an audit
 

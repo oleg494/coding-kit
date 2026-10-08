@@ -16,7 +16,9 @@ Idempotent. Steps:
      entries are eligible for removal.
      ~/.claude/CLAUDE.md keeps its machine-local triggers: only the
      version / date / skill-count line is bumped in place.
-     An existing <!-- CODEGRAPH --> block is carried over verbatim.
+     Generated routers are lightweight: metadata + one canonical contract
+     reference (read KIT/OPS.md at session start) + the kit AGENTS.md path as
+     a pointer (soul not embedded) + an optional preserved CODEGRAPH block.
   3. Verify: byte-compare every deployed skill against the master, check
      every router header, exit non-zero on any mismatch.
 """
@@ -60,10 +62,10 @@ VERSION = (KIT / "VERSION").read_text(encoding="utf-8").strip()
 
 # Harnesses with a uniform regenerable router.
 # skills_dir None = harness has no own kit skills copy (omp auto-discovers
-# ~/.claude/skills; codex/opencode use none). skills_line None = omit line.
+# ~/.agents/skills; codex/opencode use none). skills_line None = omit line.
 HARNESSES = [
     {"id": "omp", "router": "~/.omp/agent/AGENTS.md", "name": "OMP",
-     "skills_line": "# Skills: auto-discovered (kit skills synced to ~/.claude/skills)",
+     "skills_line": "# Skills: auto-discovered (kit skills synced to ~/.agents/skills)",
      "skills_dir": None},
     # Gemini CLI was retired by Google on 2026-06-18 (Antigravity CLI is
     # the successor and has its own target above); the chat-JSON reader
@@ -435,13 +437,6 @@ def sync_skills() -> list[SkillsReport]:
     return execute_skills(plan)
 
 
-def soul_text():
-    text = (KIT / "AGENTS.md").read_text(encoding="utf-8")
-    if SOUL_MARKER not in text:
-        sys.exit("FATAL: marker not found in kit AGENTS.md: " + SOUL_MARKER)
-    return text[text.index(SOUL_MARKER):].rstrip() + "\n"
-
-
 def codegraph_block(old: str):
     m = re.search(r"<!-- CODEGRAPH_START -->.*?<!-- CODEGRAPH_END -->",
                   old, re.S)
@@ -480,8 +475,14 @@ def preflight_routers_and_claude() -> tuple[bool, list[str]]:
 
 
 def regen_routers(dry: bool = False):
-    """Regenerate kit-owned routers. dry=True reports planned actions only."""
-    soul = soul_text()
+    """Regenerate kit-owned routers as lightweight pointers. dry=True reports
+    planned actions only.
+
+    A generated router carries only ownership/version/path metadata, one
+    canonical contract reference (read KIT/OPS.md) and an optional preserved
+    CODEGRAPH block from the previous file. The kit's OPS.md contract is
+    loaded once via the pointer; no second instruction body is embedded.
+    """
     kit = KIT.as_posix()
     actions = []
     for h in HARNESSES:
@@ -508,11 +509,10 @@ def regen_routers(dry: bool = False):
             lines.append(h["skills_line"])
         lines += [
             "## STARTUP (once per session)",
-            f"1. read {kit}/OPS.md",
-            "2. python ~/.memory/scripts/memory-warmup.py",
+            f"1. read {kit}/OPS.md (canonical contract)",
             "",
         ]
-        new = "\n".join(lines) + "\n" + soul + codegraph_block(old)
+        new = "\n".join(lines) + "\n" + codegraph_block(old)
         if new == old.rstrip() + ("\n" if old else "") or new == old:
             actions.append((str(path), "unchanged"))
         elif dry:

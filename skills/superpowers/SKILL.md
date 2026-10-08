@@ -1,14 +1,14 @@
 ---
 name: superpowers
-description: 'Always-on development method: plan, check, implement, verify, report. Use for non-trivial tasks. Define observable acceptance before code, reproduce bugs before fixes, and complete the requested outcome without procedural permission gates.'
+description: 'Development method: plan, check, implement, verify, report. Use for non-trivial tasks with no more specific method skill. Define observable acceptance before code, reproduce bugs before fixes, and complete the requested outcome without procedural permission gates.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Superpowers — main development method
 
-Always-on skill. Every non-trivial task goes through 5 phases.
+The core method lives in OPS §§2–3; load this skill when phase detail resolves an open question. Scale the cycle to the task's scope and risk.
 
 ## The Cycle
 
@@ -51,7 +51,7 @@ mandatory skill policy always wins over this thrift.
 
 **Red test → green code → refactoring.**
 
-- Define an observable check before changing behavior; reproduce a bug before its fix.
+- Define an observable check before changing behavior; for a bug, reproduce the failure where reproduction is needed for diagnosis or regression defense — a user-reported failure is ground truth for the symptom, and prior failure evidence valid for the unchanged state counts.
 - Test names express consumer rules, not implementation details. Keep a permanent regression only where a plausible bug would fail it; a throwaway probe or rendered UI interaction can provide the appropriate proof.
 - A test verifies behavior, not implementation.
 
@@ -97,7 +97,7 @@ Bug report → test reproducing the bug → test FAILS → fix → test GREEN
    direct verification can be the audit; no extra review ceremony is required.
 
 Continue through these steps without yielding at a phase boundary. Stop only
-for user revocation or a concrete unavailable prerequisite under AGENTS.md.
+for user revocation or a concrete unavailable prerequisite under OPS.md §1.
 
 ## Phase 5: REPORT
 
@@ -110,11 +110,11 @@ for user revocation or a concrete unavailable prerequisite under AGENTS.md.
 
 ## When NOT to use
 
-- One-line fix, typo — verify is enough.
+- Typo or other non-behavioral edit — direct verification is enough; line count does not determine risk.
 - Pure documentation — plan + verify.
 
 ## Gotchas
 
-- Most common mistake: skipping TDD. "I'll just write the code, then the test". No. Test FIRST.
+- Define acceptance before implementation; use applicable failure evidence and do not invent a reproduction merely to complete a phase.
 - Second: scope creep. "I'll also clean up the neighboring file". No. Separate task.
 - Third: "seems to work". No. Observed that it works.

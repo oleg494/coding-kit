@@ -16,8 +16,8 @@ Short version: issues and PRs are welcome. Keep the kit thin.
    (`name`, `description` ≤1024 chars), body <500 lines, progressive disclosure.
 4. **No new runtime**: no MCP servers, no hooks, no daemons. The kit is
    prompts + skills + stdlib scripts; enforcement belongs to the harness.
-5. **Claims need evidence**: every "fixed/verified" statement cites the test or
-   doctor check that re-verifies it (OPS.md §Claim discipline).
+5. **Claims need evidence**: cite applicable observed checks for the current
+   state and scope (OPS.md §3); reuse evidence until it is invalidated.
 6. **Memory stays personal**: nothing under `~/.memory`, no machine-specific
    paths in tracked files (`~/` forms only in kit docs).
 7. **English core**; user-facing triggers may stay bilingual where they are
@@ -34,8 +34,11 @@ Short version: issues and PRs are welcome. Keep the kit thin.
 
 ## Pull requests
 
-- One logical change per PR; ~300 lines is a comfortable ceiling.
-- Add or extend a test in `tests/` for behavior changes.
+- Keep one coherent outcome reviewable; split independently verifiable work,
+  not arbitrary line counts.
+- Preserve tests for plausible consumer-visible failures. Add a permanent
+  regression for an uncertain boundary or recurring defect; isolated smoke
+  evidence is sufficient for wiring and ordinary documentation changes.
 - New eval scenario? Follow `eval/scenarios/*.md` frontmatter convention
   (`name`, `skill`, `trap`, `expect`) and validate with
   `python eval/runner.py`.

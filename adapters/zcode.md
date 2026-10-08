@@ -12,23 +12,15 @@
 ## 2. Install
 
 ### Step 1: Rules
-Copy the kit router to `~/.zcode/AGENTS.md`:
-```bash
-cp <kit>/AGENTS.md ~/.zcode/AGENTS.md
-```
-Or on Windows PowerShell:
-```powershell
-Copy-Item "<kit>\AGENTS.md" "$env:USERPROFILE\.zcode\AGENTS.md"
-```
+Merge a pointer to the clone's absolute `OPS.md` path into
+`~/.zcode/AGENTS.md`, preserving existing rules. Load it once. Copying the
+repository router alone leaves its relative contract link unresolved.
 
-### Step 2: Skills — junction (single source)
-```powershell
-New-Item -ItemType Junction -Path "$env:USERPROFILE\.zcode\skills" -Target "<kit>\skills"
-```
-On Linux/macOS:
-```bash
-ln -s <kit>/skills ~/.zcode/skills
-```
+### Step 2: Skills
+Copy or link only skills declared in `profile.yml` into `~/.zcode/skills/`,
+preserving unrelated skills. Linking the entire `skills/` directory also
+exposes any user-owned third-party directories placed beside kit skills;
+use that layout only if this broader discovery is intended.
 
 ### Step 3: Memory
 Memory lives outside the kit: `~/.memory/` (Wiki + db-tools + research.db).

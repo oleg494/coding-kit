@@ -4,7 +4,7 @@ description: 'Use for consequential choices of tools, libraries, standards or pr
 license: MIT
 compatibility: any project
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Production-first: decisions grounded in relevant evidence
@@ -26,7 +26,7 @@ metadata:
 For an unfamiliar dependency or mechanism, run a task-sized sandbox probe of
 the uncertain behavior before integrating. Benchmark only when performance
 motivates the choice; compare a simpler existing option when material.
-Installation, paid calls and outward actions still follow AGENTS.md authority.
+Installation, paid calls and outward actions still follow OPS.md §1 authority.
 Record consequential decisions in the existing project record or authorized
 memory; an ADR is not a mandatory artifact for every implementation detail.
 

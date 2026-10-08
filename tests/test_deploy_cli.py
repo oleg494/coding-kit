@@ -462,6 +462,15 @@ class DeployPreviewSubprocessTest(unittest.TestCase):
                 text = router.read_text(encoding="utf-8")
                 self.assertIn(f"v{VERSION}", text)
                 self.assertIn(kit_copy.as_posix(), text)
+                # v4.8.0: routers are lightweight pointers
+                self.assertNotIn("# coding-kit — Agent Soul", text,
+                                 "generated routers must not embed the kit soul body")
+                self.assertNotIn("memory-warmup", text,
+                                 "generated routers must not run memory-warmup unconditionally")
+                self.assertEqual(text.count(f"1. read {kit_copy.as_posix()}/OPS.md"), 1,
+                                 "router startup must load the canonical OPS.md exactly once")
+                self.assertEqual(text.count(". read "), 1,
+                                 "startup must not load a second instruction body")
             self.assertFalse((home / ".omp" / "agent" / "AGENTS.md.kit-bak").exists(),
                              "no backup is needed when the router did not exist before")
             self.assertEqual(unrelated.read_text(encoding="utf-8"), "keep\n")

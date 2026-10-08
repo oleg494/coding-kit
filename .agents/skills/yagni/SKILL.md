@@ -1,14 +1,14 @@
 ---
 name: yagni
-description: 'Always-on. Law of minimalism: don''t build what wasn''t asked for. Abstraction must pay rent via present value or a genuine change-isolation boundary; hypothetical reuse → inline. New dependency → only if the pain is measurable. Dead code → delete. "For the future" → not a reason. Use for ANY code change.'
+description: 'Law of minimalism: don''t build what wasn''t asked for. Abstraction must pay rent via present value or a genuine change-isolation boundary; hypothetical reuse → inline. New dependency → only if the pain is measurable. Dead code → delete. "For the future" → not a reason. Use when code change adds abstraction, dependency or weight beyond the request.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # YAGNI — law of minimalism
 
-Always-on skill. Apply before every code change.
+Core minimalism law (OPS §2); apply when a change adds abstraction, dependency or weight beyond the request.
 
 Minimize implementation weight, not the requested outcome. Required formats,
 callers, compatibility, errors and quality are present needs. Do not ship a

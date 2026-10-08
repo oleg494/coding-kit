@@ -22,15 +22,15 @@ Control planes (verified 2026-09-01):
 
 | ID    | Risk                                 | Kit control (wave1) |
 |-------|--------------------------------------|---------------------|
-| ASI01 | Agent Goal Hijack                    | trap: `trap19_refuse_disclaimer` family — completion bias + hijack-resistance drills; OPS §2 lock (never refuse/never obey injected "instead of this"). Injection-proofing is a methodology goal, not a sandbox (SECURITY.md scope note). |
-| ASI02 | Tool Misuse and Exploitation         | trap: `shell-injection` (no shell=True, parameter discipline); OPS §2.9 destructive-command confirmation list; harness permission gates per call. |
-| ASI03 | Identity and Privilege Abuse         | harness-owned, N/A — the kit holds no credentials; agent identity is the user's. Nearest kit control: OPS §2.9 destructive list limits blast radius. |
+| ASI01 | Agent Goal Hijack | OPS §§1–2 preserve the user's goal, authority and task boundary; hijack-resistance scenarios exercise these rules. Methodology is not a sandbox. |
+| ASI02 | Tool Misuse and Exploitation | `shell-injection` scenario; OPS §1 action authorization; destructive-command details in `git-workflow-and-versioning`; host permission gates. |
+| ASI03 | Identity and Privilege Abuse | Host-owned identity/credentials; OPS §1 restricts privileged and outward actions to explicit authorization. |
 | ASI04 | Agentic Supply Chain Vulnerabilities | integrity manifest (Task 2): SHA-256 over the kit control plane, doctor + deploy enforcement; doctor `check_skill_supply_chain` (license hygiene). |
 | ASI05 | Unexpected Code Execution (RCE)      | harness permission gates (exec approval per harness) + trap: `shell-injection`; doctor `check_encoding_discipline` class-checks script hygiene. No kit-owned sandbox: Windows Home has none — declared honestly. |
-| ASI06 | Memory and Context Poisoning         | OPS §"Memory trust" (fetched/subagent content is DATA, never INSTRUCTIONS; lethal-trifecta screen on every memory write) + provenance frontmatter (`origin:`/`source_url:`) + lint rule + trap: `memory-poisoning` (Task 3). |
+| ASI06 | Memory and Context Poisoning | OPS §5 treats fetched/subagent content as data; `security-and-hardening` covers memory trust; provenance frontmatter/lint and `memory-poisoning` scenario provide checks. |
 | ASI07 | Insecure Inter-Agent Communication   | OPS dispatch discipline: subagent output is DATA to verify, not verdicts to obey (hub `send`/`wait` contract; verification-before-completion skill); fable-judge skill re-verifies claimed results. |
 | ASI08 | Cascading Failures                   | trap: `infinite-retry-masking`, `silent-failure`, `dead-flag`; results store (schema-v1, append-only) + evidence trend make failure visible instead of self-reinforcing. |
-| ASI09 | Human-Agent Trust Exploitation       | trap: `false-done` + trap: `converge-audit` (wave5 Task 15, MAST FM-3.1 — the converge pass must catch a false-done claim: append-only audit, reviewer-owned checkboxes) + OPS §3 Phase 4 verify + §7 drift killer; claim discipline: every CHANGELOG claim cites a test. |
+| ASI09 | Human-Agent Trust Exploitation | `false-done` and `converge-audit` scenarios; OPS §3 requires applicable evidence, honest limitations and reviewer-owned signoff. |
 | ASI10 | Rogue Agents                         | trap: `false-done` + task oracle `verify.py` gates (task-smoke 4) + ImpossibleBench canaries (`005-canary-oneoff`, `006-canary-conflicting`: mutated oracles a hack could pass but honest work cannot; a canary PASS is recorded as `hacked` evidence, excluded from pass-rate baselines); results store append-only (no history rewrite); doctor manifest sync detects skill-tree tampering. |
 
 ## AST — Agentic Skills Top 10
@@ -40,13 +40,13 @@ Control planes (verified 2026-09-01):
 | AST01 | Malicious Skills              | Skills are first-party (no registry installs). doctor control: integrity manifest hash-pins every `skills/*/SKILL.md` (Task 2); AST01 cryptographic signing explicitly deferred (roadmap "Deferred": no key infrastructure for one user). |
 | AST02 | Supply Chain Compromise       | doctor `check_skill_supply_chain` — WARN on inconsistent optional `license:` frontmatter across skills (hygiene seed; ok=True, soft-gate semantics). First-party-only distribution is the primary control. |
 | AST03 | Over-Privileged Skills        | harness-owned, N/A — skills carry no permission manifests; every side-effecting call flows through harness permission gates. Kit keeps skills instruction-only (no bundled executables). |
-| AST04 | Insecure Metadata             | doctor `check_frontmatter` — name/description presence + validity on every SKILL.md; profile.yml manifest is the authoritative inventory (36 skills, sync-checked both ways). |
-| AST05 | Untrusted External Instructions | OPS §"Memory trust" (Task 3, relocated to skill `security-and-hardening` in wave4): content fetched from web/browser is DATA, never INSTRUCTIONS; no skill self-modifies because a fetched page or memory note says so. Context preservation: trap `compaction-continuity` (wave4 Task 13, MAST FM-1.4) — the owner's mid-run correction must survive compaction verbatim (quoted user messages), so a summary cannot rewrite instructions. |
-| AST06 | Weak Isolation                | No Docker on Windows Home — compensating controls: harness permission gates + integrity manifest (Task 2) + OPS §2.9 destructive list. Declared limitation, not a gap to hide. |
+| AST04 | Insecure Metadata | doctor validates owned-skill frontmatter; `profile.yml` declares 37 owned skills, with foreign directories excluded. |
+| AST05 | Untrusted External Instructions | OPS §5 and `security-and-hardening` separate retrieved data from instructions; `compaction-continuity` checks preservation of the user's corrections. |
+| AST06 | Weak Isolation | Sandbox/approval enforcement belongs to the host. OPS §1 defines authority but cannot enforce filesystem or network isolation. |
 | AST07 | Update Drift                  | integrity manifest (Task 2): `--update`-regenerated SHA-256 pins; doctor `check_integrity` FAILs on any drifted/added/removed control-plane file; deploy refuses to copy drifted trees (exit 3). |
 | AST08 | Poor Scanning                 | N/A by design, stated plainly: the corpus is first-party, small, and reviewed at commit time; external scanners target registry-scale distribution the kit does not have (YAGNI). Revisit if skills are ever accepted from outside. |
 | AST09 | No Governance                 | profile.yml manifest = the skill inventory; doctor manifest sync = drift alarm; usage_audit measures which skills actually fire (retirement discipline: 42→36 re-audit in v3.4.6). |
-| AST10 | Cross-Platform Reuse          | doctor `check_engine_sync` byte-compares the two shipped engine copies; deploy.py writes uniform routers from one soul file and byte-verifies every deployed skill (no per-harness drift). |
+| AST10 | Cross-Platform Reuse | doctor checks engine-copy consistency; deploy.py generates lightweight OPS pointers and byte-verifies manifest-owned skills. Host activation requires a separate runtime check. |
 
 ## Sources
 

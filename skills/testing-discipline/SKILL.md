@@ -4,14 +4,19 @@ description: 'Use when adding/fixing tests, reproducing bugs, checking limits or
 license: MIT
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Testing discipline: tests as a spec and defining "done"
 
-## 0. TDD gate (OPS §3 Phase 2 companion)
+## 0. Acceptance and failure evidence (OPS §3)
 
-Define observable acceptance and a suitable check before changing behavior. Bug fixes require a failing reproduction followed by a passing result. Preserve meaningful existing tests; keep a new regression when a plausible recurring bug would fail it. Smoke probes and rendered UI interaction are valid evidence, not an obligation to add permanent test files.
+Define observable acceptance and a suitable check before changing behavior.
+Accept user-reported failure evidence; reproduce when needed for diagnosis or
+regression, reusing applicable prior evidence. After a fix, exercise the
+affected behavior. State unavailable before-fix evidence explicitly. Preserve
+meaningful tests; keep a regression when a plausible recurring bug would fail
+it. Smoke probes and rendered UI interaction are also valid evidence.
 
 ## 1. Isolation and structure
 
@@ -54,7 +59,7 @@ Completion covers every requested behavior, not merely passing tests.
 
 1. Define consumer-visible acceptance and the failure being defended.
 2. Select the appropriate layer and isolate external side effects.
-3. Reproduce bugs before fixing them; for new behavior define a focused check.
+3. Establish failure evidence as needed for diagnosis/regression; for new behavior define a focused check.
 4. Implement the complete request, run the check and applicable existing suite.
 5. Verify the affected runtime surface and report the evidence's actual scope.
 

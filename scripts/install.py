@@ -34,8 +34,8 @@ ENGINE = KIT / "memory" / "db-tools"
 WIKI_TYPES = ("reference", "howto", "errors", "decisions", "ideas")
 ENGINE_VERSION = "2.9"
 
-# Cycle files the dev-wiki contract (AGENTS.md Session End, warmup
-# integrity_check) assumes exist. Seeded ONLY when absent — a re-run
+# Cycle files the dev-wiki contract (OPS §5, warmup --full integrity check)
+# assumes exist. Seeded ONLY when absent — a re-run
 # never overwrites a user's index/log (install philosophy: never
 # destroy what may be data).
 _WIKI_SEEDS = {

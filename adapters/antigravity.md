@@ -11,18 +11,14 @@
 ## 2. Install
 
 ### Step 1: Rules
-Copy the kit router to `~/AGENTS.md`:
-```bash
-cp <kit>/AGENTS.md ~/AGENTS.md
-```
-Adjust memory paths inside if your memory root is not `~/.memory` (env `MEMORY_ROOT` overrides).
+Merge a pointer to the clone's absolute `OPS.md` path into `~/AGENTS.md`.
+Preserve existing instructions. Load the contract once; do not copy the
+repository router with a relative link into an unrelated directory.
 
 ### Step 2: Skills
-```bash
-mkdir -p ~/.agents/skills
-cp -r <kit>/skills/* ~/.agents/skills/
-```
-Or keep a single source with a junction per skill.
+Copy or link only the 37 owned skills declared in `profile.yml` into
+`~/.agents/skills/`, preserving unrelated skills. A full-directory wildcard
+would also copy third-party sources and is not the kit ownership contract.
 
 ### Step 3: Memory
 Memory lives outside the kit: `~/.memory/` (Wiki + db-tools + research.db). Rebuild indexes:
@@ -37,7 +33,7 @@ In the IDE ask the agent to show its method (plan → TDD → implement → veri
 ## 3. What the agent does after install
 
 ```
-STARTUP   read OPS.md → memory-warmup
+STARTUP   read the canonical OPS.md once; no automatic memory feed
 QUESTION  known → search_all.py "X" → answer with file link
 TASK      superpowers: plan → TDD → implement → verify → report
 "write"   hierarchy: portable → ~/.memory/Wiki/; project → WORK/<proj>/docs/

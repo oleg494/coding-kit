@@ -5,7 +5,8 @@ Schema v2.7 (files + files_fts), search across ALL databases in the db/
 directory (global wiki.db + project *.db), findings from research.db.
 
 Usage:
-    python scripts/memory-warmup.py              # full warmup
+    python scripts/memory-warmup.py              # compact availability summary
+    python scripts/memory-warmup.py --full       # full diagnostics warmup
     python scripts/memory-warmup.py --query "X"  # search all databases
     python scripts/memory-warmup.py --stats      # stats only
     python scripts/memory-warmup.py --json       # JSON for the agent
@@ -15,6 +16,7 @@ import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta
+from contextlib import closing
 from pathlib import Path
 
 # MEMORY_ROOT overrides the install location (OPS §5 contract; the kit
@@ -285,12 +287,40 @@ def git_stale_days(root: Path = None) -> int:
         return -1
 
 
+def _availability() -> dict:
+    """Probe readable schemas without creating stores or scanning contents."""
+    available = {}
+    probes = (
+        ("wiki", WIKI_DB, (
+            "SELECT rel_path, ext, mtime FROM files LIMIT 0",
+            "SELECT rel_path, content FROM files_fts LIMIT 0",
+        )),
+        ("findings", RESEARCH_DB, ("SELECT id, topic FROM findings LIMIT 0",)),
+    )
+    for name, path, queries in probes:
+        if not path.exists():
+            available[name] = "absent"
+            continue
+        try:
+            with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as con:
+                for query in queries:
+                    con.execute(query)
+            available[name] = "ok"
+        except (sqlite3.Error, OSError):
+            available[name] = "unreadable"
+    if not DB_DIR.exists():
+        available["db_dir"] = "absent"
+    return available
+
 def main():
     import argparse
 
     p = argparse.ArgumentParser(description="Cross-chat memory warmup")
     p.add_argument("--query", "-q", help="Search query (all dbs)")
     p.add_argument("--stats", "-s", action="store_true", help="Stats only")
+    p.add_argument("--full", action="store_true",
+                   help="Full diagnostics: recent entries, unsure feed, "
+                        "high-priority findings, integrity, git staleness")
     p.add_argument("--json", "-j", action="store_true", help="JSON output")
     args = p.parse_args()
 
@@ -298,21 +328,42 @@ def main():
     if args.query:
         output["search"] = {"query": args.query,
                             "results": search_all_dbs(args.query)}
-    elif args.stats:
+    elif args.stats or args.full:
+        # --stats keeps its existing shape (stats-only, both formats);
+        # --full is the diagnostic warmup that used to be the default
         output["stats"] = stats()
+        if args.full:
+            output["recent"] = recent_entries()
+            output["findings"] = unsure_feed()
+            output["integrity"] = integrity_check()
+            output["git_stale_days"] = git_stale_days()
+            output["high_priority"] = high_priority_feed()
     else:
-        output["stats"] = stats()
-        output["recent"] = recent_entries()
-        output["findings"] = unsure_feed()
-        output["integrity"] = integrity_check()
-        output["git_stale_days"] = git_stale_days()
-        output["high_priority"] = high_priority_feed()
+        output["available"] = _availability()
 
     if args.json:
         print(json.dumps(output, ensure_ascii=False, indent=2))
         return
 
-    if "stats" in output:
+    if "available" in output:
+        # compact default mode: one line per store, explicit when
+        # something is missing or unreadable — never "healthy" silence
+        a = output["available"]
+        if a["wiki"] == "ok":
+            print("memory: available (Wiki index)")
+        else:
+            print(f"memory: wiki index {'missing' if a['wiki'] == 'absent' else 'unreadable'}"
+                  f" ({WIKI_DB}) — rebuild with db-tools/build.py")
+        if a.get("db_dir") == "absent":
+            print(f"memory: db directory missing ({DB_DIR})")
+        if a["findings"] == "ok":
+            print("findings: available")
+        elif a["findings"] == "absent":
+            print("findings: not present (no research.db)")
+        else:
+            print(f"findings: unreadable ({RESEARCH_DB})")
+        print("full diagnostics: python memory-warmup.py --full")
+    elif "stats" in output:
         s = output["stats"]
         print(f"Wiki: {s['wiki_entries']} entries ({s['recent_7d']} this week)")
         for pd in s["project_dbs"]:

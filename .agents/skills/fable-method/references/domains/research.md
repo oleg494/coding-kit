@@ -4,8 +4,8 @@ Applies when the deliverable is an answer to a question about the world: market 
 
 ## Minimum evidence set (binding, before any conclusion)
 
-1. **Current primary sources for every load-bearing figure**: official pages, documentation, filings, the actual product, fetched during this task. Training memory is a hypothesis, never a citation.
-2. **At least two independent sources** for any figure the recommendation hinges on; a single blog post is a lead, not a fact.
+1. **Applicable primary sources for load-bearing figures**: official pages, documentation, filings or the actual product. Reuse opened evidence while its state and effective date remain valid; training memory is not a citation.
+2. **Corroboration proportional to consequence**: seek independent evidence for disputed, indirect or high-impact claims. A narrow authoritative fact can rest on one source. Report unavailable corroboration; never invent a second source or substitute a quota for quality.
 3. **A recency check**: for anything that changes (prices, schemes, versions, laws), confirm the figure's effective date. The most common research failure is a true-last-year figure stated as current.
 
 ## Evidence and primary sources

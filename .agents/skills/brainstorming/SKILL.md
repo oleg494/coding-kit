@@ -3,14 +3,14 @@ name: brainstorming
 description: 'Use before designing features, components, new subsystems, or behavior changes. Resolve intent, constraints, interfaces and acceptance before implementation; scale design depth to uncertainty without adding approval gates to authorized work.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Brainstorming Ideas Into Designs
 
 Understand the requested outcome, inspect existing patterns, choose a complete
 solution, and continue through implementation when that is what the user asked.
-Authorization and stop conditions come from AGENTS.md, not the design phase.
+Authorization and stop conditions come from OPS.md §1, not the design phase.
 A requested local auth, schema or dependency change needs risk-appropriate
 checks, not redundant permission merely because of its category.
 
@@ -64,7 +64,7 @@ another engineer to understand decisions, contracts and acceptance.
 User review is a gate only when the user requested it or a real project
 approval governs the action. Do not ask after every section, force spec-file
 approval, or end with an execution-method menu when implementation is already
-authorized. Commits follow AGENTS.md.
+authorized. Commits follow OPS.md §1.
 
 ## Failure patterns
 

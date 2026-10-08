@@ -172,6 +172,8 @@ class TestCR01Ownership(unittest.TestCase):
                 self.assertEqual(router_path.read_text(encoding="utf-8"), user_content)
 
 
+
+
 class TestCR02ManifestValidation(unittest.TestCase):
     """CR-02: validate the ENTIRE manifest BEFORE any mutation of that destination:
     JSON object with skills: list of single-component names (no path separators,

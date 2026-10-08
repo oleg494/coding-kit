@@ -1,4 +1,48 @@
 # Changelog — Coding Agent OS
+- **v4.8.0 — single contract and demand-driven context:**
+  - OPS.md owns authorization, completion and evidence. Repository and
+    generated harness routers point to it once instead of embedding a second
+    complete contract. OMP discovery documentation uses `.agents/skills`.
+  - The 37 owned skills remain available; `always_on` is empty because core
+    principles already live in OPS. Domain bodies and references load only
+    for explicit invocation or unresolved questions, subject to host rules.
+  - Failure reports are accepted as evidence; diagnosis and regression checks
+    determine when reproduction is useful. Genuine public/legal/protocol text
+    contracts remain protected. Research uses sufficient authoritative
+    evidence rather than a mandatory source-count quota.
+  - Default memory warmup probes store schemas read-only without global
+    findings feeds or content scans. `--full` requests the former diagnostics;
+    `--stats` and `--query` remain explicit. Missing, corrupt and wrong-schema
+    stores are distinguished from readable stores; no startup invocation.
+  - Native search/LSP and the existing bounded repomap are the default for
+    ordinary navigation. Graphify, Firecrawl, approvals, provider routing and
+    compaction remain host/third-party concerns, not adopted kit assets.
+  - Installation docs select only manifest-owned skills and preserve foreign
+    files. Host configuration changes remain separate from kit releases.
+  - Runtime smoke: isolated default memory availability distinguished absent,
+    corrupt and valid SQLite stores. Existing indexed-project repomap emitted
+    a bounded map. These observations do not establish model-quality gains.
+  - Verification on Windows/Python 3.12 in an isolated HOME: installation and
+    full router/skill deployment passed; repeat deployment changed no bytes;
+    doctor passed 14/14 and integrity verified 176 control-plane files.
+    Final pre-publication full suite: 843 passed, 16 skipped, 498 subtests
+    on Windows/Python 3.12. Removed two obsolete SECURITY-MAP editorial
+    substring tests rather than repinning wording; retained behavioral
+    supply-chain checks. Focused contract verification: 107 passed,
+    30 subtests; affected runtime verification: 92 passed, 1 skipped,
+    10 subtests. Input validation: 42 scenarios, six tasks, 80 trigger
+    queries; no live model behavior comparison or performance claim.
+  - Independent source review identified authorization-label contradictions,
+    obsolete section references and a misleading missing-store message;
+    these were repaired. Generated router smoke also caught and removed a
+    redundant second startup read. Host setting changes are independent
+    of this kit release and are not release assets.
+  - Local rollout: deployment verified all owned skill copies and five
+    generated routers; router backups preserved prior bytes and 92 checked
+    third-party files remained unchanged. Installed compact warmup and live
+    doctor passed (14 checks, five healthy databases). New-session model
+    activation and controlled quality/performance gains were not measured.
+
 - **v4.7.0 — mission recovery and owned-skill boundaries:**
   - Continuation recovers the prior project mission, original user grants,
     verified state and next action. A new complaint does not silently replace

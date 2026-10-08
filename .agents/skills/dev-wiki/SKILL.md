@@ -1,14 +1,14 @@
 ---
 name: dev-wiki
-description: 'Always-on. Cross-chat memory (database, not conversation): record decisions, errors, patterns in the global Wiki (~/.memory). Use on "record"/"save"/"remember"/"запиши"/"сохрани"/"запомни"/"в память"/"память" or "what do we know about X"/"напомни". Hierarchy: portable → ~/.memory/Wiki/; project-specific → WORK/<project>/docs/. Cycle: file → index.md → log.md → python ~/.memory/db-tools/build.py → lint.'
+description: 'Cross-chat memory (database, not conversation): record decisions, errors, patterns in the global Wiki (~/.memory). Use on "record"/"save"/"remember"/"запиши"/"сохрани"/"запомни"/"в память"/"память" or "what do we know about X"/"напомни", or when prior decisions or history should inform the current task. Hierarchy: portable → ~/.memory/Wiki/; project-specific → WORK/<project>/docs/. Cycle: file → index.md → log.md → python ~/.memory/db-tools/build.py → lint.'
 license: MIT
 metadata:
-  version: "4.7.0"
+  version: "4.8.0"
 ---
 
 # Dev Wiki — cross-chat developer memory
 
-Always-on skill. Knowledge base: decisions, bugs, patterns, architectural decisions.
+Memory helper: knowledge base of decisions, bugs, patterns, architectural decisions.
 Memory lives in `~/.memory/` (global + per-project hierarchy; env `MEMORY_ROOT` overrides).
 
 ## Boundary rule
@@ -98,7 +98,7 @@ python ~/.memory/db-tools/search_all.py "query" --substring                     
 - A hit is a snippet, not the complete decision: open `findings.py show <id>` or the source file before relying on it. If a query is empty, try a materially better token or supported `OR` alternative — keep going while a better query could change the next action; the stop condition is evidence, not a retry count. `--substring` applies to indexed files, while findings retain word matching.
 - Project + portable composition: `--project portable` selects findings classified portable; global search also searches indexed Wiki/project files. To scope retrieval without losing portable patterns, query both target `--project <slug>` and `--project portable` or query globally.
 - Found → check lifecycle badges first: `[superseded by #N]` → resolve to the replacing finding before using it; `[unverified]` → treat as unconfirmed. Then answer with a link to the file.
-- Warmup lifecycle (`memory-warmup.py`): high-priority feed surfaces key active invariants with verification status (`[unverified]` if missing `verified_at`); unsure feed prioritizes high/normal unanchored items over low-importance checkpoints.
+- Warmup lifecycle (`memory-warmup.py`): explicit diagnostic use only — full feeds require `--full`; it never runs automatically at startup. High-priority feed surfaces key active invariants with verification status (`[unverified]` if missing `verified_at`); unsure feed prioritizes high/normal unanchored items over low-importance checkpoints.
 - Still no relevant results after checking query and scope → report what was searched and not found; this does not prove no policy exists.
 ## Auto-write triggers
 
