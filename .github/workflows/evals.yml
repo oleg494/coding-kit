@@ -21,13 +21,18 @@ jobs:
           python-version: "3.12"
       - name: Install test dependency
         run: python -m pip install pytest
-      - name: Dry validations (both OS)
-        run: |
-          python -m pytest tests -q
-          python scripts/tools/check_file_sizes.py --ci
-          python eval/runner.py --json eval/ci-results/trap.json
-          python eval/task_runner.py --dry-run --json eval/ci-results/tasks.json
-          python eval/trigger_eval.py --queries eval/trigger_queries.json --json eval/ci-results/trigger.json
+      - name: Bootstrap memory (engine self-test)
+        run: python scripts/install.py
+      - name: Run tests
+        run: python -m pytest tests -q
+      - name: File-size gate
+        run: python scripts/tools/check_file_sizes.py --ci
+      - name: Trap-suite (dry-run validation)
+        run: python eval/runner.py --json eval/ci-results/trap.json
+      - name: Task-runner (dry-run validation)
+        run: python eval/task_runner.py --dry-run --json eval/ci-results/tasks.json
+      - name: Trigger queries validation
+        run: python eval/trigger_eval.py --queries eval/trigger_queries.json --json eval/ci-results/trigger.json
       - name: Upload eval results
         uses: actions/upload-artifact@v4
         with:

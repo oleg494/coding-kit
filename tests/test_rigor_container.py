@@ -4,6 +4,7 @@ The battery runs only when a container runtime answers a live ping (Docker
 Desktop on this machine); with no runtime the suite asserts the fail-closed
 behavior instead, which is the property the live eval path depends on.
 """
+import os
 import shutil
 import subprocess
 import sys
@@ -224,3 +225,21 @@ def test_confined_offline_task_end_to_end(tmp_path):
     assert bad["verifier"]["rc"] not in (0, None), bad["verifier"]
     assert bad["escaped"] == []
     assert not any(bad["escape_markers"].values()), bad["escape_markers"]
+
+
+@pytest.mark.skipif(not _RUNTIME["available"], reason=_SKIP_REASON)
+@pytest.mark.skipif(sys.platform == "win32", reason="no host uid to map on Windows")
+def test_confined_user_is_never_root_and_owns_the_mount(tmp_path):
+    """Non-root Linux host: the confined user maps to the host uid and can
+    actually write the bind-mounted candidate; as uid 0 it never could (the
+    runner's files are not root-owned and capabilities are dropped)."""
+    if os.getuid() == 0:
+        pytest.skip("host runs as root; image default user applies")
+    run = container.run_confined(
+        ["sh", "-c", "id -u > /work/uid.txt && id -g > /work/gid.txt"],
+        tmp_path, timeout=120)
+    assert run["rc"] == 0, run["stderr"]
+    assert (tmp_path / "uid.txt").read_text().strip() == str(os.getuid())
+    assert (tmp_path / "gid.txt").read_text().strip() == str(os.getgid())
+    # the file the confined user created is owned by the host user, not root
+    assert (tmp_path / "uid.txt").stat().st_uid == os.getuid()

@@ -74,11 +74,34 @@ def container_name() -> str:
     return f"kit-eval-{secrets.token_hex(6)}"
 
 
+def _local_ids() -> tuple | None:
+    """(uid, gid) of the host user running this process, when discoverable.
+
+    Bind mounts keep their host ownership inside the container, and the image's
+    default user (root for python:*-alpine) cannot write files it does not own
+    even as uid 0 without CAP_DAC_OVERRIDE (capabilities are dropped). Linux is
+    the case that needs the mapping; on Windows the mounts are Docker-Desktop
+    file shares where the container user's identity is irrelevant to access.
+    """
+    if sys.platform == "win32":
+        return None
+    uid, gid = os.getuid(), os.getgid()
+    return None if uid == 0 else (uid, gid)
+
+
 def _docker_argv(image: str, argv: list, *, name: str, network: bool,
                  workdir: Path | None = None, ro_mounts: tuple = (),
                  env: dict | None = None) -> list[str]:
     """The one `docker run` shape: read-only rootfs, no capabilities, no host
-    environment, `workdir` (when given) as the only writable mount."""
+    environment, `workdir` (when given) as the only writable mount.
+
+    On a non-root Linux host the container runs as that host user (uid:gid):
+    the writable bind mount is owned by them, so editing the candidate works,
+    while the confined user stays an unprivileged account. When the host itself
+    runs as root (CI daemon case) the image default is kept — the container is
+    root inside its own boundary only, with no capabilities to reach the host.
+    """
+    ids = _local_ids()
     cmd = ["docker", "run", "--rm", "--name", name,
            # `-i` is what forwards stdin (the prompt) into the boundary; the
            # prompt never touches the host filesystem.
@@ -87,6 +110,9 @@ def _docker_argv(image: str, argv: list, *, name: str, network: bool,
            "--read-only", "--tmpfs", "/tmp:rw,size=64m",
            "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
            "--pids-limit", "256", "--memory", "1g"]
+    if ids is not None:
+        uid, gid = ids
+        cmd += ["--user", f"{uid}:{gid}"]
     if workdir is not None:
         cmd += ["-v", f"{Path(workdir).resolve().as_posix()}:{WORK_MOUNT}:rw",
                 "-w", WORK_MOUNT]

@@ -14,6 +14,7 @@ rendering is exercised on the server (H3 drills).
 """
 import importlib.util
 import json
+import os
 import re
 import shutil
 import tempfile
@@ -53,6 +54,34 @@ def snapshot(root: Path) -> dict:
         rel = str(p.relative_to(root))
         out[rel] = p.read_bytes() if p.is_file() else "<dir>"
     return out
+
+def external_dirs_entries(cfg_text: str) -> list:
+    """Semantic external_dirs values from config.yaml text (PyYAML when
+    available, indent-aware regex fallback otherwise), so assertions check
+    config semantics rather than exact textual path spelling."""
+    try:
+        import yaml
+        data = yaml.safe_load(cfg_text)
+        raw = data.get("skills", {}).get("external_dirs", []) if isinstance(data, dict) else []
+        if isinstance(raw, list):
+            return [str(e) for e in raw]
+    except ImportError:
+        pass
+    entries = []
+    fm = re.search(r"(?m)^[ \t]+external_dirs:[ \t]*(\[[^\r\n]*\])[ \t]*\r?$", cfg_text)
+    if fm:
+        entries = [p.strip().strip("'\"") for p in fm.group(1)[1:-1].split(",") if p.strip()]
+    else:
+        for line in cfg_text.splitlines():
+            if line.lstrip().startswith("- "):
+                entries.append(line.strip()[2:].strip().strip("'\""))
+    return entries
+
+
+def same_dir(a, b) -> bool:
+    """True when two textual paths name the same directory (8.3 aliases and
+    case differences resolve equal on the same filesystem)."""
+    return Path(a).resolve() == Path(b).resolve()
 
 
 class AdapterTestCase(unittest.TestCase):
@@ -94,7 +123,10 @@ class AdapterTestCase(unittest.TestCase):
         self.assertTrue((cat / "alpha" / "SKILL.md").is_file())
         self.assertTrue((cat / "beta" / "SKILL.md").is_file())
         cfg = (self.home / "config.yaml").read_text(encoding="utf-8")
-        self.assertIn(str(self.ext_root().as_posix()), cfg)
+        entries = external_dirs_entries(cfg)
+        self.assertEqual(len(entries), 1, cfg)
+        self.assertTrue(same_dir(entries[0], self.ext_root()),
+                        f"external_dirs must name the kit root: {entries}")
         self.assertIn("model:", cfg)          # unrelated keys preserved
         self.assertIn("# keep my comment", cfg)  # comments preserved
         soul = (self.home / "SOUL.md").read_text(encoding="utf-8")
@@ -139,9 +171,16 @@ class AdapterTestCase(unittest.TestCase):
         rc = self.run_cli("apply")
         self.assertEqual(rc, 0)
         cfg = (self.home / "config.yaml").read_text(encoding="utf-8")
-        self.assertIn("/other/place", cfg)
-        self.assertIn(str(self.ext_root().as_posix()), cfg)
-        self.assertEqual(cfg.count(str(self.ext_root().as_posix())), 1)
+        entries = external_dirs_entries(cfg)
+        # /other/place preserved, kit root appended as a YAML sibling entry
+        self.assertEqual(entries[0], "/other/place", cfg)
+        self.assertEqual(len(entries), 2, cfg)
+        self.assertTrue(same_dir(entries[1], self.ext_root()),
+                        f"new entry must name the kit root: {entries}")
+        # consumer-readable YAML: identical indentation for every list item
+        item_lines = [ln for ln in cfg.splitlines() if ln.lstrip().startswith("- ")]
+        indents = {ln[:len(ln) - len(ln.lstrip())] for ln in item_lines}
+        self.assertEqual(len(indents), 1, f"list entries must be siblings: {cfg!r}")
 
     def test_config_without_skills_section(self):
         (self.home / "config.yaml").write_text("model:\n  default: m1\n", encoding="utf-8")
@@ -154,7 +193,96 @@ class AdapterTestCase(unittest.TestCase):
         self.run_cli("apply")
         self.run_cli("apply")
         cfg = (self.home / "config.yaml").read_text(encoding="utf-8")
-        self.assertEqual(cfg.count(str(self.ext_root().as_posix())), 1)
+        entries = external_dirs_entries(cfg)
+        kit_roots = [e for e in entries if same_dir(e, self.ext_root())]
+        self.assertEqual(len(kit_roots), 1, cfg)
+
+    # ---------- Windows short-path aliases of the same root ----------
+
+    def _short_path_alias(self, path: Path):
+        """Real 8.3 short-path alias of path, or None when the filesystem
+        cannot produce one (8dot3 name creation disabled for the volume)."""
+        if os.name != "nt":
+            return None
+        import ctypes
+        buf = ctypes.create_unicode_buffer(1024)
+        n = ctypes.windll.kernel32.GetShortPathNameW(str(path), buf, 1024)
+        alias = buf.value if n else None
+        return alias if alias and "~" in alias else None
+
+    def test_short_path_alias_apply_is_same_root_not_relocation(self):
+        """CI regression (2026-10-08): an 8.3 alias of the home (e.g.
+        C:/Users/RUNNER~1/...) is the same directory, so apply/plan through
+        the alias must not hit the "external root changed" Conflict nor
+        duplicate the external_dirs entry; a genuinely different root still
+        conflicts."""
+        alias_home = self._short_path_alias(self.home)
+        if alias_home is None:
+            self.skipTest("filesystem cannot create a short-path alias "
+                          "(8dot3 names disabled); identity already covered "
+                          "by the case-alias variant")
+        self.assertEqual(self.run_cli("apply"), 0)
+        before = snapshot(self.home)
+        rc = self.adapter.main(["--kit", str(self.kit), "--hermes-home", alias_home,
+                                "apply"])
+        self.assertEqual(rc, 0, self.adapter.last_report_text)
+        entries = external_dirs_entries(
+            self.home.joinpath("config.yaml").read_text(encoding="utf-8"))
+        kit_roots = [e for e in entries if same_dir(e, self.ext_root())]
+        self.assertEqual(len(kit_roots), 1, entries)
+        # plan through the alias is read-only and reports no relocation
+        data = self.adapter.plan(self.kit, Path(alias_home), Path(alias_home) / "kit-skills", False)
+        self.assertEqual(data["install_or_update"], 0)
+        self.assertEqual(data["retired"], 0)
+        # a genuinely different root is still a Conflict
+        with self.assertRaises(self.adapter.Conflict):
+            self.adapter.plan(self.kit, self.home, self.home / "other-ext", False)
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_case_alias_apply_is_same_root_not_relocation(self):
+        """Path identity must not depend on case (case-insensitive filesystems
+        such as NTFS/macOS default): re-apply through a differently-cased home
+        neither conflicts nor duplicates the entry."""
+        cased = str(self.home).swapcase()
+        if not Path(cased).is_dir():
+            self.skipTest("filesystem is case-sensitive; case alias does not exist")
+        self.assertEqual(self.run_cli("apply"), 0)
+        before = snapshot(self.home)
+        rc = self.adapter.main(["--kit", str(self.kit),
+                                "--hermes-home", cased, "apply"])
+        self.assertEqual(rc, 0, self.adapter.last_report_text)
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_short_path_alias_saved_root_then_direct_plan(self):
+        """Direct API plan with the long root after a CLI apply through the
+        alias must not raise "external root changed" (saved alias string
+        differs from the long-path argument)."""
+        alias_home = self._short_path_alias(self.home)
+        if alias_home is None:
+            self.skipTest("filesystem cannot create a short-path alias")
+        self.assertEqual(self.adapter.main([
+            "--kit", str(self.kit), "--hermes-home", alias_home, "apply"]), 0)
+        before = snapshot(self.home)
+        data = self.adapter.plan(self.kit, self.home, self.ext_root(), False)
+        self.assertEqual(data["install_or_update"], 0)
+        self.assertEqual(data["retired"], 0)
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_symlinked_external_root_still_rejected(self):
+        """Aliases are fine; symlinks are not: a symlink ext-root must stay
+        refused by the link guards, not pass through identity resolution."""
+        real = self.tmp / "real-ext"
+        real.mkdir()
+        link = self.home / "link-ext"
+        try:
+            link.symlink_to(real, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlink creation not permitted on this filesystem")
+        before = snapshot(self.tmp)
+        rc = self.run_cli("--ext-root", str(link), "apply")
+        self.assertEqual(rc, 1, self.adapter.last_report_text)
+        self.assertIn("link", self.adapter.last_report_text.lower())
+        self.assertEqual(snapshot(self.tmp), before)
 
     # ---------- SOUL block ownership ----------
 

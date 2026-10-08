@@ -24,6 +24,7 @@ Usage:
 
     --ext-root <dir> overrides the default <home>/kit-skills location.
 """
+import os
 import re
 import sys
 from pathlib import Path
@@ -78,8 +79,14 @@ MARK_BEGIN = "<!-- kit:begin v{version} -->"
 MARK_END = "<!-- kit:end -->"
 STATE_NAME = ".kit-hermes-state.json"
 RESTORE_NAME = ".kit-hermes-restore.json"
-
 last_report_text = ""
+
+def _resolved_identity(p: Path) -> str:
+    """Canonical path identity; callers retain link-aware write guards."""
+    return Path(os.path.normcase(os.path.realpath(p))).as_posix()
+
+def _same_path(a: Path, b: Path) -> bool:
+    return _resolved_identity(a) == _resolved_identity(b)
 
 
 def _report(text):
@@ -134,17 +141,22 @@ def validate(kit: Path, home: Path, ext_root: Path):
     skills = kit_skills(kit)
     if not skills:
         raise Conflict(f"no skills with SKILL.md under {kit / 'skills'}")
-    if (ext_root == home or not ext_root.is_relative_to(home)
-            or ext_root.is_relative_to(home / "skills")
-            or kit.is_relative_to(ext_root) or ext_root.is_relative_to(kit)):
+    _check_path(ext_root, home)
+    ext_id = Path(_resolved_identity(ext_root))
+    home_id = Path(_resolved_identity(home))
+    skills_id = home_id / "skills"
+    kit_id = Path(_resolved_identity(kit))
+    if (ext_id == home_id or not ext_id.is_relative_to(home_id)
+            or ext_id.is_relative_to(skills_id)
+            or kit_id.is_relative_to(ext_id) or ext_id.is_relative_to(kit_id)):
         raise Conflict("external root must be a separate directory inside the profile, outside skills/ and kit")
-    for path in (ext_root, home / "config.yaml", home / "SOUL.md",
+    for path in (home / "config.yaml", home / "SOUL.md",
                  home / STATE_NAME, home / RESTORE_NAME, home / "skills" / CATEGORY):
         _check_path(path, home)
     for source in skills:
         _check_path(source, kit)
     state = _load_json(home / STATE_NAME)
-    if state and state["after_apply"]["ext_root"] != ext_root.as_posix():
+    if state and not _same_path(Path(state["after_apply"]["ext_root"]), ext_root):
         raise Conflict("external root changed; restore the existing integration first")
     if bool(state) != (home / RESTORE_NAME).exists():
         raise Conflict("incomplete recovery state; preserve files and inspect recovery records")
@@ -238,7 +250,7 @@ def plan(kit: Path, home: Path, ext_root: Path, retire_legacy: bool) -> dict:
     cfg_path = home / "config.yaml"
     cfg = cfg_path.read_text(encoding="utf-8") if cfg_path.is_file() else ""
     ext_posix = ext_root.as_posix()
-    if ext_posix in cfg:
+    if _config_has_ext_root(cfg, ext_posix):
         actions.append("config  external_dirs already contains kit root")
     else:
         actions.append(f"config  add external_dirs entry: {ext_posix}")
@@ -270,9 +282,12 @@ def _patch_config(cfg: str, ext_posix: str) -> str:
     """Add the kit root to skills.external_dirs, preserving all other content.
 
     Config files in the wild carry CRLF line endings; every pattern tolerates
-    a trailing \r and inserted lines are LF (Hermes YAML parsers accept both).
+    a trailing \\r and inserted lines are LF (Hermes YAML parsers accept both).
+    A textual alias of the kit root (e.g. a Windows 8.3 short path such as
+    C:\\Users\\RUNNER~1/...) counts as an existing entry: ext_posix and the
+    recorded line address the same directory, so no duplicate is added.
     """
-    if ext_posix in cfg:
+    if _config_has_ext_root(cfg, ext_posix):
         return cfg
     if re.search(r"(?m)^skills:\s*\r?$", cfg):
         m = re.search(r"(?ms)^skills:\s*?\r?\n((?:[ \t]+.*\r?\n?)*)", cfg)
@@ -281,8 +296,10 @@ def _patch_config(cfg: str, ext_posix: str) -> str:
             em = re.search(
                 r"(?ms)^([ \t]+)external_dirs:[ \t]*\r?\n((?:\1[ \t]+- [^\r\n]*\r?\n?)+)", cfg)
             if em:
-                indent = em.group(1)
-                new_entry = f"{indent}    - {ext_posix}\n"
+                # new entry is a sibling: same indent as the existing list items
+                first_item = em.group(2).split("\n", 1)[0]
+                entry_indent = first_item[:len(first_item) - len(first_item.lstrip())]
+                new_entry = f"{entry_indent}- {ext_posix}\n"
                 return cfg[:em.end(2)] + new_entry + cfg[em.end(2):]
             fm = re.search(r"(?m)^([ \t]+)external_dirs:[ \t]*(\[[^\r\n]*\])[ \t]*\r?$", cfg)
             if fm:
@@ -297,6 +314,38 @@ def _patch_config(cfg: str, ext_posix: str) -> str:
     if not cfg.endswith("\n"):
         cfg += "\n"
     return cfg + f"\nskills:\n  external_dirs:\n    - {ext_posix}\n"
+
+
+def _config_has_ext_root(cfg: str, ext_posix: str) -> bool:
+    """True if any external_dirs entry (flow list item or inline flow list)
+    names the same directory as ext_posix, by path identity rather than exact
+    text, so an alias spelling of the kit root is not duplicated."""
+    entries = _external_dir_entries(cfg)
+    target = _resolved_identity(Path(ext_posix))
+    for entry in entries:
+        try:
+            if _resolved_identity(Path(entry)) == target:
+                return True
+        except (OSError, ValueError):
+            continue
+    return False
+
+
+def _external_dir_entries(cfg: str) -> list:
+    """Extract external_dirs values from both YAML shapes without PyYAML."""
+    out = []
+    em = re.search(
+        r"(?ms)^([ \t]+)external_dirs:[ \t]*\r?\n((?:\1[ \t]+- [^\r\n]*\r?\n?)+)", cfg)
+    if em:
+        for line in em.group(2).splitlines():
+            item = line.strip()
+            if item.startswith("- "):
+                out.append(item[2:].strip().strip("'\""))
+    fm = re.search(r"(?m)^[ \t]+external_dirs:[ \t]*(\[[^\r\n]*\])[ \t]*\r?$", cfg)
+    if fm:
+        for part in fm.group(1)[1:-1].split(","):
+            out.append(part.strip().strip("'\""))
+    return out
 
 
 def _patch_soul(soul: str, version: str, ext_root: Path) -> str:
@@ -350,7 +399,10 @@ def apply_adapter(kit: Path, home: Path, ext_root: Path, retire_legacy: bool,
             targets.append(path)
             texts[path] = new
     after = {"version": version, "names": names, "ext_root": ext_root.as_posix()}
-    if not targets and previous.get("after_apply") == after:
+    if (not targets and previous.get("after_apply", {}).get("version") == version
+            and previous.get("after_apply", {}).get("names") == names
+            and previous.get("after_apply", {}).get("ext_root")
+            and _same_path(Path(previous["after_apply"]["ext_root"]), ext_root)):
         return 0
     for path in targets:
         rel = path.relative_to(home).as_posix()

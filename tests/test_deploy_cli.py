@@ -421,12 +421,15 @@ class DeployPreviewSubprocessTest(unittest.TestCase):
         repo_before = self._repo_state()
         with tempfile.TemporaryDirectory(prefix="test-deploy-drill-") as td:
             root = Path(td)
-            kit_copy = root / "kit"
+            # Canonical long path: Windows CI homes come back as 8.3 aliases
+            # (C:/Users/RUNNER~1/...) while deploy embeds the resolved long
+            # path in routers; compare identities, not textual spellings.
+            kit_copy = Path(root / "kit").resolve()
+            home = Path(root / "home").resolve()
             shutil.copytree(
                 KIT, kit_copy,
                 ignore=shutil.ignore_patterns(
                     ".git", "dist", "__pycache__", ".pytest_cache", ".agents"))
-            home = root / "home"
             (home / "Documents").mkdir(parents=True)
             unrelated = home / "Documents" / "keep.txt"
             unrelated.write_text("keep\n", encoding="utf-8")

@@ -1,4 +1,23 @@
 # Changelog — Coding Agent OS
+- **Unreleased (2026-10-08) — repair cross-platform CI:**
+  - Hermes integration compares canonical path identities instead of short/long
+    Windows spellings, preserves relocation/link rejection and idempotence,
+    and appends block-list config entries as siblings. Deployment checks use
+    canonical temporary paths; regression checks cover actual path aliases.
+  - Linux confinement runs as the invoking non-root UID:GID so the candidate
+    bind mount is writable without restoring capabilities or changing file
+    permissions. Windows and root-host image defaults remain unchanged.
+  - Nightly evals now bootstrap the memory engine before test collection and
+    run each validation as a separate step. Previously Windows PowerShell
+    could hide pytest failure behind a later successful command.
+  - Local verification: Windows/Python 3.12, isolated HOME and real Linux
+    Docker backend — 854 passed, 10 skipped, 498 subtests; doctor 14/14,
+    integrity 176 files, hard file-size violations 0. Offline confined task
+    passed with clean_pass=True; all 10 escape checks passed. Real Hermes
+    apply/repeat/restore preserved config and restored exact original bytes.
+    Linux UID mapping and Windows 8.3 aliases require the GitHub runner checks;
+    the local volume cannot create 8.3 aliases. No model calls were made.
+
 - **v4.8.0 — single contract and demand-driven context:**
   - OPS.md owns authorization, completion and evidence. Repository and
     generated harness routers point to it once instead of embedding a second
