@@ -15,8 +15,13 @@
     integrity 176 files, hard file-size violations 0. Offline confined task
     passed with clean_pass=True; all 10 escape checks passed. Real Hermes
     apply/repeat/restore preserved config and restored exact original bytes.
-    Linux UID mapping and Windows 8.3 aliases require the GitHub runner checks;
-    the local volume cannot create 8.3 aliases. No model calls were made.
+    First GitHub verification passed both Ubuntu jobs and all Windows path
+    checks, then exposed an unsupported Windows-container daemon being
+    classified as usable. Backend discovery now requires Server.Os=linux;
+    unsupported daemons fail closed rather than dropping sandbox controls.
+    Follow-up local checks: 38 passed, 1 skipped and offline clean_pass=True.
+    Windows 8.3 alias regressions ran on GitHub; the local volume cannot create
+    aliases. No model calls were made.
 
 - **v4.8.0 — single contract and demand-driven context:**
   - OPS.md owns authorization, completion and evidence. Repository and

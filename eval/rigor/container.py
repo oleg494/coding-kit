@@ -186,11 +186,11 @@ def remove_container(name: str) -> None:
 
 
 def docker_status(timeout: int = 30) -> dict:
-    """Is a container runtime usable right now (CLI present AND daemon up)?"""
+    """Is the Linux-container confinement backend reachable and compatible?"""
     if shutil.which("docker") is None:
         return {"available": False, "reason": "docker CLI not found"}
     try:
-        version = _docker("version", "--format", "{{.Server.Version}}",
+        version = _docker("version", "--format", "{{.Server.Os}} {{.Server.Version}}",
                           timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"available": False, "reason": "docker daemon timed out"}
@@ -200,8 +200,11 @@ def docker_status(timeout: int = 30) -> dict:
         return {"available": False,
                 "reason": (version.stderr or version.stdout).strip()[:200]
                 or "docker daemon unreachable"}
-    return {"available": True, "runtime": "docker",
-            "version": version.stdout.strip()}
+    server_os, _, server_version = version.stdout.strip().partition(" ")
+    if server_os != "linux":
+        return {"available": False,
+                "reason": f"Docker backend {server_os or 'unknown'} is unsupported; Linux containers required"}
+    return {"available": True, "runtime": "docker", "version": server_version}
 
 
 def require_backend(timeout: int = 30) -> dict:

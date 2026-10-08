@@ -47,6 +47,18 @@ def test_confined_executor_spec_is_parsed_explicitly():
         container.parse_executor_spec("docker:img @ro:/only-host")  # no :container
 
 
+@pytest.mark.parametrize("server_os,available", [("linux", True), ("windows", False), ("", False)])
+def test_backend_requires_linux_container_capabilities(monkeypatch, server_os, available):
+    monkeypatch.setattr(container.shutil, "which", lambda name: "docker")
+    monkeypatch.setattr(container, "_docker", lambda *args, **kwargs:
+                        subprocess.CompletedProcess(args, 0, f"{server_os} 29.8.2\n", ""))
+    status = container.docker_status()
+    assert status["available"] is available
+    if not available:
+        with pytest.raises(container.IsolationUnavailable, match="Linux containers required"):
+            container.require_backend()
+
+
 def test_confined_executor_gate_fails_closed_without_a_backend(monkeypatch):
     monkeypatch.setattr(container, "docker_status",
                         lambda timeout=30: {"available": False,
