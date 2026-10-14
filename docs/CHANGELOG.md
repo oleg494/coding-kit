@@ -48,6 +48,14 @@
     them.
   - obra/superpowers: unchanged since v7.0.0 (verified via ls-remote);
     already current from 4.9.0.
+  - Verification: final full suite on Windows/Python 3.12 in an isolated
+    HOME with a fresh memory bootstrap — `python -m pytest tests -q -rs -p
+    no:cacheprovider` — 846 passed, 20 skipped (Docker/task images,
+    Windows symlink/8.3 and environment prerequisites), 488 subtests
+    passed. Deploy to all local harnesses passed; doctor 14/14 GREEN;
+    integrity 182 files; canonical mirror byte-identical. No behavioral
+    model comparison or quality/token-efficiency claim is made.
+
 
 - **v4.9.0 (2026-10-15) — selective upstream refresh:**
   - Reviewed [obra/superpowers v7.0.0](https://github.com/obra/superpowers/releases/tag/v7.0.0)
