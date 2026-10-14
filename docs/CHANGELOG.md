@@ -1,5 +1,68 @@
 # Changelog — Coding Agent OS
-- **Unreleased (2026-10-08) — repair cross-platform CI:**
+- **v4.9.0 (2026-10-15) — selective upstream refresh:**
+  - Reviewed [obra/superpowers v7.0.0](https://github.com/obra/superpowers/releases/tag/v7.0.0)
+    at `bb92a77741419a4ab5f06e711a283343f1ada0c3`, including its
+    [release notes](https://github.com/obra/superpowers/blob/bb92a77741419a4ab5f06e711a283343f1ada0c3/RELEASE-NOTES.md).
+    This is selective adaptation, not a wholesale upstream sync; the original
+    kit import has no proven tag/SHA pin. Existing MIT attribution is retained.
+  - Brainstorming elicits unclear intent before steering with options, names
+    consequential defaults as agent decisions, preserves explicit platforms,
+    and checks complex designs from the builder's perspective. Clear bounded
+    work still proceeds without an interview or repeated approval.
+  - Plans carry exact shared constraints, consumed/produced interfaces and
+    checks for plausible implied inputs. Steps record decisions, not future
+    implementation transcripts. User-selected execution strategy is preserved.
+    Inline execution gains state-bound progress and consequential-decision
+    records in the existing tracker; no duplicate executing-plans skill,
+    mandatory per-task reviewers or second ledger is introduced.
+  - Diagnostic presence checks no longer print the signing identity. Targeted
+    test success is distinguished from suite success; all observed failures,
+    including pre-existing failures, must be reported without invented cause.
+  - Review covers unchanged callers broken by the change and reachable input
+    failures the spec omitted. Material unjudged requirements remain explicit
+    gaps, not approvals.
+  - Adjacent corrections: removed dangling debugging-reference pointers and
+    an unsupported diagnostic percentage; allowed multiple assertions proving
+    one behavior; bounded condition waits; reconciled review-only mode with
+    repairs inside authorized implementation; fixed fable-judge's container
+    executor example; removed the false Gemini CLI retirement comment.
+    CI trigger validation now uses colocated evals plus the central fallback
+    (`--queries auto`), instead of silently validating only the older list.
+    Removed the obsolete test that pinned exact CLI spellings instead of
+    repinning it; actual trap/task/trigger commands emitted dry-run JSON with
+    zero executions or claimed passes. CI permission and live-executor guards
+    remain. New query IDs follow the existing numeric identity contract.
+  - Six new behavioral scenario inputs and 12 brainstorming trigger queries.
+    Runtime smoke on Windows/Python 3.12 executed the diagnostic example for
+    unset, empty and populated synthetic identity values without disclosure;
+    the old example triggered the leak detector (captured value not printed).
+    Isolated memory install/search and full harness deployment passed; repeat
+    deployment left all harness file bytes unchanged. Doctor passed 14/14,
+    integrity covered 182 files, hard size violations 0. Input validation:
+    48 scenarios, six tasks and 144 colocated/fallback trigger queries.
+    Final full suite: `python -m pytest tests -q -rs -p no:cacheprovider`
+    passed 846 tests and 488 subtests; 20 skipped because Docker/task images,
+    Windows symlinks/8.3 aliases or a platform-specific prerequisite were
+    unavailable (one skip requires an absent memory installation). Earlier
+    failures were the new nonnumeric query IDs and the obsolete exact-command
+    test described above; both were resolved before this final run.
+    Two independent reviews completed; their stale review-scope paraphrase
+    and tracing-step reference findings were fixed and mirrored.
+  - Six stateless next-action text probes were exercised separately from the
+    runtime checks. Independent review found four passes and two caveats:
+    one plan was overlong and added explicit input-policy assumptions; one
+    continuation answer omitted the requested risk of its naming decision.
+    These are not real agent tool tasks or a controlled quality comparison;
+    model/effort resolution was not reported by the helper. No quality or
+    token-efficiency improvement is claimed.
+  - Deliberately not adopted: upstream approval gates, automatic committed
+    specs, visual-companion server and plugin hooks. Session-forensics skill
+    remains a deferred candidate; existing transcript normalization and usage
+    audit remain available. No new skill count: 37 owned skills. Foreign
+    Firecrawl directories are not release assets. Local installation uses the
+    normal owned-skill deployment path; remote Hermes migration is separate.
+
+- **Included in v4.9.0 — cross-platform CI repairs (2026-10-08):**
   - Hermes integration compares canonical path identities instead of short/long
     Windows spellings, preserves relocation/link rejection and idempotence,
     and appends block-list config entries as siblings. Deployment checks use

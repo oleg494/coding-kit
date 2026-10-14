@@ -3,7 +3,7 @@ name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Systematic Debugging
@@ -92,11 +92,11 @@ You MUST complete each phase before proceeding to the next.
    ```bash
    # Layer 1: Workflow
    echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+   echo "IDENTITY: $([ -n "${IDENTITY:-}" ] && echo SET || echo UNSET)"
 
    # Layer 2: Build script
    echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
+   printenv IDENTITY >/dev/null 2>&1 && echo "IDENTITY in environment" || echo "IDENTITY not in environment"
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="
@@ -113,7 +113,7 @@ You MUST complete each phase before proceeding to the next.
 
    **WHEN error is deep in call stack:**
 
-   See `root-cause-tracing.md` in this directory for the complete backward tracing technique.
+   Trace the call chain backward from the failure: what called this, with what value, from where.
 
    **Quick version:**
    - Where does bad value originate?
@@ -282,15 +282,16 @@ If systematic investigation reveals issue is truly environmental, timing-depende
 3. Implement appropriate handling (retry, timeout, error message)
 4. Add monitoring/logging for future investigation
 
-**But:** 95% of "no root cause" cases are incomplete investigation.
+Before concluding "no root cause," identify which hypotheses were tested and
+which evidence remains unavailable; missing evidence is not proof of absence.
 
 ## Supporting Techniques
 
-These techniques are part of systematic debugging and available in this directory:
+Inline patterns that extend systematic debugging:
 
-- **`root-cause-tracing.md`** - Trace bugs backward through call stack to find original trigger
-- **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
-- **`condition-based-waiting.md`** - Replace arbitrary timeouts with condition polling
+- **Root-cause tracing** (step 5 of Phase 1 above) - trace bugs backward through the call stack to find the original trigger
+- **Defense in depth** - add boundary validation only where the demonstrated failure can still enter; do not harden unrelated layers
+- **Condition-based waiting** - wait for an observable condition with a bounded timeout; prefer native events over arbitrary sleeps or unbounded polling
 
 ---
 

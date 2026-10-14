@@ -32,7 +32,7 @@ jobs:
       - name: Task-runner (dry-run validation)
         run: python eval/task_runner.py --dry-run --json eval/ci-results/tasks.json
       - name: Trigger queries validation
-        run: python eval/trigger_eval.py --queries eval/trigger_queries.json --json eval/ci-results/trigger.json
+        run: python eval/trigger_eval.py --queries auto --json eval/ci-results/trigger.json
       - name: Upload eval results
         uses: actions/upload-artifact@v4
         with:

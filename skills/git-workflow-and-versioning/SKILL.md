@@ -3,7 +3,7 @@ name: git-workflow-and-versioning
 description: Git workflow and versioning practices. Use when committing, branching, resolving conflicts, organizing work across multiple parallel streams, cutting a release, choosing a semantic version bump, tagging, or writing a changelog.
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Git Workflow and Versioning

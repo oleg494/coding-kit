@@ -3,7 +3,7 @@ name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Requesting Code Review
@@ -41,6 +41,8 @@ prompt template is required. Supply:
 - **Output:** actionable findings with severity, file/line, contract impact and
   supporting evidence. Use `critical`, `warning`, `suggestion` and the canonical
   report/verdict rules in `code-review-and-quality` and `fable-judge`.
+  Name material requirements or paths not judged and why; the implementer must
+  resolve or report those gaps, not silently count them as approved.
 
 The reviewer needs the work product and relevant constraints, not an entire
 session transcript. In diff-review, suppress hypothetical or unrelated findings;

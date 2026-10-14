@@ -1,6 +1,6 @@
 # Coding Agent OS — Skill Runtime
 
-> **v4.8.0** | Host integration notes, not another operating contract.
+> **v4.9.0** | Host integration notes, not another operating contract.
 
 ## Startup
 

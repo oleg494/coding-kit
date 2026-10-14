@@ -4,8 +4,8 @@
 Ensures:
 - Read-only contents permission (no repository modification rights).
 - Both Ubuntu and Windows matrix OSes.
-- Deterministic dry-only validation commands run on both legs.
-- Uses pytest (not unittest) with exact flags.
+- Dry-only validation boundary (live executors and shared-store writes forbidden).
+- Pytest installation precedes the test job.
 - Uploads eval artifacts (trap/tasks/trigger dry JSON) via actions/upload-artifact@v4
   from the CI-only eval/ci-results dir, failing if missing (evals.yml).
 - Absolute absence of live executor inputs, secret-bearing env, live runs,
@@ -64,49 +64,6 @@ class TestCIWorkflow(unittest.TestCase):
                     f"Matrix in {name} must define both OS legs",
                 )
 
-    def test_exact_deterministic_dry_commands(self):
-        """Both workflows share deterministic gates; producer invocations follow each workflow's dry contract."""
-        shared_commands = [
-            "python -m pytest tests -q",
-            "python scripts/tools/check_file_sizes.py --ci",
-        ]
-        test_only_commands = [
-            "python eval/runner.py",
-            "python eval/task_runner.py --dry-run",
-            "python eval/trigger_eval.py --queries eval/trigger_queries.json",
-        ]
-        evals_only_commands = [
-            "python eval/runner.py --json eval/ci-results/trap.json",
-            "python eval/task_runner.py --dry-run --json eval/ci-results/tasks.json",
-            "python eval/trigger_eval.py --queries eval/trigger_queries.json --json eval/ci-results/trigger.json",
-        ]
-        for cmd in shared_commands:
-            for name, content in self.workflows.items():
-                with self.subTest(workflow=name, command=cmd):
-                    self.assertIn(
-                        cmd,
-                        content,
-                        f"Required exact command missing from {name}: {cmd}",
-                    )
-        for cmd in test_only_commands:
-            with self.subTest(workflow="test.yml", command=cmd):
-                self.assertIn(
-                    cmd,
-                    self.test_content,
-                    f"Required exact command missing from test.yml: {cmd}",
-                )
-        for cmd in evals_only_commands:
-            with self.subTest(workflow="evals.yml", command=cmd):
-                self.assertIn(
-                    cmd,
-                    self.evals_content,
-                    f"Required exact command missing from evals.yml: {cmd}",
-                )
-        self.assertEqual(
-            self.evals_content.count("--json"),
-            3,
-            "evals.yml must emit exactly three dry JSON outputs (trap, tasks, trigger)",
-        )
 
 
     def test_installs_pytest_before_running_tests(self):

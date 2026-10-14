@@ -31,6 +31,6 @@ jobs:
       - name: Task-runner (dry-run validation)
         run: python eval/task_runner.py --dry-run
       - name: Trigger queries validation
-        run: python eval/trigger_eval.py --queries eval/trigger_queries.json
+        run: python eval/trigger_eval.py --queries auto
       - name: Run tests
         run: python -m pytest tests -q

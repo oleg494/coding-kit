@@ -67,9 +67,9 @@ HARNESSES = [
     {"id": "omp", "router": "~/.omp/agent/AGENTS.md", "name": "OMP",
      "skills_line": "# Skills: auto-discovered (kit skills synced to ~/.agents/skills)",
      "skills_dir": None},
-    # Gemini CLI was retired by Google on 2026-06-18 (Antigravity CLI is
-    # the successor and has its own target above); the chat-JSON reader
-    # (eval/transcript_normalize.py) stays for historical archives.
+    # Gemini CLI has no managed deployment target here. Its chat-JSON
+    # transcripts remain readable through eval/transcript_normalize.py;
+    # deployment coverage does not imply that the upstream CLI is retired.
     {"id": "antigravity", "router": "~/AGENTS.md", "name": "Antigravity",
      "skills_line": "# Skills: ~/.agents/skills/",
      "skills_dir": "~/.agents/skills"},

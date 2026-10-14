@@ -3,7 +3,7 @@ name: superpowers
 description: 'Development method: plan, check, implement, verify, report. Use for non-trivial tasks with no more specific method skill. Define observable acceptance before code, reproduce bugs before fixes, and complete the requested outcome without procedural permission gates.'
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Superpowers — main development method

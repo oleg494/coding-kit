@@ -3,7 +3,7 @@ name: code-review-and-quality
 description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 ## Overview
@@ -24,7 +24,8 @@ Review noise buries real findings. In diff-review scope, never report:
 
 - Theoretical risks — no exploit path in THIS change's reality.
 - Defense-in-depth when the primary control suffices.
-- Issues in unchanged code (lines outside the diff).
+- Unrelated pre-existing issues. Include an unchanged caller when the change
+  makes its behavior fail; the affected path, not line ownership, sets scope.
 - "Consider library X" — no new-dependency suggestions in review.
 
 ## Severity: 3 Values
@@ -49,6 +50,11 @@ verdict: <VERIFIED | VERIFIED WITH CAVEATS | REFUTED>
 - Are edge cases handled (null, empty, boundary values)?
 - Are error paths handled (not just the happy path)?
 - Does it pass all tests? Are the tests actually testing the right things?
+- For reachable inputs omitted by the spec, judge failures against the stated
+  contract and reasonable consumer expectations; spec silence does not excuse
+  a crash. Do not turn that into speculative features or unrelated hardening.
+- Name material requirements you could not judge and the missing evidence;
+  an unexamined path is not an approval.
 
 ### 2. Readability & Simplicity
 - Are names descriptive and consistent with project conventions?

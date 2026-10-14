@@ -3,7 +3,7 @@ name: brainstorming
 description: 'Use before designing features, components, new subsystems, or behavior changes. Resolve intent, constraints, interfaces and acceptance before implementation; scale design depth to uncertainty without adding approval gates to authorized work.'
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Brainstorming Ideas Into Designs
@@ -39,19 +39,43 @@ Plan/design-only requests stop at their requested deliverable.
    excluded work and observable acceptance. A simpler implementation must still
    deliver all requested formats, paths, error behavior and quality.
 3. **Resolve uncertainty.** Decide ordinary details from evidence and explain
-   consequential defaults. Ask only when an unavailable answer would materially
-   change the outcome or an action lacks authority. Batch related questions;
-   continue independent authorized work when possible.
+   consequential defaults. When something non-trivial about the intent is
+   missing, ask one open, description-first question anchored in specifics
+   ("walk me through the last time this hurt you?", "what would make you
+   wince if I got it wrong?") rather than a steering option menu; offer a
+   short menu only when the user is stuck or asks what you think. Ask only
+   when an unavailable answer would materially change the outcome or an
+   action lacks authority. Batch related questions; continue independent
+   authorized work when possible.
 4. **Compare real alternatives.** Include alternatives only when they have
    meaningful tradeoffs. Prefer the simplest complete approach; do not invent
    options to fill a quota. Existing proven patterns may settle the decision.
 5. **Design the change.** Cover components, data flow, errors, integration,
    migration and verification at the depth needed. Separate units by reason
    for change, keep concrete interfaces, avoid unrelated restructuring.
+   Consequential platform, language, library or medium choices rest on repo
+   defaults and existing patterns where they exist; when you choose one the
+   user has not stated, own it as your call in plain words, never record it
+   as something the user agreed to, and surface it early enough to correct
+   cheaply.
 6. **Check the design.** Resolve contradictions, placeholders, missing required
    paths and uncertain boundaries. Map acceptance to checks before coding.
+   For a complex design, also run a builder-perspective ambiguity check: read
+   the design as a builder who cannot ask you anything, and collect only the
+   points where a wrong guess would change what gets built — skip wording
+   nitpicks and anything the design explicitly leaves to the builder. Use an
+   available reviewer when independent perspective is useful and host rules permit it;
+   otherwise do the check yourself.
+   Answer the answerable from evidence and mark those calls as yours; bring
+   the genuinely user-owned questions in one batch, most important first.
+   Scale this check to design complexity; a bounded change needs little or
+   none of it.
 7. **Continue.** Use writing-plans for complex execution, then implement and
    verify without asking the user to approve the same authorized work again.
+
+   When intent was unclear, briefly reflect what the thing is for and who it
+   serves before committing to a design. Separate the user's statements from
+   your assumptions. Accept corrections; do not defend an earlier reading.
 
 ## Artifacts and review
 
@@ -72,6 +96,12 @@ authorized. Commits follow OPS.md §1.
 - Missing info guessed despite incompatible outcomes: inspect, then ask.
 - Local security fix stalled solely because it touches auth: fix with isolated
   positive and negative checks; no production mutation implied.
+- Scope or platform silently drifted: "build a CLI" became a web app, or a
+  report became a dashboard, without the user's word or a stated assumption
+  they could reject.
+- An unstated consequential default (language, library, medium) recorded as
+  if the user had chosen it: a default they never heard is one they could
+  not reject; own it in plain words instead.
 - CSV-only shipped when CSV and JSON were requested: incomplete, not minimal.
 - A procedural skill says stop: reconcile it with scope and authority; do not
   leave reachable implementation undone or ignore an explicit user stop.
@@ -79,10 +109,11 @@ authorized. Commits follow OPS.md §1.
 ## Developing the user's thinking
 
 When the user's request is an unfinished idea ("I want X but not sure what",
-"help me find directions"), do not demand a finished specification and do not
-pick one design for them. Offer two to four concrete, meaningfully different
-interpretations or examples, each with its consequence and a way to tell the
-interpretations apart; keep them as proposals the user chooses between.
+"help me find directions"), do not demand a finished specification or choose
+their goal for them. Start with the description-first question above. When
+they ask for directions or need concrete examples to react to, offer two to
+four meaningfully different interpretations with consequences; keep them as
+proposals, not decisions already made for the user.
 
 When the user states an unusual method with explicit constraints (hardware,
 scale, policy), evaluate it against those constraints before recommending the

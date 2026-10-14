@@ -3,7 +3,7 @@ name: incremental-implementation
 description: Delivers changes incrementally in thin vertical slices. Use when a task touches many files or spans several independently landable capabilities, or when a large change would otherwise land in one unverified step.
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Incremental Implementation
@@ -11,6 +11,13 @@ metadata:
 ## Overview
 
 Build in thin vertical slices — implement one piece, test it, verify it, then expand. Each increment should leave the system in a working, testable state.
+
+When inline execution is appropriate, use the existing plan here task by task;
+this does not override a user-selected director mode or host delegation rules.
+Use the plan as the starting contract, resolving defects against user intent,
+current source and evidence. Scale final review to risk rather than mandating
+an implementer and reviewer per task. If subagents are unavailable, continue
+locally where possible; never fabricate a dispatch.
 
 ## The Increment Cycle
 
@@ -47,7 +54,7 @@ Slice 2: Integrate real backend and frontend, verify end-to-end
 ```
 
 ### Risk-First Slicing
-Tackle the riskiest piece first. If it fails, you discover it before investing in everything else.
+Tackle the riskiest piece first. If it fails, you discover it before investing in everything.
 
 ## Implementation Rules
 
@@ -80,6 +87,31 @@ New code should default to safe, conservative behavior.
 ### Rule 5: Rollback-Friendly
 Each increment should be independently revertable.
 
+### Rule 6: Rulings, Not Stalls
+Resolve minor reversible implementation ambiguities from user intent, the
+spec and current code. Record consequential deviations, reasons and risks in
+the existing task/handoff record; fixed "Ruling:" wording is optional. A
+decision cannot overwrite intent, expand scope or grant authority. Ask for
+outcome-changing choices only the user can settle; continue independent work.
+
+## Inline progress and evidence
+
+Per task, before moving on:
+- Applicable checks ran with their output read, or valid unchanged evidence
+  was reused. If a named check became obsolete or cannot run, record why and
+  what remains unverified; do not silently skip it or claim it passed.
+- Expected outcomes were compared against observed results. A check passing
+  before implementation can establish existing behavior, not a reproduced bug.
+- Consequential deviations and their reasons are recorded.
+
+Record progress where the session already tracks it (task tracker, existing
+handoff or status file) — never a second parallel ledger. The record must let
+a fresh or compacted context resume: which tasks are done with their evidence,
+which are not, and which decision changed which interface. Resume from the
+record and current repository state. Reuse completed evidence only while it
+still covers that state; changes, failures or unresolved concerns require
+new verification, not blindly trusting a stale completion marker.
+
 ## Increment Checklist
 - [ ] The change does one thing and does it completely
 - [ ] Relevant behavior and compatibility checks pass
@@ -91,4 +123,7 @@ Each increment should be independently revertable.
 - Multiple unrelated changes mixed in one increment
 - "Let me just quickly add this too" scope expansion
 - Partial functionality reported complete because one slice passed
+- A deviation from the plan made without a recorded ruling
+- Progress tracked in two places, or in one the next session cannot read
+- Re-running completed work after compaction instead of resuming from the record
 - Commit, review or task boundaries treated as permission to stop

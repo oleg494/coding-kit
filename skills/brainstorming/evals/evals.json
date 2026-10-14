@@ -1,0 +1,65 @@
+{
+ "skill_name": "brainstorming",
+ "evals": [
+  {
+   "id": "brainstorming-0",
+   "prompt": "I want to add export to my tool but I'm not sure whether CSV, JSON, or both",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-1",
+   "prompt": "help me design a notification system for the app",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-2",
+   "prompt": "I want to restructure how we handle uploads, where do I even start",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-3",
+   "prompt": "build me something to track my team's on-call rotations",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-4",
+   "prompt": "should this cache live in the request layer or a background worker?",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-5",
+   "prompt": "fix the typo on line 42 of the README",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-6",
+   "prompt": "rename get_usr to get_user everywhere",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-7",
+   "prompt": "what does this regex do",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-8",
+   "prompt": "add two numbers in a function and test it",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-9",
+   "prompt": "make me a tool for tracking expenses",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-10",
+   "prompt": "make me a command-line tool that pretty-prints this log file exactly as we discussed before",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-11",
+   "prompt": "I keep wishing there was a better way to visualize our deploy pipeline, can you help me figure out what that would look like",
+   "should_trigger": true
+  }
+ ]
+}

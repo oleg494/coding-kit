@@ -3,7 +3,7 @@ name: fable-judge
 description: 'Adversarial verification of finished work: re-runs the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 
@@ -37,11 +37,9 @@ Target: the most recent completed piece of work in this conversation, or whateve
 ## Structured verdict: recomputable from counts
 
 **Approval bias:** you are gating, not essay-writing. Findings use 3
-values — critical / warning / suggestion (see code-review-and-quality;
-"What NOT to Flag" applies to the judge too: no theoretical risks, no
-defense-in-depth when the primary control suffices, no issues in
-unchanged code, no "consider library X"). Report the counts and
-recompute the verdict — the verdict is arithmetic, never a mood
+values — critical / warning / suggestion. Apply the scope and exclusion rules
+in `code-review-and-quality`; unchanged callers broken by this change remain
+in scope. Report the counts and recompute the verdict from evidence, not mood
 (canonical implementation: `verdict_from_counts(critical, warning, unverified=0)`
 in `scripts/tools/review_protocol.py`):
 
@@ -69,13 +67,23 @@ the same diff. Diff without contract doc →
 `needs_contract_update` → REFUTED with the smallest fix: update the
 contract or justify the omission in the report.
 
-Standing rules: judging changes nothing (read and run only; fixes happen only if the user asks afterward). If the work touched nothing runnable, say plainly what a judge can and cannot check here. This is a gate, not a second implementation: minutes, not hours; if verification needs an environment you lack, hand that back rather than guessing.
+Judging itself is read-only. A review-only request stops at findings; during
+authorized implementation, return findings to the implementation flow and fix
+in-scope defects without asking for permission again (OPS.md §1). If nothing
+runnable changed, state what the review can and cannot establish. When a
+required environment is unavailable, report the missing evidence, not a pass.
 
 ## suite mode: judge a skill or a model
 
 `/fable-judge suite <target>` runs the trap suite against a target configuration: a newly installed skill, a different model, a modified prompt. The suite lives in `eval/scenarios/` with execution and validation managed via `python eval/runner.py --inline-skills`.
 
-For each scenario in `eval/scenarios/*.md` (defining scenario prompt, trap, and expected behavior), run the harness via `python eval/runner.py --inline-skills --executor "<cli>"` (with `--judge "<cli>"` when gating). The harness evaluates execution against the scenario's expected ground truth, delivering per-scenario scores, attempt durations, and failure traces. One seed per scenario is a smoke test; multiply repeats (`--repeat N`) for confidence.
+For each scenario in `eval/scenarios/*.md`, use a declared container executor:
+`python eval/runner.py --inline-skills --executor "docker:<image> <argv...>"`.
+Use a separate `--judge "docker:<judge-image> <argv...>"` for independent
+judgment. Images and commands must exist; bare host CLI commands are refused.
+Without `--executor`, the command validates inputs only. Report observed
+answers and failure traces; `--repeat N` measures variability, not tool-task
+execution or a quality improvement by itself.
 
 Report what the run actually was, never more:
 

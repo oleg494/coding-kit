@@ -1,6 +1,6 @@
 # Coding Agent OS — Operating Contract
 
-> **v4.8.0** | One contract, demand-driven skills, scoped evidence and memory.
+> **v4.9.0** | One contract, demand-driven skills, scoped evidence and memory.
 > 37 kit-owned skills; third-party skills and host configuration are independent.
 > Load once per session; reuse the current content if already loaded.
 

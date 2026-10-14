@@ -3,7 +3,7 @@ name: dispatching-parallel-agents
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
 license: MIT
 metadata:
-  version: "4.8.0"
+  version: "4.9.0"
 ---
 
 # Dispatching Parallel Agents
@@ -14,7 +14,7 @@ You delegate tasks to specialized agents with isolated context. By precisely cra
 
 When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.
 
-**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently. If you can parallelize work by delegating — whether you are the root agent or a subagent — do so when it saves time or improves quality; under-delegating sequential work that was independent is its own failure mode.
+**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently. If you can parallelize work by delegating — whether you are the root agent or a subagent — do so when it saves time or improves quality; under-delegating sequential work that was independent is its own failure mode. Delegation is a tool, not a requirement: a host without subagents, or a task whose slices share state, is executed inline without ceremony.
 
 ## When to Use
 
@@ -32,7 +32,7 @@ digraph when_to_use {
     "Are they independent?" -> "Single agent investigates all" [label="no - related"];
     "Are they independent?" -> "Can they work in parallel?" [label="yes"];
     "Can they work in parallel?" -> "Parallel dispatch" [label="yes"];
-    "Can they work in parallel?" -> "Sequential agents" [label="no - shared state"];
+    "Can they work in parallel?" -> "Sequential dispatch" [label="no - shared state"];
 }
 ```
 
@@ -46,6 +46,7 @@ digraph when_to_use {
 - Failures are related (fix one might fix others)
 - Need to understand full system state
 - Agents would interfere with each other
+- The host has no subagent tool — run the work inline; never fabricate a dispatch
 
 ## The Pattern
 
@@ -64,6 +65,7 @@ Each agent gets:
 - **Specific scope:** One test file or subsystem
 - **Clear goal:** Make these tests pass
 - **Constraints:** Don't change other code
+- **Interfaces:** What the task consumes from and produces for siblings — exact names and signatures, so a worker who sees only their task still matches neighboring code
 - **Expected output:** Summary of what you found and fixed
 
 ### 3. Dispatch in Parallel
@@ -129,12 +131,16 @@ Return: Summary of what you found and what you fixed.
 **❌ Vague output:** "Fix it" - you don't know what changed
 **✅ Specific:** "Return summary of root cause and changes"
 
+**❌ No interfaces:** Sibling tasks guess each other's names
+**✅ Interfaces:** State consumed/produced names and signatures per task
+
 ## When NOT to Use
 
 **Related failures:** Fixing one might fix others - investigate together first
 **Need full context:** Understanding requires seeing entire system
 **Exploratory debugging:** You don't know what's broken yet
 **Shared state:** Agents would interfere (editing same files, using same resources)
+**No subagent tool:** Execute inline in the current session instead
 
 ## Real Example from Session
 
