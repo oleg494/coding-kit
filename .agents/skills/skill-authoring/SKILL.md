@@ -4,7 +4,7 @@ description: 'Use when creating or editing any skill: frontmatter rules (name/de
 license: MIT
 compatibility: applies to skills/ in this set, ~/.hermes/skills, .claude/skills
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # How to author skills correctly
@@ -22,8 +22,9 @@ description: Use when [triggers/symptoms/contexts]. [what it does + when to appl
 
 | Field | Rule |
 |---|---|
-| `name` | REQUIRED. 1–64 characters, `a-z0-9` + hyphens. **Must match the skill's folder name** |
+| `name` | REQUIRED. 1–64 characters, `a-z0-9` + hyphens; must not start or end with a hyphen, no consecutive hyphens. **Must match the skill's folder name** |
 | `description` | REQUIRED. 1–1024 characters. «What it does + when to use»; include the keywords the agent searches by. NOT a workflow summary |
+| `metadata` | optional, `str → str` map (kit convention: `version`); keep values plain strings |
 | `license` | optional |
 | `compatibility` | 1–500 characters, only if there are environment requirements |
 
@@ -38,8 +39,7 @@ skill-name/
 └── any other files/folders — allowed
 ```
 
-- From SKILL.md reference files with **relative paths from the skill root**.
-- Progressive disclosure: SKILL.md < ~500 lines; details go into `references/` with a pointer «read this when X happens».
+- Reference files one level deep from the skill root; avoid chained references that force multi-hop loads. Run bundled scripts through `--help` before reading their source — black-box first, context pollution second.
 
 ## 3. Script bundling (scripts/)
 

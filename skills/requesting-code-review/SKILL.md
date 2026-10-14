@@ -3,7 +3,7 @@ name: requesting-code-review
 description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
 license: MIT
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # Requesting Code Review

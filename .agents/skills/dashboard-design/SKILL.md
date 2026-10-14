@@ -3,7 +3,7 @@ name: dashboard-design
 description: 'Use when designing, redesigning, or reviewing marketplace, seller, operations, finance, logistics, or analytics dashboards: information hierarchy, KPIs, filters, charts, tables, honest data visualization, design tokens, responsive behavior, loading/empty/error states, and post-change UI verification in the running app. Not for posters, presentations, or static illustrations.'
 license: MIT
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # Dashboard Design
@@ -34,7 +34,7 @@ Design dashboards as decision tools, not collections of cards. Make data easier 
 7. **Design every meaningful state.** Cover loading, no data, insufficient data, error, stale/partial data, disabled/permission-limited actions, long labels or numbers, and values outside the expected range. Explain the next useful action and keep the layout stable.
 8. **Handle responsive behavior intentionally.** Check desktop, tablet, and mobile layouts. Stack or reprioritize content before shrinking it; recheck long category names and large numbers. Allow horizontal scrolling only for genuinely wide data tables; never let the whole page overflow. Keep keyboard focus visible and respect reduced-motion preferences.
 9. **Critique before implementation.** Remove decoration, redundant labels, cards, charts, or animation only where they do not improve comprehension or actionability. Do not impose a removal quota on an already clear interface.
-10. **Verify in the running app.** A rendered check is part of the work, not optional follow-up: launch the real app (project run instructions, browser/DevTools or Playwright — never a source-only inspection), inspect representative viewports (1440/1024/768/375px or closest supported), exercise navigation, period controls, filters, tabs, sorting, pagination, row actions, and dialogs, and check the state matrix from step 7 plus the browser console for errors. Fix confirmed issues and rerun the affected check; claim completion only after the rerun is clean. Record evidence: surface, viewport, path/state, observed result, pass|defect, location.
+10. **Verify in the running app.** A rendered check is part of the work, not optional follow-up: launch the real app (project run instructions, browser/DevTools or Playwright — never a source-only inspection), and on dynamic pages wait for the network to settle (e.g. `networkidle`) before reading the DOM. Inspect representative viewports (1440/1024/768/375px or closest supported), exercise navigation, period controls, filters, tabs, sorting, pagination, row actions, and dialogs, and check the state matrix from step 7 plus the browser console for errors. Fix confirmed issues and rerun the affected check; claim completion only after the rerun is clean. Record evidence: surface, viewport, path/state, observed result, pass|defect, location.
 
 ## Dashboard defaults
 

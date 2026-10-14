@@ -3,7 +3,7 @@ name: superpowers
 description: 'Development method: plan, check, implement, verify, report. Use for non-trivial tasks with no more specific method skill. Define observable acceptance before code, reproduce bugs before fixes, and complete the requested outcome without procedural permission gates.'
 license: MIT
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # Superpowers — main development method
@@ -91,10 +91,12 @@ Bug report → test reproducing the bug → test FAILS → fix → test GREEN
    evidence. Never toggle a separately owned reviewer approval or claim their
    acceptance. Missing signoff does not prohibit authorized implementation.
 3. **Converge by repair.** Before reporting, compare the deliverable against
-   every requested requirement. Add missed work, fix in-scope gaps and verify
-   them. Record out-of-scope findings without silently expanding the task.
-   A review-only request produces findings, not edits. A single small change's
-   direct verification can be the audit; no extra review ceremony is required.
+   every requested requirement — including implementation that contradicts,
+   exceeds or falls outside the stated intent, not only unmet items. Add
+   missed work, fix in-scope gaps and verify them. Record out-of-scope
+   findings without silently expanding the task. A review-only request
+   produces findings, not edits. A single small change's direct verification
+   can be the audit; no extra review ceremony is required.
 
 Continue through these steps without yielding at a phase boundary. Stop only
 for user revocation or a concrete unavailable prerequisite under OPS.md §1.

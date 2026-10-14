@@ -1,4 +1,54 @@
 # Changelog — Coding Agent OS
+- **v4.10.0 (2026-10-15) — full dependency refresh:**
+  - Completes the dependency audit 4.9.0 should have shipped: every upstream
+    source the kit uses was checked, not only obra/superpowers. A read-only
+    sweep confirmed zero missed dependencies beyond the registry below.
+  - **ponytail → upstream v5.2.0** (`2961b52`, MIT): rebuilt to follow the
+    upstream rewrite — "Before you write" scope-first section, six-rung
+    smallest-complete-change ladder, "lazy about the solution, never about
+    the change itself", neutral `shortcut: <limit>, <when to upgrade>`
+    marker (legacy `ponytail:` comments count as the same marker), levels
+    table (lite/full/ultra), plus a git-grep harvest pointer for recorded
+    ceilings. Kit-kept: OPS-scaled evidence rule instead of the one-test
+    quota, result-first output without a line cap, never-cut list, Hermes
+    frontmatter. Companion skills (audit/review/gain/help) rejected —
+    covered by code-review-and-quality, fable-judge, yagni; ponytail-debt
+    capability absorbed as the harvest pointer above.
+  - **spec-kit** (`3238fa9`, MIT): adopted the 2026-09-18 converge fix —
+    the completion audit now also checks implementation that contradicts,
+    exceeds or falls outside the stated intent, not only unmet obligations
+    (skills/superpowers, Converge by repair). The v4.5.1 gate rewrite stays
+    the intentional divergence; upstream's interactive clarify ritual,
+    --require-spec gate and hook machinery remain rejected (OPS §1,
+    no-new-runtime).
+  - **anthropics/skills** (`dbd4588`, 2026-10-09): Apache-2.0 patterns only.
+    Adopted: `networkidle`-settle rule before DOM reads on dynamic pages
+    (design-system step 7, dashboard-design step 10); anti-generic design
+    tells calibration (design-system); one-level file references and
+    black-box-first script discipline (skill-authoring); spec frontmatter
+    sync (hyphen edge rules, metadata map row). Proprietary docx/pdf/pptx/
+    xlsx licenses re-verified — no derivatives exist in the kit. No new
+    upstream skills overlap kit coverage (6 commits, all claude-api).
+  - **agentskills.io spec**: site unreachable (ECONNREFUSED); content
+    verified through the canonical GitHub source — no semantic change since
+    2026-08-04; kit already conformant at the enforcement level.
+  - **mattpocock/skills** (`49dd158`, MIT): consult-only, no adoptions.
+    Noted for future hypotheses: domain-modeling renamed CONTEXT.md →
+    GLOSSARY.md; wayfinder upstream hardening (2026-10-07) confirms the
+    tracker-dependency cost estimate; the mutation-proof rule from
+    diagnosing-bugs (2026-10-07) is a candidate one-liner at the next
+    scheduled TDD/debugging revision.
+  - **Consult-only repos** (supabase/agent-skills, coreyhaines31/
+    marketingskills, leonxlnx/taste-skill, pbakaus/impeccable): dispositions
+    unchanged; freshness probed, no deep-dive warranted.
+  - **Foreign firecrawl skills** (user-installed, not kit assets): 3 of 28
+    directories stale by one sync cycle (gov index, Alexandria provider
+    content); the CLI itself (1.26.3) is current. Owner updates via
+    `firecrawl init --skip-install --skip-auth`; the kit does not vendor
+    them.
+  - obra/superpowers: unchanged since v7.0.0 (verified via ls-remote);
+    already current from 4.9.0.
+
 - **v4.9.0 (2026-10-15) — selective upstream refresh:**
   - Reviewed [obra/superpowers v7.0.0](https://github.com/obra/superpowers/releases/tag/v7.0.0)
     at `bb92a77741419a4ab5f06e711a283343f1ada0c3`, including its

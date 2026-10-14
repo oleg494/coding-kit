@@ -3,7 +3,7 @@ name: systematic-debugging
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
 license: MIT
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # Systematic Debugging

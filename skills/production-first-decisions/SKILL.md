@@ -4,7 +4,7 @@ description: 'Use for consequential choices of tools, libraries, standards or pr
 license: MIT
 compatibility: any project
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # Production-first: decisions grounded in relevant evidence

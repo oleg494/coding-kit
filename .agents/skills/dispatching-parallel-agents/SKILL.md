@@ -3,7 +3,7 @@ name: dispatching-parallel-agents
 description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
 license: MIT
 metadata:
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # Dispatching Parallel Agents
