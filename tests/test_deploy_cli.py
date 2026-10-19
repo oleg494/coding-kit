@@ -11,7 +11,8 @@ Ensures:
 - `deploy.py` (no args) still runs the full documented deploy sequence,
   including bump_claude_md (behavioral replacement for the deleted
   source-text pin in test_release_contract.py).
-"""
+
+--canonical tests live in test_canonical_deploy.py."""
 import hashlib
 import importlib.util
 import io

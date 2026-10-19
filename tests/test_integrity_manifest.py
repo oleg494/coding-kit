@@ -8,10 +8,9 @@ loudly on drift. Contract:
 - build_manifest(kit_root) -> {relpath: sha256} over the exact declared
   scope (OPS.md, AGENTS.md, profile.yml, SKILL_RUNTIME.md, adapters/*.md,
   scripts/**/*.py, eval/*.py, memory/db-tools/*.py, memory/scripts/*.py,
-  skills/*/SKILL.md), \\n-normalized utf-8, sorted.
-- check(root, manifest) -> [drifted/added/removed relpaths].
-- --update regenerates; default CLI mode checks.
-- doctor check_integrity() FAILs on tamper (monkeypatched KIT).
+  and every regular file under each profile-declared owned skill
+  directory — references/, evals/, assets/, any payload), \\n-normalized
+  utf-8, sorted.
 - deploy refuses to copy a drifted tree (exit 3).
 """
 import hashlib
@@ -68,6 +67,18 @@ def _seed(root: Path):
     # written by validation runs (scope docstring contract).
     _write(root / "eval" / "results" / "deep" / "candidate.py", "z = 2\n")
     _write(root / "skills" / "demo" / "reference.md", "ref\n")
+    _write(root / "skills" / "demo" / "references" / "sub" / "guide.md",
+           "# guide\n")
+    _write(root / "skills" / "demo" / "evals" / "case.md", "# case\n")
+    _write(root / "skills" / "demo" / "assets" / "icon.svg", "<svg/>")
+    # binary reference content: hashed raw (no utf-8 assumption)
+    (root / "skills" / "demo" / "references").mkdir(parents=True,
+                                                    exist_ok=True)
+    (root / "skills" / "demo" / "references" / "ref.bin").write_bytes(
+        b"\x00\x01\x02")
+    # foreign skill dir (not in profile.yml): never hashed
+    _write(root / "skills" / "foreign-x" / "SKILL.md", "# foreign\n")
+    _write(root / "skills" / "foreign-x" / "references" / "x.md", "# x\n")
     # .agents/skills deploy mirror: same content, never hashed
     _write(root / ".agents" / "skills" / "demo" / "SKILL.md",
            "---\nname: demo\n---\n")
@@ -95,9 +106,13 @@ class BuildManifestTest(unittest.TestCase):
             "eval/trigger_queries.json", "eval/baselines/trigger.json",
             "memory/db-tools/build.py", "memory/scripts/memory-warmup.py",
             "skills/demo/SKILL.md",
+            "skills/demo/reference.md",
+            "skills/demo/references/sub/guide.md",
+            "skills/demo/references/ref.bin",
+            "skills/demo/evals/case.md",
+            "skills/demo/assets/icon.svg",
         }
         self.assertEqual(sorted(m), sorted(expected))
-        # posix sort: lowercase 'scripts' < 'skills' even though Windows
         self.assertLess(next(k for k in m if k.startswith("scripts/")),
                         next(k for k in m if k.startswith("skills/")))
         (self.root / "OPS.md").write_text("# ops\r\n", encoding="utf-8",
@@ -128,6 +143,101 @@ class BuildManifestTest(unittest.TestCase):
                "---\nname: tampered\n---\n")
         self.assertEqual(integrity.check(self.root, m), [])
 
+    def test_tampered_owned_reference_is_detected(self):
+        # v4.10.1: owned skill payload beyond SKILL.md (references/,
+        # evals/, assets/) is pinned — a tampered reference file that
+        # steers the agent must drift the manifest.
+        m = integrity.build_manifest(self.root)
+        self.assertIn("skills/demo/references/sub/guide.md", m)
+        _write(self.root / "skills" / "demo" / "references" / "sub" /
+               "guide.md", "# guide TAMPERED\n")
+        self.assertEqual(
+            integrity.check(self.root, m),
+            ["drifted: skills/demo/references/sub/guide.md"])
+
+    def test_owned_payload_binary_reference_tamper_is_detected(self):
+        m = integrity.build_manifest(self.root)
+        path = self.root / "skills" / "demo" / "references" / "ref.bin"
+        path.write_bytes(b"\xff\x01\x02")
+        self.assertEqual(
+            integrity.check(self.root, m),
+            ["drifted: skills/demo/references/ref.bin"])
+
+    def test_same_size_profile_rewrite_with_restored_mtime_is_detected(self):
+        # v4.10.2: the cross-call slug cache keyed on (mtime, size) could
+        # hide a same-size profile rewrite that restores the original
+        # mtime. The cache is gone; in-process back-to-back builds must
+        # see fresh inventory from disk every time.
+        old = (self.root / "profile.yml").read_bytes()
+        m = integrity.build_manifest(self.root)
+        self.assertIn("skills/demo/references/ref.bin", m)
+        # "- demo" -> "- demx": same length, same mtime, different
+        # inventory (demo stops being owned; demx becomes owned).
+        new = old.replace(b"- demo\n", b"- demx\n")
+        profile = self.root / "profile.yml"
+        mtime = profile.stat().st_atime_ns, profile.stat().st_mtime_ns
+        profile.write_bytes(new)
+        (self.root / "skills" / "demx" / "SKILL.md").parent.mkdir(
+            parents=True, exist_ok=True)
+        (self.root / "skills" / "demx" / "SKILL.md").write_text(
+            "---\nname: demx\n---\n", encoding="utf-8", newline="\n")
+        os.utime(profile, ns=mtime)
+        self.assertEqual(profile.stat().st_mtime_ns, mtime[1])
+        problems = integrity.check(self.root, m)
+        self.assertIn("removed: skills/demo/references/ref.bin", problems)
+        self.assertIn("removed: skills/demo/SKILL.md", problems)
+        self.assertIn("added: skills/demx/SKILL.md", problems)
+
+    def test_binary_cr_lf_byte_mutation_is_drifted(self):
+        # v4.10.2: binary payload is hashed byte-exact — a CR/LF byte
+        # flip inside a .bin reference is a content change, not a
+        # line-ending artifact.
+        m = integrity.build_manifest(self.root)
+        path = self.root / "skills" / "demo" / "references" / "ref.bin"
+        path.write_bytes(b"\x00\x0d\x01")  # was \x00\x01\x02
+        self.assertEqual(
+            integrity.check(self.root, m),
+            ["drifted: skills/demo/references/ref.bin"])
+
+    def test_binary_payload_newline_bytes_are_not_normalized(self):
+        # byte-exact also means no false equivalence: two different
+        # binary contents containing CR/LF bytes hash differently.
+        path = self.root / "skills" / "demo" / "references" / "ref.bin"
+        path.write_bytes(b"\x00\x01\x02")
+        m1 = integrity.build_manifest(self.root)
+        path.write_bytes(b"\x00\x0a\x02")  # lone-LF variant
+        m2 = integrity.build_manifest(self.root)
+        self.assertNotEqual(m1["skills/demo/references/ref.bin"],
+                            m2["skills/demo/references/ref.bin"])
+
+    def test_text_extension_binary_file_still_normalized(self):
+        # a .md payload is newline-normalized even when its bytes are
+        # not valid utf-8: the CRLF/LF equivalence contract is for
+        # declared text formats regardless of content.
+        path = self.root / "skills" / "demo" / "reference.md"
+        path.write_bytes(b"ref\r\n\xff")
+        m = integrity.build_manifest(self.root)
+        path.write_bytes(b"ref\n\xff")
+        self.assertEqual(integrity.check(self.root, m), [])
+
+    def test_foreign_skill_payload_never_hashed(self):
+        # foreign dirs (not declared in profile.yml) stay out entirely:
+        # SKILL.md, references, any payload — and tampering them cannot
+        # flag the kit.
+        m = integrity.build_manifest(self.root)
+        self.assertFalse([k for k in m if k.startswith("skills/foreign-x/")])
+        _write(self.root / "skills" / "foreign-x" / "references" / "x.md",
+               "# x TAMPERED BY USER\n")
+        self.assertEqual(integrity.check(self.root, m), [])
+
+    def test_agents_mirror_payload_drift_is_invisible(self):
+        # v4.10.1: full owned payloads are pinned in skills/, but the
+        # deployed .agents/ mirror is never hashed — mirror drift alone
+        # cannot flag the kit.
+        m = integrity.build_manifest(self.root)
+        _write(self.root / ".agents" / "skills" / "demo" / "references" /
+               "sub" / "guide.md", "# mirror drift\n")
+        self.assertEqual(integrity.check(self.root, m), [])
 
 
 class CheckTest(unittest.TestCase):

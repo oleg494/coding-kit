@@ -14,16 +14,26 @@ prevent a harness-level hook compromise.
 
 Scope (exact, wave1 Task 2 — every file that executes or steers;
 v4.0.2 adds eval truth: scenario briefs, task briefs, trigger queries,
-committed baselines. Mutable eval/results artifacts stay unpinned):
+committed baselines. Mutable eval/results artifacts stay unpinned;
+v4.10.1 widens skills/*/SKILL.md to the full payload of every
+profile-declared owned skill directory):
     OPS.md, AGENTS.md, profile.yml, SKILL_RUNTIME.md,
     adapters/*.md, scripts/**/*.py, eval/*.py (incl. tasks/*/verify.py
     and tasks/_verify_common.py), eval/scenarios/*.md,
     eval/tasks/*/TASK.md, eval/trigger_queries.json,
     eval/baselines/*.json,
-    memory/db-tools/*.py, memory/scripts/*.py, skills/*/SKILL.md
+    memory/db-tools/*.py, memory/scripts/*.py,
+    skills/<owned-slug>/** — every regular file in each profile-declared
+    owned skill directory (SKILL.md, references/, evals/, assets/, any
+    other payload). Foreign skill directories (slugs absent from
+    profile.yml) and deployed .agents/ mirrors are never hashed.
 
-Hashes cover raw bytes with CRLF/CR normalized to LF; invalid UTF-8 bytes
-remain distinct. Newline-only checkout differences never flag false drift.
+    Hashing (v4.10.2): declared text formats (.md/.py/.json/.yml/.yaml/
+    .toml/.txt/.cfg/.ini/.csv/.svg/.xml/.html/.css/.js/.ts) are
+    \n-normalized — CRLF/LF stay equivalent; everything else (binary
+    payload: .bin, images, archives, extensionless files) is hashed
+    byte-exact, because rewriting a byte in a binary reference is a
+    real content change, not a line-ending artifact.
 
 Run:
     python scripts/tools/integrity_manifest.py            # check (exit 1 on drift)
@@ -67,9 +77,22 @@ _GLOB_SCOPE = ("adapters/*.md", "eval/*.py", "eval/scenarios/*.md",
 _TREE_SCOPE = ("scripts", "memory/db-tools", "memory/scripts")
 
 
-def in_scope(rel: str, root: Path | None = None) -> bool:
+def in_scope(rel: str, root: Path | None = None,
+             _slugs: frozenset[str] | None = None) -> bool:
     """True when rel (posix) belongs to the control plane. root defaults
-    to KIT (callers that pass --root use the tree they operate on)."""
+    to KIT (callers that pass --root use the tree they operate on).
+
+    v4.10.1: the skills branch pins EVERY regular file in each
+    profile-declared owned skill directory (references/, evals/,
+    assets/, any other payload), not just SKILL.md — a tampered
+    reference file steers the agent exactly like SKILL.md does.
+    Foreign skill directories and .agents/ mirrors stay out.
+
+    v4.10.2: no cross-call inventory cache — a same-size profile.yml
+    rewrite with a restored mtime could reuse stale slugs and hide
+    inventory changes. _slugs is the per-traversal resolution passed
+    by scope_files(); callers without one resolve the inventory once
+    via _owned_slugs() themselves (same semantics, no hidden state)."""
     # eval/results is a mutable evidence archive: new artifacts land there
     # on every validation run — pinning them would flag ADDED drift and
     # block deploys (deploy.integrity_gate exits 3). Everything else under
@@ -87,33 +110,62 @@ def in_scope(rel: str, root: Path | None = None) -> bool:
                 return True
         if rel.startswith("scripts/"):
             return True
-    if rel.startswith("skills/") and rel.endswith("/SKILL.md"):
-        slug = rel.split("/")[1]
-        return slug in _owned_slugs(root if root is not None else KIT)
+    if rel.startswith("skills/"):
+        parts = rel.split("/")
+        if len(parts) > 2:
+            slug = parts[1]
+            slugs = _owned_slugs(root if root is not None else KIT) \
+                if _slugs is None else _slugs
+            return slug in slugs
     return any(fnmatch.fnmatchcase(rel, pat) for pat in _GLOB_SCOPE)
 
 
 def _owned_slugs(root: Path) -> frozenset[str]:
-    """Kit-owned skill slugs from the required profile inventory."""
-    root = Path(root)
-    return frozenset(kit_inventory.load_owned_skills(root))
+    """Kit-owned skill slugs from the required profile inventory.
+
+    The slugs come from the profile.yml inventory (kit_inventory), NOT
+    from the directory listing — a tree cannot adopt skills by existing.
+    Called exactly once per scope traversal (scope_files) and by
+    direct in_scope callers without a pre-resolved set — always from
+    disk, so same-size rewrites of profile.yml cannot hide inventory
+    changes behind a stale cache. A missing/unreadable profile raises
+    KitInventoryError (an explicit error, never a silent fallback to
+    every directory on disk)."""
+    return frozenset(kit_inventory.load_owned_skills(Path(root)))
 
 
 def scope_files(root: Path) -> list[Path]:
     """Control-plane files present under root, posix-sorted (case-sensitive
-    — the same order everywhere; Windows rglob casefolds otherwise)."""
+    — the same order everywhere; Windows rglob casefolds otherwise).
+    The profile inventory is resolved exactly once per traversal (v4.10.2:
+    no cross-call cache — same-size profile rewrites with restored
+    mtimes must not hide inventory changes)."""
+    root = Path(root)
+    slugs = _owned_slugs(root)
     out = []
     for p in root.rglob("*"):
         if p.is_file():
             rel = p.relative_to(root).as_posix()
-            if in_scope(rel, root):
+            if in_scope(rel, root, slugs):
                 out.append(p)
     return [p for _, p in sorted(
         (p.relative_to(root).as_posix(), p) for p in out)]
 
 
+# Declared text formats: \n-normalized so CRLF/LF stay equivalent
+# (checkout-converted trees must not drift). Everything else (binary
+# payload: .bin, images, archives, extensionless files) is hashed
+# byte-exact — a CR/LF byte flip in a binary reference is a content
+# change, not a line-ending artifact.
+_TEXT_SUFFIXES = frozenset(
+    (".md", ".py", ".json", ".yml", ".yaml", ".toml", ".txt", ".cfg",
+     ".ini", ".csv", ".svg", ".xml", ".html", ".css", ".js", ".ts"))
+
+
 def _hash_file(p: Path) -> str:
-    content = p.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    content = p.read_bytes()
+    if p.suffix.lower() in _TEXT_SUFFIXES:
+        content = content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     return hashlib.sha256(content).hexdigest()
 
 

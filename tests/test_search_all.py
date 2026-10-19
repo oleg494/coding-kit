@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """search_all.py contract tests.
 
-Two layers:
-
+Three layers:
 1. Read-only connection regressions (v4.0.2 audit) — now against the
    files leg (search_files): URIs use Path.as_posix() (Windows str(Path)
    yields backslashes, which sqlite3 URI parsing treats as literal
@@ -18,8 +17,22 @@ Two layers:
    plus a `findings.py show <id>` hint, and ALL results (files dbs +
    findings) come out in ONE global bm25 order — never alphabetical db
    order, never per-database blocks.
+
+3. 4.10.1+ error-vs-absence: a query that cannot run is NEVER "not
+   found in any database". Query errors (the 'term OR' syntax case AND
+   the reported '{component}' FTS5 column-filter case, which answers
+   "no such column: component" — not a syntax-error string) raise
+   SearchError(kind="query") / exit 2 with an actionable diagnostic;
+   corrupt/failed stores (files db or the research store) raise
+   SearchError(kind="store", partial=...) / exit 3 with partial hits
+   on stdout and an explicit PARTIAL note; only a search that ran
+   everywhere and matched nothing exits 1. A missing research.db
+   stays a quiet skip while healthy indexed stores answer. --json
+   findings hits also expose provenance (source) and the exact
+   verified_at stamp (or null).
 """
 import importlib.util
+import json
 import os
 import shutil
 import sqlite3
@@ -91,23 +104,31 @@ class CloseOnExceptionTest(unittest.TestCase):
     def test_search_files_closes_on_execute_error(self):
         con = _FakeCon(execute_raises=True)
         with (
+            mock.patch.object(search_all, "_validated_match",
+                              return_value="firmware"),
             mock.patch.object(
-                search_all, "list_searchable_dbs",
-                return_value=[Path("C:/work/db/agent.db")]),
+                search_all, "scan_searchable_dbs",
+                return_value=([Path("C:/work/db/agent.db")], [])),
             mock.patch.object(search_all.sqlite3, "connect", return_value=con),
         ):
-            out = search_all.search_files("firmware")
-
-        self.assertEqual(out, [])
+            # The store-level failure is now surfaced, not swallowed —
+            # but the connection must still be closed either way.
+            # (_validated_match is stubbed so the control-index connect
+            # does not consume the mocked sqlite3.connect.)
+            with self.assertRaises(search_all.SearchError) as cm:
+                search_all.search_files("firmware")
+            self.assertEqual(cm.exception.kind, "store")
         self.assertTrue(con.closed,
                         "connection leaked when the FTS query raised")
 
     def test_search_files_closes_on_success(self):
         con = _FakeCon(rows=[("src/a.py", "<b>firmware</b> update", -1.5)])
         with (
+            mock.patch.object(search_all, "_validated_match",
+                              return_value="firmware"),
             mock.patch.object(
-                search_all, "list_searchable_dbs",
-                return_value=[Path("C:/work/db/agent.db")]),
+                search_all, "scan_searchable_dbs",
+                return_value=([Path("C:/work/db/agent.db")], [])),
             mock.patch.object(search_all.sqlite3, "connect", return_value=con),
         ):
             out = search_all.search_files("firmware")
@@ -117,21 +138,25 @@ class CloseOnExceptionTest(unittest.TestCase):
         self.assertTrue(con.closed)
 
 
+
 class WindowsSafeUriTest(unittest.TestCase):
     """Regression: read-only URIs must use Path.as_posix(), never str()."""
-
     def test_search_files_uri_from_windows_style_path(self):
         # PureWindowsPath renders with backslashes on every host OS.
         win_path = PureWindowsPath("C:/work/db/agent.db")
         con = _FakeCon(rows=[])
         with (
+            mock.patch.object(search_all, "_validated_match",
+                              return_value="firmware"),
             mock.patch.object(
-                search_all, "list_searchable_dbs", return_value=[win_path]),
+                search_all, "scan_searchable_dbs",
+                return_value=([win_path], [])),
             mock.patch.object(
                 search_all.sqlite3, "connect", return_value=con) as connect,
         ):
-            search_all.search_files("firmware")
+            out = search_all.search_files("firmware")
         connect.assert_called_once()
+        self.assertEqual(out, [])
         args, kwargs = connect.call_args
         uri = args[0] if args else kwargs.get("database", "")
         self.assertEqual(uri, "file:C:/work/db/agent.db?mode=ro")
@@ -139,16 +164,26 @@ class WindowsSafeUriTest(unittest.TestCase):
         self.assertTrue(kwargs.get("uri"))
 
     def test_search_findings_uri_from_real_windows_path(self):
-        # An absent store is skipped BEFORE connecting, so the URI pin
-        # needs a real file; on Windows str(Path) would yield
-        # backslashes that sqlite3 URI parsing treats as literal chars.
+        # The URI pin needs a real present file (an absent store is
+        # skipped BEFORE connecting); a 0-byte file is a present store
+        # that cannot answer — under the 4.10.1+ contract that is a
+        # SearchError(kind="store"), which still must be raised AFTER
+        # the correctly-shaped read-only URI was used. On Windows
+        # str(Path) would yield backslashes that sqlite3 URI parsing
+        # treats as literal chars.
         with tempfile.TemporaryDirectory(prefix="kit-sa-") as tmp:
             db = Path(tmp) / "research.db"
             db.write_bytes(b"")
-            con = _FakeCon(rows=[])
-            with mock.patch.object(search_all.sqlite3, "connect",
-                                   return_value=con) as connect:
-                search_all.search_findings("workflowz", research_db=db)
+            con = _FakeCon(execute_raises=True)
+            with (
+                mock.patch.object(search_all, "_validated_match",
+                                  return_value="workflowz"),
+                mock.patch.object(search_all.sqlite3, "connect",
+                                  return_value=con) as connect,
+            ):
+                with self.assertRaises(search_all.SearchError) as cm:
+                    search_all.search_findings("workflowz", research_db=db)
+                self.assertEqual(cm.exception.kind, "store")
         connect.assert_called_once()
         args, kwargs = connect.call_args
         uri = args[0] if args else kwargs.get("database", "")
@@ -301,24 +336,61 @@ class FindingsUnionTest(unittest.TestCase):
                                      research_db=MISSING_DB)
         self.assertEqual([r[1] for r in rows], ["wiki"])
 
-    def test_corrupt_research_db_is_skipped(self):
+    def test_corrupt_research_db_is_a_store_error_not_a_skip(self):
+        """4.10.1+: a corrupt research store (present file that cannot
+        answer) must NOT silently disappear from the union — the API
+        raises SearchError(kind="store") with .partial carrying the
+        hits from the stores that DID answer, and the CLI exits 3 with
+        the partial hits still printed plus an explicit PARTIAL note
+        (never a quiet success, never "not found")."""
         (self.tmp / "broken.db").write_bytes(b"not sqlite at all")
         _seed_files_db(self.db_dir / "wiki.db",
                        [("notes/a.md", "workflowz method")])
-        rows = search_all.search_all("workflowz", db_dir=self.db_dir,
-                                     research_db=self.tmp / "broken.db")
-        self.assertEqual([r[1] for r in rows], ["wiki"])
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_all("workflowz", db_dir=self.db_dir,
+                                  research_db=self.tmp / "broken.db")
+        self.assertEqual(cm.exception.kind, "store")
+        self.assertEqual([r[1] for r in cm.exception.partial], ["wiki"])
+        self.assertIn("broken.db", str(cm.exception))
 
-    def test_schemaless_research_db_is_skipped(self):
-        """A db without findings_fts (pre-FTS/foreign store) must not raise."""
+    def test_corrupt_research_db_cli_exits_3_with_partial_hits(self):
+        """CLI: rc 3 (store error), partial hits on stdout, stderr
+        names the failing store and says the results are PARTIAL — and
+        --json still emits the partial payload so machines keep data
+        while seeing the nonzero status."""
+        (self.tmp / "broken.db").write_bytes(b"not sqlite at all")
+        _seed_files_db(self.db_dir / "wiki.db",
+                       [("notes/a.md", "workflowz method")])
+        rc, out, err = self._main_rc("workflowz",
+                                     research_db=self.tmp / "broken.db")
+        self.assertEqual(rc, 3, f"rc={rc} out={out} err={err}")
+        self.assertIn("[wiki] notes/a.md", out)
+        self.assertIn("broken.db", err)
+        self.assertIn("PARTIAL", err)
+        self.assertNotIn("not found in any database", out)
+        self.assertNotIn("not found in any database", err)
+        rc, out, err = self._main_rc("workflowz", "--json",
+                                     research_db=self.tmp / "broken.db")
+        self.assertEqual(rc, 3, f"rc={rc} out={out} err={err}")
+        data = json.loads(out)
+        self.assertEqual([d["db"] for d in data], ["wiki"])
+        self.assertIn("PARTIAL", err)
+
+    def test_schemaless_research_db_is_a_store_error(self):
+        """A db whose file exists but has no findings/fts schema is a
+        PRESENT store that cannot answer (foreign schema) — a store
+        error, not a silent [] that the CLI would report as "not found
+        in any database"."""
         empty = self.tmp / "empty.db"
         con = sqlite3.connect(empty)
         con.execute("CREATE TABLE notes(x TEXT)")
         con.commit()
         con.close()
-        rows = search_all.search_all("workflowz", db_dir=self.db_dir,
-                                     research_db=empty)
-        self.assertEqual(rows, [])
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_all("workflowz", db_dir=self.db_dir,
+                                  research_db=empty)
+        self.assertEqual(cm.exception.kind, "store")
+        self.assertIn("empty.db", str(cm.exception))
 
     def test_research_db_never_double_counted_as_files_db(self):
         """research.db lives in db/ and has no files_fts: the files leg must
@@ -383,6 +455,32 @@ class FindingsUnionTest(unittest.TestCase):
         file_hit = by_path["Wiki/workflowz.md"]
         self.assertEqual(file_hit["db"], "wiki")
         self.assertEqual(set(file_hit.keys()), {"db", "path", "snippet"})
+
+    def _main_rc(self, query, *extra, research_db=None):
+        """main() against the sandbox with an explicit research db;
+        returns (rc, stdout, stderr)."""
+        import io
+        buf, err = [], io.StringIO()
+        rdb = Path(research_db) if research_db else self.research
+
+        def _capture(*a, **k):
+            text = " ".join(str(x) for x in a)
+            f = k.get("file")
+            if f is sys.stderr or f is search_all.sys.stderr:
+                err.write(text + "\n")
+            else:
+                buf.append(text)
+
+        argv = ["search_all.py", query, *extra]
+        with (
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.object(search_all, "DB_DIR", self.db_dir),
+            mock.patch.object(search_all, "research_db_path",
+                              return_value=str(rdb)),
+            mock.patch("builtins.print", side_effect=_capture),
+        ):
+            rc = search_all.main()
+        return rc, "\n".join(buf), err.getvalue()
 
     def _print_main(self, query, *extra):
         """main() against the seeded sandbox; returns stdout (rc 0)."""
@@ -668,6 +766,210 @@ class FindingsLifecycleMetadataTest(unittest.TestCase):
         self.assertEqual(by_id[3].superseded_by, 4)
         self.assertTrue(by_id[2].verified)
         self.assertFalse(by_id[1].verified)
+
+    def test_json_mode_provenance_and_freshness(self):
+        """4.10.1: JSON findings hits expose provenance (source) and the
+        EXACT verified_at stamp (or null for the '' schema sentinel);
+        "verified" bool stays for compatibility."""
+        import json
+        payload = self._print_main("pattern", "--json")
+        data = json.loads(payload)
+        by_id = {item["path"].split()[0]: item for item in data
+                 if item["path"].startswith("finding#")}
+        # finding 1: unverified -> exact null, empty provenance
+        self.assertIsNone(by_id["finding#1"]["verified_at"])
+        self.assertIs(by_id["finding#1"]["verified"], False)
+        self.assertEqual(by_id["finding#1"]["source"], "")
+        # finding 2: verified -> the exact stamp, not just a bool
+        self.assertEqual(by_id["finding#2"]["verified_at"],
+                         "2026-09-02 14:00")
+        self.assertIs(by_id["finding#2"]["verified"], True)
+
+
+class QueryErrorVsNotFoundTest(unittest.TestCase):
+    """4.10.1+: a query that cannot run is NEVER "not found".
+
+    Query errors (malformed FTS syntax AND the reported '{component}'
+    brace-column case, whose 'no such column' error the old 'syntax
+    error' sniff never matched): search_all() raises
+    SearchError(kind="query"); the CLI prints an actionable diagnostic
+    to stderr and exits 2 — --json emits no payload (an empty list
+    would read as 'searched, found nothing').
+
+    Store errors (corrupt db/*.db or research store, nothing searchable
+    at all): SearchError(kind="store", partial=...) and exit 3, with
+    partial hits on stdout and an explicit PARTIAL note on stderr.
+
+    "not found in any database" (rc 1) stays reserved for a query that
+    ran everywhere it could and matched nothing.
+    """
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="kit-sa-qerr-"))
+        self.db_dir = self.tmp / "db"
+        self.db_dir.mkdir()
+        self.research = self.tmp / "research.db"
+        _seed_files_db(self.db_dir / "wiki.db",
+                       [("notes/a.md", "workflowz method")])
+        _seed_research_db(self.research,
+                          [("workflowz brainstorm", "eight lenses")])
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _main(self, query, *extra, db_dir=None, research_db=None):
+        """main() against the sandbox; returns (rc, stdout, stderr)."""
+        import io
+        buf, err = [], io.StringIO()
+        rdb = Path(research_db) if research_db else self.research
+
+        def _capture(*a, **k):
+            text = " ".join(str(x) for x in a)
+            f = k.get("file")
+            if f is sys.stderr or f is search_all.sys.stderr:
+                err.write(text + "\n")
+            else:
+                buf.append(text)
+
+        argv = ["search_all.py", query, *extra]
+        with (
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.object(search_all, "DB_DIR",
+                              db_dir if db_dir is not None else self.db_dir),
+            mock.patch.object(search_all, "research_db_path",
+                              return_value=str(rdb)),
+            # The module resolved sys.stderr at import (fix_encoding
+            # reconfigured it), so routing by the file kwarg is the only
+            # reliable stdout/stderr split under a print patch.
+            mock.patch("builtins.print", side_effect=_capture),
+        ):
+            rc = search_all.main()
+        return rc, "\n".join(buf), err.getvalue()
+
+    def test_files_leg_raises_search_error_on_malformed_query(self):
+        """'workflowz OR' is FTS5 syntax garbage: the API must raise
+        SearchError instead of silently returning [] (= "not found")."""
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_files("workflowz OR", db_dir=self.db_dir)
+        self.assertEqual(cm.exception.kind, "query")
+
+    def test_findings_leg_raises_search_error_on_malformed_query(self):
+        """Same contract for the findings leg — no files dbs needed."""
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_findings("workflowz OR",
+                                       research_db=self.research)
+        self.assertEqual(cm.exception.kind, "query")
+
+    def test_brace_column_filter_query_is_a_query_error(self):
+        """The reported defect, pinned by shape: '{component}' parses
+        as an FTS5 brace column filter and answers 'no such column:
+        component' — an error the old code never matched (it sniffed
+        only the literal 'syntax error', so this silently returned []
+        and the CLI claimed 'not found in any database'). Must raise
+        SearchError(kind='query') on BOTH legs."""
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_files("{component}", db_dir=self.db_dir)
+        self.assertEqual(cm.exception.kind, "query")
+        self.assertIn("malformed FTS query", str(cm.exception))
+
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_findings("{component}",
+                                       research_db=self.research)
+        self.assertEqual(cm.exception.kind, "query")
+
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_all("{component}", db_dir=self.db_dir,
+                                  research_db=self.research)
+        self.assertEqual(cm.exception.kind, "query")
+
+    def test_cli_brace_query_is_not_reported_as_not_found(self):
+        """The exact user-reported failure: '{component}' must exit 2
+        with a query-error diagnostic, never rc 1 'not found' and
+        never an empty JSON list."""
+        rc, out, err = self._main("{component}")
+        self.assertEqual(rc, 2, f"rc={rc} out={out} err={err}")
+        self.assertIn("query error", err)
+        self.assertIn("malformed FTS query", err)
+        self.assertNotIn("not found in any database", out)
+        self.assertNotIn("not found in any database", err)
+
+        rc, out, err = self._main("{component}", "--json")
+        self.assertEqual(rc, 2, f"rc={rc} out={out} err={err}")
+        self.assertEqual(out, "", "JSON mode must emit nothing on a "
+                                  "query error, not []")
+        self.assertIn("query error", err)
+
+    def test_cli_malformed_query_is_not_reported_as_not_found(self):
+        rc, out, err = self._main("workflowz OR")
+        self.assertEqual(rc, 2, f"rc={rc} out={out} err={err}")
+        self.assertIn("query error", err)
+        self.assertIn("malformed FTS query", err)
+        self.assertNotIn("not found in any database", out)
+        self.assertNotIn("not found in any database", err)
+
+    def test_cli_malformed_query_json_mode_emits_no_payload(self):
+        """--json must not print [] (which consumers read as 'searched,
+        found nothing') when the query never ran."""
+        rc, out, err = self._main("workflowz OR", "--json")
+        self.assertEqual(rc, 2, f"rc={rc} out={out} err={err}")
+        self.assertEqual(out, "", "JSON mode must emit nothing on a "
+                                  "query error, not []")
+        self.assertIn("query error", err)
+
+    def test_valid_query_with_no_hits_keeps_not_found(self):
+        """The mirror case: a VALID query that matches nothing keeps the
+        historical empty behavior (rc 1, 'not found in any database')."""
+        rc, out, err = self._main("zzznope")
+        self.assertEqual(rc, 1, f"rc={rc} out={out} err={err}")
+        self.assertIn("not found in any database", out)
+        self.assertNotIn("query error", err)
+
+    def test_no_searchable_stores_at_all_is_a_store_error(self):
+        """An empty db/ with an absent research store means the query
+        ran NOWHERE: [] would become the 'not found in any database'
+        lie. search_all raises SearchError(kind='store') and the CLI
+        exits 3 with an actionable diagnostic (rc 1 reserved for a
+        search that actually ran)."""
+        empty_dir = self.tmp / "empty-db"
+        empty_dir.mkdir()
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_all("workflowz", db_dir=empty_dir,
+                                  research_db=MISSING_DB)
+        self.assertEqual(cm.exception.kind, "store")
+        rc, out, err = self._main("workflowz", db_dir=empty_dir,
+                                  research_db=MISSING_DB)
+        self.assertEqual(rc, 3, f"rc={rc} out={out} err={err}")
+        self.assertIn("search error", err)
+        self.assertNotIn("not found in any database", out)
+        self.assertNotIn("not found in any database", err)
+
+    def test_corrupt_files_db_in_dir_is_a_store_error(self):
+        """A corrupt db/*.db file is caught by the scan, named in the
+        error, and does not silently shrink the union: the API raises
+        with .partial from the healthy stores; the CLI exits 3."""
+        (self.db_dir / "corrupt.db").write_bytes(b"garbage not sqlite")
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_files("workflowz", db_dir=self.db_dir)
+        self.assertEqual(cm.exception.kind, "store")
+        self.assertIn("corrupt.db", str(cm.exception))
+        self.assertEqual([r[1] for r in cm.exception.partial], ["wiki"])
+
+        rc, out, err = self._main("workflowz")
+        self.assertEqual(rc, 3, f"rc={rc} out={out} err={err}")
+        self.assertIn("corrupt.db", err)
+        self.assertIn("PARTIAL", err)
+        self.assertIn("[wiki] notes/a.md", out)
+        self.assertNotIn("not found in any database", out)
+
+    def test_importance_filter_with_missing_research_db_is_a_store_error(self):
+        """An importance filter scopes the search to the findings store
+        only; with that store absent nothing can answer, so [] would
+        again be a 'not found' lie — the search raises instead."""
+        with self.assertRaises(search_all.SearchError) as cm:
+            search_all.search_all("workflowz", db_dir=self.db_dir,
+                                  research_db=MISSING_DB,
+                                  importance="high")
+        self.assertEqual(cm.exception.kind, "store")
 
 if __name__ == "__main__":
     unittest.main()

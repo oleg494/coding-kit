@@ -6,8 +6,12 @@ benchmark's validity depends on — runs cannot be reused (no leakage between
 runs), the memory arm retrieves notes from native storage while the inline arm carries
 the identical note as context (information-parity control), missing attempts
 are never counted as failures, and only well-formed answers are graded.
+Store verification (`--verify-retrieval`) re-runs the real isolated search
+and cross-checks memory-arm retrieval claims against actual tool output; it
+is deterministic plumbing verification, not model-behavior evidence.
 """
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -19,9 +23,98 @@ sys.path.insert(0, str(ROOT / "eval"))
 import memory_experiment
 
 
+def _answers(cases, **overrides):
+    """Well-formed B answers per case/arm; per-case overrides by case id."""
+    out = {}
+    for case in cases:
+        out[case["id"]] = {
+            "memory": {"action": case["expected"], "evidence": [case["required_source"]],
+                       "retrieved": [case["decision"]["id"]]},
+            "inline": {"action": case["expected"], "evidence": [case["required_source"]],
+                       "retrieved": []},
+            "repository_only": {"action": case["actions"][1], "evidence": [], "retrieved": []},
+        }
+        out[case["id"]].update(overrides.get(case["id"], {}))
+    return out
+
+
+def _memory_rows(result):
+    return {row["case"]: row for row in result["rows"] if row["arm"] == "memory"}
+
+
 def _notes(cases):
     return {c["id"]: {"note": f"{c['decision']['id']} ({c['decision']['date']})"}
             for c in cases}
+
+
+def _prepare_with_notes(tmp_path, cases):
+    prepared = tmp_path / "b"
+    memory_experiment.prepare(prepared, _notes(cases))
+    return prepared
+
+
+def test_verify_retrieval_reads_real_store_output_for_every_case(tmp_path):
+    cases = memory_experiment.load_cases()["cases"]
+    prepared = _prepare_with_notes(tmp_path, cases)
+    stores = memory_experiment.verify_retrieval(prepared)
+    assert set(stores) == {case["id"] for case in cases}
+    for case in cases:
+        assert stores[case["id"]] == {case["decision"]["id"]}
+
+
+def test_verify_retrieval_marks_unusable_stores_absent_not_failed(tmp_path):
+    cases = memory_experiment.load_cases()["cases"]
+    prepared = _prepare_with_notes(tmp_path, cases)
+    shutil.rmtree(prepared / cases[0]["id"] / "memory" / "memory-root")
+    stores = memory_experiment.verify_retrieval(prepared)
+    assert stores == {case["id"]: {case["decision"]["id"]}
+                      for case in cases if case is not cases[0]}
+
+
+def test_grade_distinguishes_real_from_fabricated_retrieval(tmp_path):
+    cases = memory_experiment.load_cases()["cases"]
+    prepared = _prepare_with_notes(tmp_path, cases)
+    stores = memory_experiment.verify_retrieval(prepared)
+    # One case answers without any retrieval claim: the decision id IS in the
+    # real store output, but with no claim there is nothing verified true.
+    answers = _answers(cases, **{cases[0]["id"]: {
+        "memory": {"action": cases[0]["expected"], "evidence": [], "retrieved": []}}})
+    rows = _memory_rows(memory_experiment.grade(answers, stores))
+    assert rows[cases[0]["id"]]["retrieval_claimed"] is False
+    assert rows[cases[0]["id"]]["retrieval_verified"] is False
+    for case in cases[1:]:
+        assert rows[case["id"]]["retrieval_claimed"] is True
+        assert rows[case["id"]]["retrieval_verified"] is True
+    # Control arms never carry verification: they have no store to check.
+    for row in memory_experiment.grade(answers, stores)["rows"]:
+        if row["arm"] != "memory":
+            assert "retrieval_verified" not in row
+
+
+def test_grade_marks_claimed_retrieval_absent_from_store_as_unverified(tmp_path):
+    cases = memory_experiment.load_cases()["cases"]
+    prepared = _prepare_with_notes(tmp_path, cases)
+    # Empty real search output for one case: claim must not pass.
+    stores = memory_experiment.verify_retrieval(prepared)
+    stores[cases[0]["id"]] = set()
+    answers = _answers(cases)
+    rows = _memory_rows(memory_experiment.grade(answers, stores))
+    assert rows[cases[0]["id"]]["retrieval_claimed"] is True
+    assert rows[cases[0]["id"]]["retrieval_verified"] is False
+    assert rows[cases[1]["id"]]["retrieval_verified"] is True
+
+
+def test_grade_without_store_verification_leaves_claims_self_reported():
+    cases = memory_experiment.load_cases()["cases"]
+    answers = _answers(cases)
+    rows = _memory_rows(memory_experiment.grade(answers, None))
+    for case in cases:
+        assert rows[case["id"]]["retrieval_verified"] is None
+    # Absent store entry is a real empty result from a usable store, not
+    # the same as no verification: a claimed id that is not in real tool
+    # output must fail verification.
+    rows = _memory_rows(memory_experiment.grade(answers, {cases[0]["id"]: set()}))
+    assert rows[cases[0]["id"]]["retrieval_verified"] is False
 
 
 def test_session_a_export_carries_the_decision_and_no_arms(tmp_path):

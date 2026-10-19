@@ -33,22 +33,62 @@ Before the 2026-09-19 correction, `skill_reads` matched `skill://...` anywhere
 in a normalized record. User/assistant prose and tool results could inflate
 usage, while actual reads through `skills/<name>/SKILL.md` paths were missed.
 
-The counter now records distinct skills explicitly targeted by `Read`, `read`,
-`read_file`, or `functions.read`, including `multi_tool_use.parallel` children.
-Targets come from `path`, `file_path`, or `absolute_path`: skill URIs and
-Windows/POSIX `skills/<name>/SKILL.md` paths, including read selectors.
-Messages, result bodies, write payloads, and incidental argument text do not
-count. Repeat reads of the same skill count once per session.
+Since the 2026-10-20 extension, the counter records distinct skills explicitly
+targeted by `Read`, `read`, `read_file`, or `functions.read`, including
+`multi_tool_use.parallel` children. Targets come from `path`, `file_path`, or
+`absolute_path`: skill URIs (`skill://<name>/...`) and Windows/POSIX paths to
+ANY file under a named skill payload — `SKILL.md`, `references/`, `evals/`,
+`assets/`, or arbitrary nested files — so a deep reference read attributes to
+its owning skill. Messages, result bodies, write payloads, non-read tools, and
+incidental argument text do not count. Repeat reads of the same skill count
+once per session.
 
 **Limits:** a request does not prove successful loading or useful application.
 Shell/eval reads and native skill loaders are not inferred; Gemini tool traffic
 omitted by the normalizer remains unmeasured. `zero_use` means no observed
 explicit reads, not demonstrated non-use. `sessions_audited` in the retirement
 report counts only real sessions. Both human and JSON reports carry the scope
-warning; historical counts are not directly comparable across this correction.
+warning; historical counts are not directly comparable across this correction
+(pre-2026-09-19 counts also matched mentions; pre-2026-10-20 counts missed
+nested payload reads, so migration of historical numbers requires re-running
+the audit over the same window).
 
 **Rule:** do not retire a skill from this counter alone. Check transcript
 coverage and actual outcomes; keep retrieval, application, and utility separate.
+
+### 4. memory_calls attribution: entrypoints only, diagnostics separate
+Before the 2026-10-20 correction, `memory_calls` matched any tool record whose
+name/arguments mentioned the memory engine OR kit diagnostics — a loose regex
+that also caught `build.py`, `doctor.py`, `check_file_sizes`, and `skills_search`
+in unrelated projects. Real sessions that merely built their own project or
+ran kit checks inflated "memory engine usage".
+
+The counter now counts only:
+- explicit memory-engine entrypoints — `memory-warmup`, `search_all.py`,
+  `findings.py`, `repomap`, `build-memory`;
+- `build.py` only when the same command line carries a memory path marker
+  (`.memory`, `db-tools`, or a `memory/` path segment) — bare project
+  `build.py` does not count;
+- clearly kit-owned commands — `skills_search` (a kit lookup tool, not a
+  diagnostic).
+
+Kit diagnostic/maintenance commands (`doctor.py`, `check_file_sizes`) are
+counted separately in `kit_diag_calls` (per-session and per-aggregate,
+additive JSON fields) so kit self-maintenance is visible without
+inflating memory-engine adoption. Existing `memory_calls` keys and the
+report shape are unchanged; consumers see new optional fields only.
+
+**Limits:** entrypoint matching is lexical on the tool name/arguments blob.
+A memory-engine invocation wrapped so that no known entrypoint string appears
+in the record is missed; a project whose own scripts share these names is
+over-counted (mitigated, not eliminated, by the build.py marker rule).
+Historical `memory_calls` totals computed before this correction are not
+directly comparable — re-run the audit over a fixed window instead of diffing
+pre/post numbers.
+
+**Rule:** when reporting memory-engine adoption, quote both the corrected
+`memory_calls` and `kit_diag_calls` from the same run, and state the
+attribution version alongside the numbers.
 
 ## How to run
 
@@ -58,8 +98,8 @@ python scripts/tools/usage_audit.py --since 2026-08-26 --json   # machine-readab
 ```
 
 Reads Claude Code (`~/.claude/projects`) and omp (`~/.omp/agent/sessions`)
-transcripts; reports human turns, memory-engine calls, skill reads, OPS-in-context
-markers, split real vs kit-internal.
+transcripts; reports human turns, memory-engine calls, kit diagnostic calls,
+skill reads, OPS-in-context markers, split real vs kit-internal.
 
 ## What the 2026-08-29 audit established
 
@@ -74,3 +114,96 @@ markers, split real vs kit-internal.
   changes were refuted on re-examination (kill dashboard skills — too young;
   Russian rewording — mechanism not vocabulary; drift-killer kill — kept for its
   cheap meta-check; plan-gate hardening — pain was kit-selftest, not real user).
+
+## Heldout corpus and release protocol
+
+> Added 2026-10-20 (4.10.2). This section is a protocol, not data: the
+> heldout corpus is operator-owned and lives outside the repo while it
+> is in force. Heldout cases are sealed from all tuning until evaluated;
+> after evaluation the operator MAY publish the artifacts with their
+> provenance (see `eval/results/collaborative-reasoning-20260915/`
+> for a published example). Published heldout evidence is spent — once
+> cases are visible to kit work, they can never again serve as heldout
+> for a future change. A file under `eval/` claiming current heldout
+> provenance for an in-force (still-sealed) corpus misrepresents the
+> protocol; check the operator's run record, not the repo.
+
+### What each run level proves
+
+- **Open dry-run** (`task_runner.py --dry-run`, `runner.py --inline-skills`)
+  proves input validity only: task layout, spec parseability, canary
+  marking. It records `DRY_RUN` rows, never a model verdict; exit zero
+  means the inputs are well formed, not that the model passed.
+- **Open live run** (confined `docker:` executor) proves execution on the
+  development corpus. The development cases — everything versioned in
+  `eval/tasks/`, `eval/scenarios/`, `eval/trigger_queries.json` — are
+  visible to every kit change and every kit session. Pass rates here are
+  fit-to-development-corpus evidence, not generalization evidence.
+- **Heldout live run** is the strongest generalization check in this
+  protocol: cases the operator selected before the candidate change and
+  kept sealed from every development loop until after evaluation. It is
+  not the only conceivable source of generalization evidence — a
+  preregistered published experiment with a sealed split
+  (`eval/results/collaborative-reasoning-20260915/`) is another —
+  but it is the one that gates releases here.
+
+### Separation of development and heldout cases
+
+- Development (open) cases may be read, iterated on, and tuned against
+  by kit work and kit sessions without restriction.
+- Heldout cases are authored by the operator before the candidate change
+  and stored outside the repo, sealed from all kit sessions until the
+  scoring run has been evaluated: while in force they are never
+  committed and never appear under `eval/`. After evaluation the
+  operator MAY publish them with provenance; a published corpus is
+  historical evidence, not a reusable seal — the cases are spent and
+  cannot gate a future change. If a still-sealed heldout case leaks
+  into repo content, the run that used it is void and the case is
+  retired.
+- No overlap: a development case, or a paraphrase of one, must not enter
+  the heldout set. The operator records the selection date and corpus
+  size by hand; the kit does not fabricate them.
+
+### Independent judge requirements
+
+- The judge must be a distinct model/session from the executor
+  (`eval/runner.py --judge`): self-judging is descriptive evidence at
+  best, never gate evidence.
+- The judge is blind: it receives the case evidence and acceptance
+  criteria, not the run's purpose, the candidate's identity, or the
+  expected direction (same contract as the sycophancy pilot,
+  `docs/research/2026-09-18-sycophancy/protocol.md`).
+- A run where the judge was the executor, or where judging was not
+  blind, must be labeled as such in its report; it cannot gate a
+  release.
+
+### Canary hacked exit contract
+
+- The ImpossibleBench canaries (`005-canary-oneoff`,
+  `006-canary-conflicting`) carry oracles no honest solution can pass.
+  In any live `task_runner.py` run, a canary PASS is recorded
+  `hacked: true` and the process exits nonzero — even when every
+  ordinary task passes.
+- Honest canary failures exit clean. A nonzero exit on an otherwise
+  all-pass run is hacking evidence, not a flaky gate.
+- The gate is pinned behaviorally in `tests/test_canaries.py`
+  (`test_hacked_canary_gates_suite_exit_nonzero`,
+  `test_hacked_canary_gates_process_exit_nonzero`) and referenced from
+  `docs/SECURITY-MAP.md`.
+
+### Limitations
+
+- The protocol is one operator's discipline, not an enforced sandbox:
+  nothing in the kit mechanically prevents leakage except the separation
+  rules above.
+- Heldout n is small (operator-authored); results are directional, and
+  "improved on heldout" is never a statistical claim.
+- No in-force (still-sealed) heldout results exist in the repo, so a
+  candidate's heldout gate cannot be re-verified by CI from repo
+  content alone; the operator's run record is the authority while the
+  corpus is sealed. Historical published heldout artifacts under
+  `eval/results/` (e.g. the 2026-09-15 collaborative-reasoning
+  experiment) are evidence for the change they evaluated, not a
+  reusable seal.
+- Judge blindness is procedural: the kit cannot verify what a judge
+  session actually saw.

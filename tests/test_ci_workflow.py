@@ -151,6 +151,7 @@ class TestCIWorkflow(unittest.TestCase):
                     f"{name} must not expose EXECUTOR env var",
                 )
 
+
     def test_absence_of_git_writes_and_push(self):
         """Workflows must not commit, configure git, or push to repository."""
         for name, content in self.workflows.items():

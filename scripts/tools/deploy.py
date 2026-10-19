@@ -16,9 +16,8 @@ Idempotent. Steps:
      entries are eligible for removal.
      ~/.claude/CLAUDE.md keeps its machine-local triggers: only the
      version / date / skill-count line is bumped in place.
-     Generated routers are lightweight: metadata + one canonical contract
-     reference (read KIT/OPS.md at session start) + the kit AGENTS.md path as
-     a pointer (soul not embedded) + an optional preserved CODEGRAPH block.
+     Generated routers are lightweight pointers: metadata + one OPS.md
+     contract reference (soul not embedded) + an optional CODEGRAPH block.
   3. Verify: byte-compare every deployed skill against the master, check
      every router header, exit non-zero on any mismatch.
 """
@@ -85,11 +84,9 @@ CLAUDE_MD = Path.home() / ".claude" / "CLAUDE.md"
 SYNC_TARGETS = ["~/.claude/skills", "~/.agents/skills", "~/.zcode/skills"]
 
 def integrity_gate():
-    """CBSE pre-copy gate (wave1 Task 2): refuse to roll out a kit tree
-    whose control plane has drifted from integrity-manifest.json. Exit 3
-    = integrity failure (distinct from deploy's own exit 1 = verify
-    failure). Detects drift; a harness-level hook compromise is out of
-    scope (Cymulate caveat)."""
+    """Refuse to roll out a kit tree whose control plane drifted from
+    integrity-manifest.json. Exit 3 = integrity failure (distinct from
+    deploy's exit 1 = verify failure)."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "integrity_manifest",
@@ -152,13 +149,10 @@ def home(p):
 
 
 def master_skill_names():
-    """Kit-owned skill slugs from profile.yml (v4.7.0 inventory).
-
-    A missing or invalid profile inventory raises KitInventoryError —
-    deploy fails loudly rather than adopting every directory on disk.
-    Foreign dirs under skills/ (e.g. firecrawl sources) are not listed,
-    never copied, never deleted.
-    """
+    """Kit-owned skill slugs from profile.yml. A missing or invalid
+    inventory raises KitInventoryError — deploy fails loudly rather than
+    adopting every directory on disk; foreign dirs are never copied or
+    deleted."""
     return list(_inventory.load_owned_skills(KIT))
 
 
@@ -387,11 +381,8 @@ def preflight_skills() -> tuple[bool, list[dict], list[SkillsReport]]:
 
 
 def execute_skills(preflight: list[dict], dry: bool = False) -> list[SkillsReport]:
-    """Sync owned skills, remove stale manifest entries, refresh the manifest.
-
-    dry=True performs the identical computation (same action list, same
-    validation) and writes nothing.
-    """
+    """Sync owned skills, remove stale manifest entries, refresh the
+    manifest. dry=True computes the identical action list, writes nothing."""
     names = master_skill_names()
     report = []
     for item in preflight:
@@ -475,14 +466,10 @@ def preflight_routers_and_claude() -> tuple[bool, list[str]]:
 
 
 def regen_routers(dry: bool = False):
-    """Regenerate kit-owned routers as lightweight pointers. dry=True reports
-    planned actions only.
-
-    A generated router carries only ownership/version/path metadata, one
-    canonical contract reference (read KIT/OPS.md) and an optional preserved
-    CODEGRAPH block from the previous file. The kit's OPS.md contract is
-    loaded once via the pointer; no second instruction body is embedded.
-    """
+    """Regenerate kit-owned routers as lightweight pointers (dry=True
+    reports planned actions only): metadata, one OPS.md contract
+    reference, and an optional preserved CODEGRAPH block — no second
+    instruction body is embedded."""
     kit = KIT.as_posix()
     actions = []
     for h in HARNESSES:
@@ -636,16 +623,58 @@ def verify():
     return ok
 
 
-
-
-
 def plan_canonical_sync(canon: Path) -> list[dict]:
-    """CR-04: Compute ONE unified change plan for canonical sync (including manifest)."""
+    """Compute ONE unified change plan for canonical sync (incl. manifest).
+    Source skills are preflighted for links/escapes/presence; a differing
+    pre-existing same-name skill is a collision error unless the kit
+    previously owned it (manifest claim) or it is byte-identical (adoption)."""
     names = master_skill_names()
     plan = []
     if is_link(canon) or has_link_ancestor(canon, KIT):
         return [{"op": "error", "target": canon, "desc": f"ERROR: canonical target {canon} or ancestor is a link"}]
+
+    # Slugs the kit previously owned (destination manifest claim), read
+    # once here — never through a linked manifest — and reused for the
+    # same-name collision gate and the stale-dir retirement below.
+    # A manifest that exists but is unreadable or not a valid ownership
+    # claim fails closed: degrading to empty ownership would reclassify
+    # every previously-owned skill as a foreign collision target.
+    previously_owned: set[str] = set()
+    mani_file = canon / MANIFEST_NAME
+    if is_link(mani_file):
+        pass  # the manifest link check below adds the plan error
+    elif mani_file.is_file():
+        try:
+            previous = json.loads(mani_file.read_text(encoding="utf-8"))
+            skills_list = previous.get("skills")
+            if (not isinstance(previous, dict)
+                    or not isinstance(skills_list, list)
+                    or not all(isinstance(name, str) for name in skills_list)):
+                raise ValueError("invalid ownership manifest structure")
+            previously_owned = set(skills_list)
+        except (OSError, ValueError) as e:
+            return [{"op": "error", "target": mani_file,
+                     "desc": (f"ERROR: destination manifest {mani_file} is "
+                              f"unreadable or malformed ({e}) — refusing to "
+                              f"sync with unknown ownership; fix or remove it "
+                              f"and re-run")}]
+
+    # Source preflight: no write may be planned from a missing, linked or
+    # escaping source skill (dry-run reports it too).
+    for n in names:
+        src = SKILLS / n
+        if not src.exists():
+            plan.append({"op": "error", "skill": n, "src": src,
+                         "desc": f"ERROR: source skill missing: {src}"})
+            continue
+        bad_src = scan_skill_links(SKILLS, src)
+        if bad_src:
+            plan.append({"op": "error", "skill": n, "src": src,
+                         "desc": f"ERROR: source skill {n} contains link/escape: {', '.join(bad_src)}"})
+
     if not canon.exists():
+        if any(item.get("op") == "error" for item in plan):
+            return plan
         for n in names:
             plan.append({"op": "add-skill", "skill": n, "src": SKILLS / n, "target": canon / n, "desc": f"add .agents/skills/{n}"})
         plan.append({"op": "upd-manifest", "target": canon / MANIFEST_NAME, "desc": f"add {MANIFEST_NAME}"})
@@ -670,6 +699,11 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
             continue
         if target.resolve() == src.resolve():
             continue
+        if n not in previously_owned and not dirs_byte_identical(src, target):
+            plan.append({"op": "error", "skill": n, "target": target,
+                         "desc": (f"ERROR: skill {n} already exists in {canon} with foreign content "
+                                  f"(not claimed by {MANIFEST_NAME}, not byte-identical to master) — refusing to overwrite")})
+            continue
         for f in src.rglob("*"):
             if f.is_file():
                 rel = f.relative_to(src)
@@ -682,15 +716,6 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
     # Remove stale directories only when the previous kit manifest claimed
     # them. Foreign directories in the canonical destination belong to the
     # user and must survive canonical sync unchanged.
-    previously_owned: set[str] = set()
-    mani_file = canon / MANIFEST_NAME
-    if mani_file.is_file():
-        try:
-            previous = json.loads(mani_file.read_text(encoding="utf-8"))
-            if isinstance(previous, dict) and isinstance(previous.get("skills"), list):
-                previously_owned = {name for name in previous["skills"] if isinstance(name, str)}
-        except (OSError, ValueError):
-            previously_owned = set()
     for entry in sorted(canon.iterdir()):
         if entry.is_dir() and entry.name in previously_owned and entry.name not in names:
             bad_links = scan_skill_links(canon, entry)
@@ -700,7 +725,6 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
                 plan.append({"op": "rm-dir", "target": entry, "desc": f"rm-dir {entry.name}"})
 
     # Manifest check
-    mani_file = canon / MANIFEST_NAME
     if is_link(mani_file):
         plan.append({"op": "error", "target": mani_file, "desc": f"ERROR: manifest {mani_file} is a link"})
     elif not mani_file.exists():
@@ -717,15 +741,16 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
 
 
 def canonical_mode(argv=None):
-    """--canonical (wave3 Task 10): sync KIT/skills -> the repo's
-    .agents/skills/ — the copy harnesses read (agentskills.io canonical
-    location). --dry-run lists actions
-    without writing. Per-adapter opt-in lives in profile.yml
-    adapters[].canonical (default false — enable only for harnesses
-    proven to read the alias)."""
+    """--canonical: sync KIT/skills -> the repo's .agents/skills/ (the
+    agentskills.io canonical location); --dry-run lists actions without
+    writing. Per-adapter opt-in lives in profile.yml
+    adapters[].canonical. The full-deploy integrity gate runs BEFORE
+    planning (drifted control plane => exit 3); the result is re-verified
+    after the transaction and any mismatch rolls back and fails."""
     argv = list(sys.argv[1:]) if argv is None else argv
     dry = "--dry-run" in argv
     canon = KIT / ".agents" / "skills"
+    integrity_gate()
     plan = plan_canonical_sync(canon)
     has_errors = any(item.get("op") == "error" for item in plan)
     if dry:
@@ -803,6 +828,12 @@ def canonical_mode(argv=None):
             tx.rollback(str(e))
             return 1
 
+        verify_errs = verify_canonical_result(canon, plan)
+        if verify_errs:
+            for e in verify_errs:
+                print("VERIFY FAIL:", e)
+            tx.rollback("canonical result verification failed")
+            return 1
         tx.commit()
 
     for a in actions:
@@ -813,14 +844,44 @@ def canonical_mode(argv=None):
     return 0
 
 
-def deploy_preview() -> int:
-    """CK-01: read-only full-deploy preview.
+def verify_canonical_result(canon: Path, plan: list[dict]) -> list[str]:
+    """Re-check the canonical destination after the transaction: every
+    owned skill present and byte-identical to master (no links/escapes),
+    the manifest exact, no retired dir left. Runs inside the transaction
+    so any mismatch rolls back."""
+    errs: list[str] = []
+    names = master_skill_names()
+    for n in names:
+        src, target = SKILLS / n, canon / n
+        if not target.exists():
+            errs.append(f"skill {n} missing after sync: {target}")
+            continue
+        if is_link(target):
+            errs.append(f"skill {n} is a link after sync: {target}")
+            continue
+        bad = scan_skill_links(canon, target)
+        if bad:
+            errs.append(f"skill {n} contains link/escape after sync: {', '.join(bad)}")
+            continue
+        if not dirs_byte_identical(src, target):
+            errs.append(f"skill {n} differs from master after sync")
+    for item in plan:
+        if item["op"] == "rm-dir" and item["target"].exists():
+            errs.append(f"retired skill dir still present after sync: {item['target']}")
+    mani = canon / MANIFEST_NAME
+    try:
+        curr = json.loads(mani.read_text(encoding="utf-8"))
+    except Exception as e:
+        errs.append(f"manifest unreadable after sync: {mani} ({e})")
+        return errs
+    if curr.get("kit_version") != VERSION or curr.get("skills") != names:
+        errs.append(f"manifest mismatch after sync (want kit_version={VERSION}, skills={names})")
+    return errs
 
-    Runs the same gates and computes the same plan as the apply path, printing
-    affected paths and actions without writing anything: no transaction dir,
-    no directory creation, no snapshots. Exit 0 = clean plan, 1 = preflight
-    conflict/plan error, 3 = integrity drift (as in apply).
-    """
+def deploy_preview() -> int:
+    """CK-01: read-only full-deploy preview. Same gates and plan as the
+    apply path, nothing written: no transaction, no directory creation,
+    no snapshots. Exit 0 = clean plan, 1 = preflight conflict, 3 = drift."""
     integrity_gate()
     print(f"DRY RUN — no changes written (coding-kit v{VERSION} full-deploy preview)")
     routers_ok, router_errs = preflight_routers_and_claude()

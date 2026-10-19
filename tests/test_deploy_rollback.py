@@ -78,6 +78,7 @@ class TestDeployRollbackRegression(unittest.TestCase):
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
                  mock.patch.object(deploy, "safe_copytree", failing_copytree), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):

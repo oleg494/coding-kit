@@ -108,8 +108,6 @@ def test_same_model_different_conditions_not_averaged_or_compared(tmp_path):
     assert data["m1"][cid_lenient] == 0.2
 
 
-
-
 def test_status_and_delta_bands_and_boundaries():
     # Baseline 0.90 for all cases; deltas in percentage points.
     cases = [
@@ -316,68 +314,6 @@ def test_no_proposal_or_edit_wording(tmp_path):
     assert "tighten skill wording" not in out
     assert "inspect sandbox behavior" not in out
     assert "Proposals" not in out
-
-
-def test_update_baselines_cohort_last_n_averaging(tmp_path):
-    res_dir = tmp_path / "results"
-    base_dir = tmp_path / "baselines"
-
-    cid_a = _cid("cond-a")
-    cid_b = _cid("cond-b")
-
-    # Condition A: 5 runs for m1 with rates 1.0, 0.8, 0.6, 0.9, 0.7
-    rates = [(10, 10), (8, 10), (6, 10), (9, 10), (7, 10)]
-    for passed, total in rates:
-        results_io.save_result("trap", "m1", {"passed": passed, "total": total, "comparison_id": cid_a}, results_dir=res_dir)
-
-    # Condition B (same model): 2 runs with rates 1.0, 0.0
-    results_io.save_result("trap", "m1", {"passed": 10, "total": 10, "comparison_id": cid_b}, results_dir=res_dir)
-    results_io.save_result("trap", "m1", {"passed": 0, "total": 10, "comparison_id": cid_b}, results_dir=res_dir)
-
-    # Unknown-id run (no comparison_id): must be ignored by the update
-    results_io.save_result("trap", "m1", {"passed": 5, "total": 5}, results_dir=res_dir)
-
-    # Update with n=3: A averages 0.6, 0.9, 0.7 -> 0.7333;
-    # B averages both of its 2 runs -> 0.5
-    trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=3)
-
-    trap_baseline_file = base_dir / "trap.json"
-    assert trap_baseline_file.is_file()
-    data = json.loads(trap_baseline_file.read_text(encoding="utf-8"))
-    assert data["m1"][cid_a] == 0.7333
-    assert data["m1"][cid_b] == 0.5
-    # The unknown-id run was not folded into any cohort
-    assert len(data["m1"]) == 2
-
-    # Deterministic trailing LF
-    raw = trap_baseline_file.read_bytes()
-    assert raw.endswith(b"\n")
-
-    # A second update re-derives the same values (no drift, no growth)
-    trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=3)
-    data2 = json.loads(trap_baseline_file.read_text(encoding="utf-8"))
-    assert data2 == data
-
-
-def test_update_baselines_legacy_numeric_file_cutover(tmp_path):
-    res_dir = tmp_path / "results"
-    base_dir = tmp_path / "baselines"
-    base_dir.mkdir(parents=True)
-
-    cid = _cid("cond-a")
-    # Pre-cutover numeric baseline file
-    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.5}), encoding="utf-8")
-    results_io.save_result("trap", "m1", {"passed": 8, "total": 10, "comparison_id": cid}, results_dir=res_dir)
-
-    trend.update_baselines(results_dir=res_dir, baselines_dir=base_dir, n=5)
-    data = json.loads((base_dir / "trap.json").read_text(encoding="utf-8"))
-    # The numeric value 0.5 is not carried over; only the cohort entry exists
-    assert data == {"m1": {cid: 0.8}}
-
-    # Render with the pre-cutover numeric file never fabricates a baseline
-    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.5}), encoding="utf-8")
-    out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
-    assert "| - | - | - |" in out
 
 
 def test_cli_always_exits_zero(tmp_path, monkeypatch):
@@ -892,3 +828,76 @@ def test_trend_cli_handles_unicode_evidence_on_ascii_stdout():
     assert r.returncode == 0, r.stdout
     assert "Eval trends" in r.stdout
 
+
+
+def test_render_reports_ignored_legacy_numeric_baselines(tmp_path):
+    """Trend output tells the operator why old values are not used."""
+    res_dir = tmp_path / "results"
+    base_dir = tmp_path / "baselines"
+    base_dir.mkdir(parents=True)
+
+    cid = _cid("cond-a")
+    results_io.save_result("trap", "m1", {
+        "mode": "live",
+        "passed": 8, "total": 10, "comparison_id": cid,
+        "scenarios": [],
+    }, results_dir=res_dir)
+    results_io.save_result("trigger", "m1", {
+        "mode": "live",
+        "passed": 4, "fired": 2, "total": 4, "comparison_id": _cid("trig-a"),
+        "rows": [],
+    }, results_dir=res_dir)
+
+    # Legacy numeric baselines for both comparison kinds
+    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.77}), encoding="utf-8")
+    (base_dir / "trigger.json").write_text(json.dumps({"m1": 0.55}), encoding="utf-8")
+
+    out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    # The diagnostic section exists and explains non-comparability
+    assert "## Ignored legacy baselines" in out
+    assert "no comparison id" in out
+    assert "not comparable with any current run" in out
+    assert "intentional non-migration" in out
+    # The operator command for fresh baselines is named
+    assert "python eval/trend.py --update-baselines" in out
+    assert "trap" in out and "trigger" in out
+    # No legacy value is surfaced as a baseline in the table
+    assert "77.0%" not in out
+    assert "55.0%" not in out
+    trap_row = [ln for ln in out.splitlines() if ln.startswith("| trap | m1 |")]
+    assert trap_row and "| - | - | - |" in trap_row[0]
+    trigger_row = [ln for ln in out.splitlines() if ln.startswith("| trigger | m1 |")]
+    assert trigger_row and "| - | - | - |" in trigger_row[0]
+
+    # The diagnostic is read-only: shipped JSON is untouched by render
+    assert json.loads((base_dir / "trap.json").read_text(encoding="utf-8")) == {"m1": 0.77}
+    assert json.loads((base_dir / "trigger.json").read_text(encoding="utf-8")) == {"m1": 0.55}
+
+
+def test_render_no_legacy_note_without_numeric_entries(tmp_path):
+    """No diagnostic when baselines are cohort-shaped, missing or unused kinds."""
+    res_dir = tmp_path / "results"
+    base_dir = tmp_path / "baselines"
+    base_dir.mkdir(parents=True)
+
+    cid = _cid("cond-a")
+    results_io.save_result("trap", "m1", {
+        "mode": "live",
+        "passed": 10, "total": 10, "comparison_id": cid,
+        "scenarios": [],
+    }, results_dir=res_dir)
+
+    # Cohort-shaped baseline: no legacy entries, no diagnostic
+    (base_dir / "trap.json").write_text(json.dumps({"m1": {cid: 0.9}}), encoding="utf-8")
+    out = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    assert "## Ignored legacy baselines" not in out
+
+    # Flat layout for a non-comparison kind is legitimate, not legacy
+    (base_dir / "trap.json").write_text(json.dumps({"m1": 0.9}), encoding="utf-8")
+    (base_dir / "trap.json").unlink()
+    results_io.save_result("tasks", "m1", {
+        "mode": "live", "passed": 3, "total": 3, "rows": [],
+    }, results_dir=res_dir)
+    (base_dir / "tasks.json").write_text(json.dumps({"m1": 0.9}), encoding="utf-8")
+    out2 = trend.render(results_dir=res_dir, baselines_dir=base_dir)
+    assert "## Ignored legacy baselines" not in out2

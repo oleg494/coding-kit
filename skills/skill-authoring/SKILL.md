@@ -4,7 +4,7 @@ description: 'Use when creating or editing any skill: frontmatter rules (name/de
 license: MIT
 compatibility: applies to skills/ in this set, ~/.hermes/skills, .claude/skills
 metadata:
-  version: "4.10.0"
+  version: "4.10.3"
 ---
 
 # How to author skills correctly

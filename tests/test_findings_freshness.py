@@ -13,6 +13,9 @@ maximum. Two defects break that today (see .autonomous/freshness-brief.json):
 Consumer impact: search_all.py treats bool(verified_at) as the verified
 flag ("verified": true in --json, [unverified] badge otherwise), so a
 stale stamp is a false "verified" claim shown to every future session.
+Since 4.10.1 --json also exposes the exact "verified_at" stamp (or
+null) and "source" — the assertions below pin that freshness surface
+to the real row state, not just a boolean.
 
 Contract pinned here (RED against current findings.py by design):
   - verify success            -> verified_at stamped, no [unverified] badge
@@ -127,6 +130,23 @@ class VerifiedStampLifecycleTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return r.stdout
 
+    def _search_json(self, fid: int) -> dict:
+        """The --json hit for this finding: exact verified_at/source
+        provenance for machine consumers (4.10.1)."""
+        import json
+        r = subprocess.run(
+            [sys.executable, str(SEARCH_ALL), TOKEN, "--json"],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", env=self.env, timeout=120,
+        )
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        hits = [item for item in json.loads(r.stdout)
+                if item.get("path", "").startswith(f"finding#{fid} ")]
+        self.assertEqual(len(hits), 1,
+                         f"expected exactly one finding#{fid} hit in: "
+                         f"{r.stdout}")
+        return hits[0]
+
     def _search_line(self, fid: int) -> str:
         """The search_all.py human-output line for this finding — the
         surface a future session actually sees."""
@@ -148,6 +168,9 @@ class VerifiedStampLifecycleTest(unittest.TestCase):
         self.assertIn(f"(last: {stamp})", self._show(fid))
         self.assertNotIn("(last: never)", self._show(fid))
         self.assertNotIn("[unverified]", self._search_line(fid))
+        # 4.10.1: --json must expose the EXACT stamp, not just a bool
+        self.assertEqual(self._search_json(fid)["verified_at"], stamp)
+        self.assertIs(self._search_json(fid)["verified"], True)
 
     def _assert_unverified(self, fid: int):
         self.assertEqual(self._verified_at(fid), "",
@@ -155,6 +178,9 @@ class VerifiedStampLifecycleTest(unittest.TestCase):
                          "schema sentinel) when the old stamp is invalid")
         self.assertIn("(last: never)", self._show(fid))
         self.assertIn("[unverified]", self._search_line(fid))
+        # 4.10.1: cleared stamp -> exact null in JSON, never a stale one
+        self.assertIsNone(self._search_json(fid)["verified_at"])
+        self.assertIs(self._search_json(fid)["verified"], False)
 
     # -- green guard -------------------------------------------------------
 

@@ -392,7 +392,9 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
     (the shared timestamped store). dry_run starts no container and
     persists only when json_out is explicitly requested. A live run
     requires a confined `docker:<image> ...` executor spec; anything else
-    is refused before the first attempt.
+    is refused before the first attempt. In a live run, any honest task
+    failure OR any canary classified hacked makes the process exit
+    nonzero; dry-run never gates.
     """
     if json_out is not None and not dry_run and not model:
         raise ValueError(
@@ -504,7 +506,7 @@ def run_task_suite(names: list[str], executor_cmd: str | None,
              if canary_total else ""))
     if json_out is not None:
         _save(model, executor_cmd, payload, json_out)
-    return 1 if failed else 0
+    return 1 if (failed or canary_hacked) else 0
 
 
 

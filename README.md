@@ -253,6 +253,12 @@ The [4.5.1 release notes](https://github.com/oleg494/coding-kit/releases/tag/v4.
 separately document policy-calibration observations and their limits. They
 are stated-next-action evidence, not an end-to-end coding-quality win rate.
 
+Every public claim the kit makes — including its unverified ones — is
+tracked in the [claims ledger](docs/CLAIMS.md), which lists the runnable
+verification command, the evidence artifact, or an explicit `unverified`
+status for each claim, plus the release acceptance gates and rollback
+procedures that must hold before a version tag.
+
 ### Run the kit's checks
 
 ```text

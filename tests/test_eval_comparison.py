@@ -1,4 +1,11 @@
-"""Comparison cohorts follow exercised inputs, never scores or file locations."""
+"""Comparison cohorts follow exercised inputs, never scores or file locations.
+
+Release-grade judging provenance: independence is *declared* via
+nonempty distinct model ids, never inferred from command, image, or
+digest differences. These tests exercise the wiring of the gate
+(classification, rejection, persisted provenance) only — they make no
+claim about model quality and cannot verify backend independence.
+"""
 import json
 import sys
 from pathlib import Path
@@ -165,3 +172,196 @@ def test_trigger_worker_failure_cannot_share_valid_subset_identity(tmp_path, mon
                         "--executor", "docker:local agent", "--model", "m", "--json", str(out)])
     trigger_eval.main()
     assert json.loads(out.read_text(encoding="utf-8"))["comparison_id"] is None
+
+
+def _release_grade_executor():
+    return {"mode": "container", "argv": ["agent", "-p"],
+            "image": "agent-image", "network": False, "mounts": ()}
+
+
+def test_release_grade_accepts_declared_distinct_judge(tmp_path, monkeypatch, corpus):
+    """Nonempty distinct declared model ids pass the gate — as a declaration."""
+    _, _, cases = corpus
+    executor = _release_grade_executor()
+    judge = {**executor, "image": "judge-image"}
+    monkeypatch.setattr(runner, "run_prompt", lambda *a, **k: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda *a, **k: "PASS")
+    out = tmp_path / "gated.json"
+    rc = runner.run_scenarios(executor, judge, cases,
+                              json_out=out, model="executor-m",
+                              judge_model="judge-m", release_grade=True)
+    assert rc == 0
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    provenance = doc["judge_provenance"]
+    assert provenance["judge_status"] == "declared-distinct"
+    assert provenance["independent"] is True
+    assert provenance["release_grade"] is True
+    # Identities persist as declarations only; the harness cannot prove
+    # which backend a container command routes to.
+    assert provenance["executor_model_declared"] == "executor-m"
+    assert provenance["judge_model_declared"] == "judge-m"
+    assert provenance["independence_basis"] == "declared"
+    assert provenance["judge_config_sha256"] != provenance["executor_config_sha256"]
+    assert doc["mode"] == "live"
+
+
+def test_same_model_ids_block_release_grade_even_with_different_commands(
+        tmp_path, monkeypatch, corpus):
+    """A judge command that differs only in argv (e.g. a verbosity flag)
+    with equal declared model ids is not independent: the gate refuses it."""
+    _, _, cases = corpus
+    executor = _release_grade_executor()
+    judge = {**executor, "argv": ["agent", "-p", "-v"]}
+    monkeypatch.setattr(runner, "run_prompt", lambda *a, **k: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda *a, **k: "PASS")
+    out = tmp_path / "argv-only.json"
+    with pytest.raises(runner.ReleaseGradeError):
+        runner.run_scenarios(executor, judge, cases,
+                             json_out=out, model="same-m",
+                             judge_model="same-m", release_grade=True)
+    assert not out.exists()
+
+
+def test_absent_judge_model_blocks_release_grade(tmp_path, monkeypatch, corpus):
+    """A distinct judge command without a declared judge model id cannot
+    be recorded as independent: independence is never inferred from the
+    command difference."""
+    _, _, cases = corpus
+    executor = _release_grade_executor()
+    judge = {**executor, "image": "judge-image"}
+    monkeypatch.setattr(runner, "run_prompt", lambda *a, **k: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda *a, **k: "PASS")
+    out = tmp_path / "undeclared.json"
+    with pytest.raises(runner.ReleaseGradeError):
+        runner.run_scenarios(executor, judge, cases,
+                             json_out=out, model="executor-m",
+                             release_grade=True)
+    assert not out.exists()
+
+
+def test_release_grade_rejects_self_judging(tmp_path, monkeypatch, corpus):
+    """--release-grade refuses self-judged runs: judge omitted, or judge == executor."""
+    _, _, cases = corpus
+    executor = _release_grade_executor()
+    monkeypatch.setattr(runner, "run_prompt", lambda *a, **k: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda *a, **k: "PASS")
+    for judge in (None, executor):
+        with pytest.raises(runner.ReleaseGradeError):
+            runner.run_scenarios(executor, judge, cases,
+                                 json_out=tmp_path / "self.json",
+                                 model="m", judge_model="other-m",
+                                 release_grade=True)
+    # Dry-run with --release-grade is also refused: nothing is judged at all.
+    with pytest.raises(runner.ReleaseGradeError):
+        runner.run_scenarios(None, None, cases, release_grade=True)
+    # No result document may be written by a refused run.
+    assert not (tmp_path / "self.json").exists()
+
+
+def test_exploratory_argv_difference_is_not_independence(tmp_path, monkeypatch, corpus):
+    """Without --release-grade, a configuration-distinct judge stays an
+    exploratory run: status 'unknown', release_grade false."""
+    _, _, cases = corpus
+    executor = _release_grade_executor()
+    judge = {**executor, "argv": ["agent", "-p", "-v"]}
+    monkeypatch.setattr(runner, "run_prompt", lambda *a, **k: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda *a, **k: "PASS")
+    out = tmp_path / "argv-only.json"
+    assert runner.run_scenarios(executor, judge, cases,
+                                json_out=out, model="same-m") == 0
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    provenance = doc["judge_provenance"]
+    assert provenance["judge_status"] == "unknown"
+    assert provenance["independent"] is False
+    assert provenance["release_grade"] is False
+
+
+def test_self_judged_live_run_is_flagged_not_blocked(tmp_path, monkeypatch, corpus):
+    """Ordinary exploratory self-judged runs stay possible, clearly labeled."""
+    _, _, cases = corpus
+    executor = _release_grade_executor()
+    monkeypatch.setattr(runner, "run_prompt", lambda *a, **k: "answer")
+    monkeypatch.setattr(runner, "judge_one", lambda *a, **k: "PASS")
+    out = tmp_path / "exploratory.json"
+    assert runner.run_scenarios(executor, None, cases,
+                                json_out=out, model="m") == 0
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    provenance = doc["judge_provenance"]
+    assert doc["mode"] == "live"
+    assert provenance["judge_status"] == "self"
+    assert provenance["independent"] is False
+    assert provenance["release_grade"] is False
+    # Judge defaults to the executor, so the digests match.
+    assert provenance["judge_config_sha256"] == provenance["executor_config_sha256"]
+
+
+def test_dry_run_provenance_remains_backward_compatible(tmp_path, monkeypatch, corpus):
+    """Dry runs keep mode == 'dry-run' and judge_status == 'none'; provenance added."""
+    _, _, cases = corpus
+    out = tmp_path / "dry.json"
+    assert runner.run_scenarios(None, None, cases, json_out=out) == 0
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    assert doc["mode"] == "dry-run"
+    provenance = doc["judge_provenance"]
+    assert provenance["judge_status"] == "none"
+    assert provenance["independent"] is False
+    assert provenance["release_grade"] is False
+    assert provenance["executor_model_declared"] is None
+    assert provenance["judge_model_declared"] is None
+    assert provenance["independence_basis"] == "declared"
+    assert provenance["judge_config_sha256"] is None
+    assert provenance["executor_config_sha256"] is None
+    # Pre-existing fields are untouched.
+    assert doc["comparison_id"] is None
+    assert doc["passed"] == 0 and doc["total"] == 2
+    assert all(r["verdict"] == "DRY_RUN" for r in doc["scenarios"])
+
+
+def test_judge_provenance_classifies_equal_config_as_self():
+    """Equal executor and judge configurations (digest-equal) classify as self
+    no matter which model ids are declared."""
+    executor = _release_grade_executor()
+    provenance = runner.judge_provenance(executor=executor, judge=executor)
+    assert provenance["judge_status"] == "self"
+    assert provenance["independent"] is False
+    distinct = runner.judge_provenance(
+        executor=executor, judge=executor,
+        executor_model="a", judge_model="b")
+    # Same command self-judges; distinct labels do not split it.
+    assert distinct["judge_status"] == "self"
+    assert distinct["independent"] is False
+
+
+def test_command_difference_alone_is_never_independence():
+    """Different argv/image without distinct declared model ids classifies
+    as 'unknown', not independent — even with one label present."""
+    executor = _release_grade_executor()
+    judge = {**executor, "argv": ["judge", "-p"]}
+    neither = runner.judge_provenance(executor=executor, judge=judge)
+    assert neither["judge_status"] == "unknown"
+    assert neither["independent"] is False
+    one_label = runner.judge_provenance(
+        executor=executor, judge=judge, executor_model="a")
+    assert one_label["judge_status"] == "unknown"
+    assert one_label["independent"] is False
+
+
+def test_declared_distinct_labels_are_a_declaration_only():
+    """Distinct declared labels with a distinct command classify as
+    declared-distinct — independence as declared, unverified by the harness."""
+    executor = _release_grade_executor()
+    judge = {**executor, "image": "judge-image"}
+    provenance = runner.judge_provenance(
+        executor=executor, judge=judge,
+        executor_model="a", judge_model="b")
+    assert provenance["judge_status"] == "declared-distinct"
+    assert provenance["independent"] is True
+    # Classification alone never upgrades release_grade.
+    assert provenance["release_grade"] is False
+    self_provenance = runner.judge_provenance(executor=executor, judge=None)
+    assert self_provenance["independent"] is False
+    # The same wiring without --release-grade never flips the flag.
+    ungated = runner._release_grade_gate(
+        release_grade=False, executor=executor, judge=judge,
+        executor_model="a", judge_model="b")
+    assert ungated["release_grade"] is False

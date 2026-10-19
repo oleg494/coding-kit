@@ -4,11 +4,21 @@
 Scenario eval/scenarios/*.md: frontmatter (name, skill, trap, expect) + body.
 Answers over 8000 characters fail evaluation instead of being silently
 truncated. Accepted answers are framed as untrusted evidence for a judge
-model along with the `expect` line. When `--judge` is omitted, the executor
-self-judges; a distinct judge is recommended for gating. It returns PASS/FAIL.
+model along with the `expect` line. It returns PASS/FAIL.
 
-The model backend runs inside a declared container via
-`--executor "docker:<image> <argv...>"` (stdin prompt, stdout answer).
+Judging provenance: model identities (`--model`, `--judge-model`) are
+operator declarations this harness cannot verify, and no judge
+independence is ever inferred from command, image, or digest
+differences. When `--judge` is omitted the executor self-judges; such
+live runs are exploratory only (`judge_provenance.judge_status ==
+"self"`, `release_grade == false`). `--release-grade` refuses
+self-judged, judge-omitted, and model-undeclared runs outright: it
+requires a live executor, an explicit `--judge`, and nonempty distinct
+declared model ids. Even a gated run persists its identities as
+declared/unverified — backend independence cannot be proven, only
+declared. Static validation of this gate proves wiring only, never
+model quality.
+
 Without an executor, scenarios are only validated (dry-run).
 Host commands are refused; image contents and read-only mounts are trusted
 configuration. Network access is disabled unless explicitly requested.
@@ -17,6 +27,10 @@ Usage:
     python eval/runner.py                        # dry-run: validate scenarios
     python eval/runner.py --executor "docker:agent-image agent -p"
     python eval/runner.py --executor "…" --repeat 3       # flake gate: all N must PASS
+    python eval/runner.py --executor "…" --model <executor-model-id> \
+        --judge "docker:judge-image judge" --judge-model <judge-model-id> \
+        --release-grade   # gate: refuse self/undeclared judging; record
+                          # declared-only (unverified) provenance
 """
 import argparse
 import re
@@ -56,10 +70,128 @@ def resolve_cmd(spec: str) -> dict | None:
             "host prompt execution refused; use docker:<image> <argv...>")
     return record
 
-
 _EXEC_OUTPUT_BOUND = 4000
 JUDGE_INPUT_MAX_CHARS = 8000
 
+
+class ReleaseGradeError(ValueError):
+    """A release-grade run was requested without independent judging."""
+
+
+def judge_provenance(*, executor: dict | None, judge: dict | None,
+                     executor_model: str | None = None,
+                     judge_model: str | None = None) -> dict:
+    """Classify how a run's verdicts were judged (declared identities only).
+
+    Model identities are operator declarations: this harness resolves
+    container commands but cannot observe which backend model a command
+    actually routes to. It therefore never infers independence from a
+    command, image, or config-digest difference — a different argv
+    (e.g. a verbosity flag) does not make a judge independent.
+
+    Returns a JSON-safe record with:
+    - ``judge_status``: "declared-distinct" (explicit judge with
+      nonempty distinct declared model ids), "self" (judge omitted or
+      equal to the executor configuration), "unknown" (judge given but
+      the declared model ids do not establish distinctness), or "none"
+      (dry-run: nothing was judged).
+    - ``independent``: True only for a live run with an explicit judge
+      and nonempty distinct declared model ids. This is a declaration
+      match, never a verified backend distinction.
+    - ``release_grade``: True only when --release-grade was explicitly
+      requested and every gate condition held (``_release_grade_gate``
+      sets it); classification alone never upgrades it.
+    - ``executor_model_declared`` / ``judge_model_declared``: the
+      declared labels, or None when undeclared.
+
+    Judge/executor *configuration* distinctness is still observable via
+    `config_digest` over the parsed container records — recorded as
+    digests of what differs, never as evidence of independence.
+    """
+    exec_label = ((executor_model or "").strip() or None)
+    judge_label = ((judge_model or "").strip() or None)
+    if executor is None:
+        return {"judge_status": "none", "independent": False,
+                "release_grade": False,
+                "executor_model_declared": None,
+                "judge_model_declared": None}
+    if judge is None:
+        return {"judge_status": "self", "independent": False,
+                "release_grade": False,
+                "executor_model_declared": exec_label,
+                "judge_model_declared": exec_label}
+    if config_digest(judge) == config_digest(executor):
+        # Same container command: self-judging regardless of labels.
+        return {"judge_status": "self", "independent": False,
+                "release_grade": False,
+                "executor_model_declared": exec_label,
+                "judge_model_declared": judge_label}
+    if (exec_label is not None and judge_label is not None
+            and exec_label != judge_label):
+        return {"judge_status": "declared-distinct", "independent": True,
+                "release_grade": False,
+                "executor_model_declared": exec_label,
+                "judge_model_declared": judge_label}
+    # Judge command differs but declared model ids are absent or equal:
+    # configuration-distinct only, never model-distinct.
+    return {"judge_status": "unknown", "independent": False,
+            "release_grade": False,
+            "executor_model_declared": exec_label,
+            "judge_model_declared": judge_label}
+
+
+def _release_grade_gate(*, release_grade: bool, executor: dict | None,
+                        judge: dict | None,
+                        executor_model: str | None = None,
+                        judge_model: str | None = None) -> dict:
+    """Enforce the release-grade contract; raise ReleaseGradeError on abuse.
+
+    A release-grade trap run must be live, judged by an explicit judge
+    configuration distinct from the executor, and carry nonempty
+    distinct *declared* model ids for executor and judge. Self-judged
+    runs (judge omitted or equal to the executor) and
+    configuration-distinct-only runs (labels absent, equal, or only a
+    different command) are refused rather than downgraded: they cannot
+    be recorded as independently judged, and silently relabeling them
+    would merely hide the bias this gate exists to expose. Even a run
+    that passes the gate is persisted with declared/unverified
+    identities — backend independence is declared, never proven.
+    """
+    provenance = judge_provenance(
+        executor=executor, judge=judge,
+        executor_model=executor_model, judge_model=judge_model)
+    if not release_grade:
+        return provenance
+    if executor is None:
+        raise ReleaseGradeError(
+            "release-grade runs require a live executor; a dry run "
+            "judges nothing — drop --release-grade")
+    if judge is None:
+        raise ReleaseGradeError(
+            "release-grade runs require an explicit --judge; an omitted "
+            "judge means the executor self-judges — drop --release-grade "
+            "or provide --judge plus --judge-model")
+    if config_digest(judge) == config_digest(executor):
+        raise ReleaseGradeError(
+            "release-grade runs require a judge configuration distinct "
+            "from the executor; a judge equal to the executor "
+            "self-judges — drop --release-grade or use a distinct --judge")
+    exec_label = (executor_model or "").strip()
+    judge_label = (judge_model or "").strip()
+    if not exec_label or not judge_label:
+        raise ReleaseGradeError(
+            "release-grade runs require declared model ids for both the "
+            "executor (--model) and the judge (--judge-model); judge "
+            "independence cannot be inferred from command differences — "
+            "declare both ids")
+    if exec_label == judge_label:
+        raise ReleaseGradeError(
+            "release-grade runs require distinct declared model ids for "
+            "executor and judge; a shared declared model cannot be "
+            "recorded as independent — declare a distinct --judge-model")
+    gated = dict(provenance)
+    gated["release_grade"] = True
+    return gated
 
 
 class ExecutorError(RuntimeError):
@@ -352,6 +484,8 @@ def run_scenarios(
     reported_usage: dict | None = None,
     skills_root: Path | None = None,
     disable: frozenset = frozenset(),
+    release_grade: bool = False,
+    judge_model: str | None = None,
 ) -> int:
     if disable and skills_root is None:
         raise ValueError("--disable-skill requires a --skills-dir/skills_root")
@@ -361,6 +495,14 @@ def run_scenarios(
             raise ValueError(err)
     if json_out and executor and not model:
         raise ValueError("a live run with --json requires an explicit --model")
+
+    # Release-grade contract: a gated run must be live, explicitly
+    # judged, and carry nonempty distinct declared model ids. Anything
+    # else is refused, never silently downgraded. Provenance persists
+    # declared/unverified identities only.
+    provenance = _release_grade_gate(
+        release_grade=release_grade, executor=executor, judge=judge,
+        executor_model=model, judge_model=judge_model)
 
     # Digest protocol identity before any executor call: local scorer
     # files may change while the suite runs. A None judge means
@@ -403,6 +545,22 @@ def run_scenarios(
             payload["mode"] = "live"
             if reported_usage is not None:
                 payload["reported_usage"] = reported_usage
+        payload["judge_provenance"] = {
+            "judge_status": provenance["judge_status"],
+            "independent": provenance["independent"],
+            "release_grade": provenance["release_grade"],
+            # Model identities are operator declarations; the harness
+            # cannot verify which backend a container command routes to.
+            # Independence is declared, never proven.
+            "independence_basis": "declared",
+            "executor_model_declared": provenance["executor_model_declared"],
+            "judge_model_declared": provenance["judge_model_declared"],
+            # Exploratory self-judged runs stay recorded but explicitly
+            # non-release-grade; the gate never upgrades them.
+            "judge_config_sha256": config_digest(
+                judge if judge is not None else executor),
+            "executor_config_sha256": config_digest(executor),
+        }
         save_result(
             "trap",
             model or "unspecified",
@@ -421,6 +579,16 @@ def main() -> int:
                          "required for a live --json run (dry --json may omit)")
     ap.add_argument("--judge", default=None,
                     help="container judge spec (default = --executor; self-judging is biased)")
+    ap.add_argument("--judge-model", default=None, metavar="ID",
+                    help="declared judge model id; required with "
+                         "--release-grade (independence is declared, "
+                         "never inferred from command differences)")
+    ap.add_argument("--release-grade", action="store_true",
+                    help="gate the run on independent judging: requires a "
+                         "live executor, an explicit --judge distinct "
+                         "from it, and nonempty distinct declared model "
+                         "ids (--model, --judge-model); self-judged and "
+                         "undeclared runs are refused")
     ap.add_argument("--scenario", help="single scenario name (no .md)")
     ap.add_argument("--repeat", type=int, default=1,
                     help="flake gate: scenario must PASS N times in a row")
@@ -479,19 +647,27 @@ def main() -> int:
 
     reported_usage = load_reported_usage(args.usage_json) if executor else None
 
-    return run_scenarios(
-        executor=executor,
-        judge=judge,
-        scenario_files=files,
-        repeat=args.repeat,
-        json_out=args.json,
-        model=args.model,
-        executor_spec=args.executor,
-        timeout=args.timeout,
-        reported_usage=reported_usage,
-        skills_root=skills_root,
-        disable=disable,
-    )
+    try:
+        return run_scenarios(
+            executor=executor,
+            judge=judge,
+            scenario_files=files,
+            repeat=args.repeat,
+            json_out=args.json,
+            model=args.model,
+            executor_spec=args.executor,
+            timeout=args.timeout,
+            reported_usage=reported_usage,
+            skills_root=skills_root,
+            disable=disable,
+            release_grade=args.release_grade,
+            judge_model=args.judge_model,
+        )
+    except ReleaseGradeError as exc:
+        # Usage error (2), not a scenario failure (1): the run never
+        # happened, so it must not read as an evaluated FAIL.
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
 if __name__ == "__main__":
     try:

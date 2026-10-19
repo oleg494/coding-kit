@@ -3,7 +3,7 @@ name: design-system
 description: Use when creating or refactoring product UI, landing-page styling, visual direction, shared components, themes, or design tokens, or adapting a supplied design reference. Not for software architecture or static illustrations.
 license: MIT
 metadata:
-  version: "4.10.0"
+  version: "4.10.3"
 ---
 
 # Design System
@@ -33,7 +33,7 @@ Create the smallest visual source of truth that makes repeated UI decisions cons
 4. **Define themes deliberately.** Add light/dark or brand variants only when the product needs them. Keep contrast, forced colors, reduced motion, and readable disabled states in the token decisions.
 5. **Keep the scale small.** Establish one spacing scale, one type scale, a limited radius/elevation vocabulary, and a small semantic color set. Do not add a token for a single one-off value unless it represents a real design rule.
 6. **Document usage, not decoration.** For every token or component variant, state its purpose and when not to use it. Use product language and existing component names.
-7. **Verify in context.** Launch the actual UI and inspect representative narrow and wide viewports, long content, keyboard interaction, and important states. On dynamic apps, wait for the network to settle (e.g. Playwright `networkidle`) before reading the DOM — inspecting early produces false observations, not evidence. Compare the result with the chosen direction and any inspected reference, fix defects, then repeat the affected check. Record surface, viewport, interaction/state, and observed result. If rendering is unavailable, report that limitation; source inspection alone does not prove visual quality. Remove duplicate tokens or abstractions that have no second consumer.
+7. **Verify in context.** Launch the actual UI and inspect representative narrow and wide viewports, long content, keyboard interaction, and important states. On dynamic apps, wait for observable readiness before reading the DOM: with a bounded condition wait, wait for the route or data marker the feature renders, for its loading state (spinner/skeleton) to disappear, or for the target content to become visible, then assert the expected content is actually visible; while the page loads, watch the browser console and network panel for errors. Network silence or a fixed delay proves nothing — inspecting early produces false observations, not evidence. Compare the result with the chosen direction and any inspected reference, fix defects, then repeat the affected check. Record surface, viewport, interaction/state, and observed result. If rendering is unavailable, report that limitation; source inspection alone does not prove visual quality. Remove duplicate tokens or abstractions that have no second consumer.
 
 ## Defaults
 

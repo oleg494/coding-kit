@@ -8,7 +8,12 @@ Reads the shared JSON store (eval/results_io.load_runs) and prints:
      inputs). Runs with a missing/invalid id stay visible as separate
      unknown rows without baseline comparison; legacy numeric baselines
      are never used as a fallback for these kinds;
-  2. a Failure Evidence Packets section: failure details for non-PASS
+  2. a read-only diagnostic for ignored legacy numeric trap/trigger
+     baselines: those entries record no comparison id, hence no suite
+     inputs, so they are not comparable with any current run — the
+     diagnostic says so and names the command that creates fresh
+     baselines from a verified live run;
+  3. a Failure Evidence Packets section: failure details for non-PASS
      targets in the newest run of each group (evidence only, no
      proposals).
 
@@ -357,6 +362,67 @@ def _load_baseline(kind: str, baselines_dir: Path | None = None) -> dict:
             cohorts[str(model)] = rates
     return cohorts
 
+_BASELINE_REBUILD_CMD = "python eval/trend.py --update-baselines"
+
+
+def _legacy_numeric_baseline_models(kind: str,
+                                    baselines_dir: Path | None = None) -> list[str]:
+    """Sorted models with ignored legacy numeric baselines for a kind.
+
+    Read-only diagnostic: pre-cutover entries store a bare number under
+    the model key, with no comparison id and therefore no record of the
+    suite inputs they were measured against. They are not comparable
+    with any current run (same model name is NOT the same condition),
+    so they are deliberately excluded — not migrated, not reinterpreted.
+    """
+    if kind not in _COMPARISON_KINDS:
+        return []
+    b_dir = Path(baselines_dir) if baselines_dir is not None else BASELINES_DIR
+    path = b_dir / f"{kind}.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not isinstance(data, dict):
+        return []
+
+    def _is_legacy_number(entry: object) -> bool:
+        # bool is an int subclass: a stray true/false is not a baseline
+        return (isinstance(entry, (int, float)) and not isinstance(entry, bool)
+                and math.isfinite(entry))
+
+    return sorted(str(model) for model, entry in data.items()
+                  if _is_legacy_number(entry))
+
+
+def _render_legacy_baseline_note(legacy_by_kind: dict[str, list[str]]) -> list[str]:
+    """Markdown lines telling operators why legacy baselines are ignored.
+
+    Read-only: never rewrites the shipped JSON, never fabricates a
+    fallback. The only path to fresh trap/trigger baselines is
+    `--update-baselines` after a verified live run.
+    """
+    if not legacy_by_kind:
+        return []
+    lines = ["## Ignored legacy baselines", ""]
+    for kind in sorted(legacy_by_kind):
+        models = legacy_by_kind[kind]
+        lines.append(
+            f"- {kind}: legacy numeric baseline(s) for {', '.join(models)} "
+            f"are ignored — they carry no comparison id, so the suite "
+            f"inputs they were measured against are unknown and they are "
+            f"not comparable with any current run (no historical score "
+            f"is reinterpreted; this is an intentional non-migration).")
+    lines.append(
+        f"To establish fresh {('/'.join(sorted(legacy_by_kind)))} "
+        f"baselines, verify a live run and run "
+        f"`{_BASELINE_REBUILD_CMD}` — it writes only valid cohort ids "
+        f"from complete comparable runs.")
+    lines.append("")
+    return lines
+
 
 def _baseline_rate(baselines: dict, kind: str, model: str,
                    comparison_id: str | None) -> float | None:
@@ -628,6 +694,13 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
                     lines.append(f"| accounting | {model} | {utc_str} | "
                                  f"{accounting} |")
 
+        legacy_by_kind: dict[str, list[str]] = {}
+        for kind in sorted(_COMPARISON_KINDS & seen_kinds):
+            models = _legacy_numeric_baseline_models(kind, baselines_dir=baselines_dir)
+            if models:
+                legacy_by_kind[kind] = models
+        lines += _render_legacy_baseline_note(legacy_by_kind)
+
         if _COMPARISON_KINDS & seen_kinds:
             lines += ["", (
                 "Note: matched comparison ids compare runs with identical "
@@ -667,12 +740,151 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
     return "\n".join(lines)
 
 
+def _task_attempt_measured(att: dict) -> bool:
+    """True for a task_runner attempt that reached a real oracle verdict.
+
+    task_runner attempts carry no `phase`: every FAIL comes from
+    `_fail_attempt` with only `error_class` (the six shared-taxonomy
+    values: syntax_error, test_timeout, malformed_response,
+    exhausted_context, user_asks, other) and a `trace_tail` where output
+    exists. The verifier oracle always prints a `FAIL: <reason>` line
+    before exiting nonzero, so a measured FAIL carries that prefix in its
+    trace; infrastructure failures (container/executor launch errors,
+    deadline kills, docker unavailability) never do — their traces hold
+    a bare `ExceptionName: message` or nothing at all, and deadline kills
+    classify as `test_timeout`. A PASS attempt means the oracle ruled.
+    """
+    if att.get("verdict") == "PASS":
+        return True
+    error_class = att.get("error_class")
+    # A missing or off-taxonomy class means no executed verifier signal.
+    if error_class not in ("syntax_error", "test_timeout",
+                           "malformed_response", "exhausted_context",
+                           "user_asks", "other"):
+        return False
+    # Timeout kills (executor or verifier deadline) never reach a verdict,
+    # but an oracle rejection can itself time out downstream (e.g. its
+    # isolated pytest run) — the FAIL: prefix is then still a real
+    # verdict, so class alone must not decide; the trace does below.
+    # Every oracle rejection prints a FAIL: line (fail-fast oracles); an
+    # infra failure trace is a bare `ExcName: msg` (container unavailable,
+    # bad image, argv refused) or empty. This is the executed-verifier
+    # signal: without it no oracle ever ruled on this attempt.
+    trace = str(att.get("trace_tail") or "").lstrip()
+    return trace.startswith("FAIL:")
+
+
+def _row_verdicts_measured(row: object, kind: str | None = None) -> bool:
+    """True for a row whose outcome came from a real measurement.
+
+    A row is measured when it carries a PASS/FAIL verdict and none of its
+    attempts failed in the executor/judge phase (infrastructure failures:
+    the model answer or the judging never happened). A FAIL verdict from
+    the `verdict` phase is a valid measured failure and counts.
+
+    task_runner rows carry no `phase` and no row-level error; a tasks row
+    with no PASS attempt is unmeasured unless every FAIL attempt reached
+    a real executed verifier signal (an oracle `FAIL:` rejection in its
+    trace_tail — see `_task_attempt_measured`). `error_class` never
+    appears in trap/trigger attempts, so an attempt carrying it is
+    judged by the tasks rule regardless of the passed kind.
+    """
+    if not isinstance(row, dict):
+        return False
+    if row.get("verdict") not in ("PASS", "FAIL"):
+        return False
+    attempts = row.get("attempts")
+    if isinstance(attempts, list):
+        has_pass = any(isinstance(att, dict)
+                        and att.get("verdict") == "PASS"
+                        for att in attempts)
+        for att in attempts:
+            if not isinstance(att, dict):
+                continue
+            # trap runners mark the failing stage in `phase`; an
+            # executor/judge-phase attempt means the answer or the
+            # verdict never happened. A `verdict`-phase FAIL attempt may
+            # carry the judge's first line under `error` — that is a
+            # real measured failure and stays allowed.
+            if att.get("phase") in ("executor", "judge"):
+                return False
+            # task_runner attempts have no phase: judge the attempt shape
+            # itself (error_class + oracle trace) unless the row already
+            # holds a PASS verdict, in which case a retry measured the row.
+            # For tasks rows every FAIL attempt must carry error_class
+            # (task_runner invariant); trigger attempts legitimately do
+            # not, so they are only judged when they carry it.
+            if (not has_pass and "phase" not in att
+                    and (kind == "tasks" or "error_class" in att)):
+                if not _task_attempt_measured(att):
+                    return False
+    # trigger rows promote the first execution error to row level; a
+    # row-level `error` means the run itself failed, not the behavior.
+    if row.get("error"):
+        return False
+    return True
+
+
+def _measured_population(run: dict) -> bool:
+    """True for a run whose rate denominates a real population.
+
+    A zero-total run or an empty rows/scenarios list measured nothing;
+    its `_rate` of 0.0 is an artifact, not evidence, so it must not
+    seed a baseline (a 0.0 cohort would poison every later delta).
+    A top-level `total` alone is not trusted for kinds that carry
+    rows/scenarios: every such row must hold a real measured verdict
+    (missing verdict, or attempts that failed in the executor/judge
+    phase, means the population was not actually measured).
+    """
+    kind = run.get("kind")
+    if kind in ("trap", "tasks", "trigger"):
+        items = run.get("scenarios" if kind == "trap" else "rows")
+        if isinstance(items, list) and items:
+            population = (_honest_rows(items) if kind == "tasks"
+                          else [i for i in items if isinstance(i, dict)])
+            if population:
+                return all(_row_verdicts_measured(row, kind) for row in population)
+            return False
+        # No rows/scenarios at all: fall back to the top-level totals,
+        # which the writer (runner/trigger_eval) only sets from real
+        # executed rows.
+    if "total" in run:
+        try:
+            if float(run["total"]) > 0:
+                return True
+        except (ValueError, TypeError):
+            pass
+    return False
+
+
+def _completable_run(run: dict) -> bool:
+    """True for a live, complete, comparable run document.
+
+    A baseline source must be a complete run: dry-run artifacts,
+    zero-population documents (measured nothing), documents whose
+    rows carry no real measured verdicts, and documents with no
+    computable rate (malformed or partial) never seed baselines.
+    """
+    if _is_dry_run(run):
+        return False
+    return _measured_population(run) and _rate(run) is not None
+
+
 def update_baselines(results_dir: Path | None = None, baselines_dir: Path | None = None, n: int = 5) -> None:
+    """Refresh baseline JSON files, writing only defensible entries.
+
+    For comparison kinds (trap/trigger) only valid 64-hex comparison ids
+    from complete live runs create baseline entries — missing/malformed
+    ids, dry-run and partial documents are all skipped, so a cohort id
+    is never fabricated. Existing valid cohort entries for other models
+    are preserved; legacy numeric entries are never migrated (the
+    loader already drops them). Skipped kinds never write a file.
+    """
     b_dir = Path(baselines_dir) if baselines_dir is not None else BASELINES_DIR
     b_dir.mkdir(parents=True, exist_ok=True)
     rates_by_group: dict[tuple[str, str, str | None], list[float]] = {}
     for run in load_runs(results_dir=results_dir):
-        if _is_dry_run(run):
+        if not _completable_run(run):
             continue
         kind = run.get("kind")
         cid = _comparison_id(run) if kind in _COMPARISON_KINDS else None

@@ -320,5 +320,110 @@ class DeployReleaseMechTest(unittest.TestCase):
                 self.assertIn("# local trigger line",
                               f.read_text(encoding="utf-8"))
                 self.assertEqual(dep.bump_claude_md(), "unchanged")
+
+
+class ClaimsLedgerTest(unittest.TestCase):
+    """docs/CLAIMS.md — the claims ledger is a release contract artifact.
+    Behavioral validation of ledger structure, not wording pins: the file
+    must exist, every claim row must carry an ID, a status, and at least
+    one of a verification command / evidence reference / explicit
+    unverified marker, and a DeepSWE historical row must stay labeled
+    unverified so it can never be mistaken for reproducible evidence."""
+
+    LEDGER = ROOT / "docs" / "CLAIMS.md"
+
+    def _rows(self):
+        """Parse the claims table: [(id, command, evidence, status)]."""
+        text = self.LEDGER.read_text(encoding="utf-8")
+        in_table = False
+        rows = []
+        for line in text.splitlines():
+            s = line.strip()
+            if s.startswith("| ID") and "Claim" in s:
+                in_table = True
+                continue
+            if not in_table:
+                continue
+            if not s.startswith("|"):
+                in_table = False
+                continue
+            cells = [c.strip() for c in s.strip("|").split("|")]
+            if len(cells) < 5:
+                continue
+            if set(cells[0]) <= {"-", ":", " "}:
+                continue  # separator row
+            # id, claim, command, evidence, status
+            rows.append((cells[0], cells[2], cells[3], cells[4]))
+        return rows
+
+    def test_ledger_file_exists(self):
+        self.assertTrue(self.LEDGER.is_file(),
+                        "docs/CLAIMS.md claims ledger must exist")
+
+    def test_ledger_has_claim_rows(self):
+        rows = self._rows()
+        self.assertGreaterEqual(
+            len(rows), 5,
+            "ledger must contain claim rows, found "
+            f"{len(rows)}")
+
+    def test_every_row_has_id_and_status(self):
+        for rid, _cmd, _ev, status in self._rows():
+            with self.subTest(row=rid):
+                self.assertRegex(rid, r"^C-\d+$",
+                                 "claim row must carry a C-NN id")
+                self.assertIn(status, ("verified", "evidence-only",
+                                       "unverified", "unverified (historical)"),
+                              f"row {rid} status must be one of the ledger statuses")
+
+    def test_every_row_has_command_evidence_or_unverified(self):
+        for rid, cmd, ev, status in self._rows():
+            with self.subTest(row=rid):
+                has_cmd = bool(cmd) and cmd != "—"
+                has_ev = bool(ev) and ev != "—"
+                unverified = "unverified" in status
+                self.assertTrue(
+                    has_cmd or has_ev or unverified,
+                    f"row {rid} must carry a verification command, an "
+                    "evidence artifact, or an explicit unverified status")
+                if status == "verified":
+                    self.assertTrue(
+                        has_cmd and has_ev,
+                        f"row {rid} claims 'verified' but lacks a runnable "
+                        "command or evidence artifact")
+
+    def test_historical_deepswe_row_is_unverified(self):
+        text = self.LEDGER.read_text(encoding="utf-8")
+        m = re.search(r"^\|\s*(C-\d+)\s*\|\s*.*DeepSWE.*\|", text, re.M)
+        if not m:
+            self.fail("ledger must track the historical DeepSWE A/B "
+                      "observations as a claim row")
+        row = next(r for r in self._rows() if r[0] == m.group(1))
+        self.assertIn("unverified", row[3],
+                      "the DeepSWE historical row must be labeled "
+                      "unverified (historical)")
+
+    def test_ledger_documents_release_gates_and_rollback(self):
+        """The ledger must keep the release acceptance gates and the three
+        rollback commitments (tag revert, integrity regeneration, memory
+        root isolation) as section headings, so a structural disappearance
+        fails the contract."""
+        text = self.LEDGER.read_text(encoding="utf-8")
+        for heading in ("## Release acceptance gates", "## Rollback"):
+            self.assertIn(heading, text,
+                          f"ledger must keep section {heading!r}")
+        for required in ("integrity_manifest.py --update",
+                         "git revert",
+                         "MEMORY_ROOT"):
+            self.assertIn(required, text,
+                          f"rollback section must name {required!r}")
+
+    def test_readme_links_the_ledger(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("docs/CLAIMS.md", readme,
+                      "README Evidence and limitations must link the "
+                      "claims ledger")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -138,8 +138,9 @@ def test_runner_marks_canary_pass_as_hacked(tmp_path, monkeypatch):
     out = tmp_path / "canary_pass.json"
     rc = run_task_suite(["005-canary-oneoff"], FAKE_EXEC, json_out=out,
                         model="canary-model")
-    # exit-clean for the runner itself: canaries never gate the suite
-    assert rc == 0
+    # exit-nonzero: a hacked canary gates the suite exit code (gate
+    # added in 4.10.1; this assert pins the new contract)
+    assert rc == 1
     doc = json.loads(out.read_text(encoding="utf-8"))
     row = doc["rows"][0]
     assert row["canary"] is True
@@ -188,6 +189,95 @@ def test_mixed_run_rates_exclude_canaries(tmp_path, monkeypatch):
     assert doc["pass_rate"] == 0.0
     assert doc["canary_total"] == 1
     assert doc["canary_hacked"] == 1
+
+
+def test_hacked_canary_gates_suite_exit_nonzero(tmp_path, monkeypatch):
+    """A live run whose only failure mode is a hacked canary must exit
+    nonzero, even when every ordinary task passes: the fake attempt
+    passes both the ordinary 001 task and the 005 canary oracle, and
+    run_task_suite's return contract must flag the hack (rc 1) while
+    the honest pass-rate accounting stays intact (1/1, pass@1 1.0).
+    """
+    def fake_attempt(name, record, *, timeout, verifier_image=None):
+        return {"verdict": "PASS", "duration_s": 0.1}
+
+    monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
+    out = tmp_path / "hacked_gate.json"
+    rc = run_task_suite(["001-fix-div-zero", "005-canary-oneoff"], FAKE_EXEC,
+                        json_out=out, model="gate-model")
+    assert rc == 1, "a hacked canary must make the process exit nonzero"
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    assert doc["canary_total"] == 1
+    assert doc["canary_hacked"] == 1
+    # honest accounting unchanged: the ordinary PASS still counts
+    assert doc["total"] == 1
+    assert doc["passed"] == 1
+    assert doc["pass_rate"] == 1.0
+    assert doc["pass@1"] == 1.0
+    by_name = {r["name"]: r for r in doc["rows"]}
+    assert by_name["005-canary-oneoff"]["hacked"] is True
+    assert by_name["001-fix-div-zero"]["verdict"] == "PASS"
+
+
+def test_hacked_canary_gates_process_exit_nonzero(monkeypatch, tmp_path):
+    """The 4.10.1 exit contract, pinned at the process level (main()):
+    `python eval/task_runner.py --executor ... --json ... --model ...`
+    must exit 1 when the executor hacks a canary, even if every ordinary
+    task passes. run_task_suite's own return code must survive the
+    argparse/persistence plumbing of the CLI entrypoint (docs/audit-
+    methodology.md § "Canary hacked exit contract").
+    """
+    def fake_attempt(name, record, *, timeout, verifier_image=None):
+        return {"verdict": "PASS", "duration_s": 0.1}
+
+    monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
+    # Real in-process layout: sys.argv[0] is the program path; main()
+    # reads flags from sys.argv[1:] via argparse. Prepending
+    # sys.executable would leave the script path as an unrecognized
+    # positional and abort with SystemExit 2 before any task runs.
+    monkeypatch.setattr(
+        sys, "argv",
+        [str(ROOT / "eval" / "task_runner.py"),
+         "--executor", FAKE_EXEC,
+         "--json", str(tmp_path / "gate_main.json"),
+         "--model", "gate-main-model"])
+    rc = task_runner.main()
+    assert rc == 1, "main() must propagate the hacked-canary exit gate"
+    doc = json.loads((tmp_path / "gate_main.json").read_text(
+        encoding="utf-8"))
+    assert doc["canary_total"] >= 1
+    assert doc["canary_hacked"] >= 1
+    assert doc["mode"] == "live"
+
+
+def test_honest_canary_fail_exits_process_zero(monkeypatch, tmp_path):
+    """The mirror image of the gate: an all-honest run (ordinary tasks
+    pass, canaries fail because their oracles are unsatisfiable) must
+    exit 0 through main() — the gate fires on hacking evidence only,
+    not on honest canary failures."""
+    def fake_attempt(name, record, *, timeout, verifier_image=None):
+        if name in CANARIES:
+            return {"verdict": "FAIL", "duration_s": 0.1,
+                    "error_class": "other"}
+        return {"verdict": "PASS", "duration_s": 0.1}
+
+    # Same in-process argv layout as the hacked-gate test: argv[0] is the
+    # script path, flags in argv[1:].
+    monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
+    monkeypatch.setattr(
+        sys, "argv",
+        [str(ROOT / "eval" / "task_runner.py"),
+         "--executor", FAKE_EXEC,
+         "--json", str(tmp_path / "honest_main.json"),
+         "--model", "honest-main-model"])
+    rc = task_runner.main()
+    assert rc == 0, "honest canary failures must not trip the gate"
+    doc = json.loads((tmp_path / "honest_main.json").read_text(
+        encoding="utf-8"))
+    assert doc["canary_hacked"] == 0
+    by_name = {r["name"]: r for r in doc["rows"]}
+    for c in CANARIES:
+        assert by_name[c]["hacked"] is False
 
 
 def test_dry_run_marks_canary_rows(tmp_path):

@@ -11,8 +11,10 @@ Contract:
   (never a silent fallback to every directory on disk).
 - deploy: only owned skills sync; foreign dirs in the destination are
   preserved untouched (deploy preservation).
-- integrity manifest: only owned SKILL.md files are in scope; a tampered
-  owned SKILL.md is detected; foreign SKILL.md files are not hashed.
+- integrity manifest: every regular file in each owned skill directory
+  (SKILL.md + references/, evals/, assets/, any payload) is in scope;
+  a tampered owned SKILL.md or reference is detected; foreign skill
+  files are not hashed.
 - No consumer adopts a directory just because it exists on disk.
 """
 import importlib.util
@@ -53,9 +55,13 @@ def make_kit(root: Path, owned=("alpha", "beta"), foreign=("firecrawl-x",),
     for s in owned:
         _write(root / "skills" / s / "SKILL.md",
                f"---\nname: {s}\ndescription: test {s}\n---\n# {s}\n")
+        _write(root / "skills" / s / "references" / "guide.md",
+               f"# {s} reference\n")
     for s in foreign:
         _write(root / "skills" / s / "SKILL.md",
                f"---\nname: {s}\ndescription: foreign {s}\n---\n")
+        _write(root / "skills" / s / "references" / "guide.md",
+               f"# {s} foreign reference\n")
     return root
 
 
@@ -140,7 +146,8 @@ class DeployForeignPreservationTest(unittest.TestCase):
         _write(dest / "retired" / "SKILL.md", "old kit skill")
         _write(dest / ".kit-manifest.json", json.dumps({"skills": ["retired"]}))
         with mock.patch.object(deploy, "KIT", kit), \
-                mock.patch.object(deploy, "SKILLS", kit / "skills"):
+                mock.patch.object(deploy, "SKILLS", kit / "skills"), \
+                mock.patch.object(deploy, "integrity_gate"):
             self.assertEqual(deploy.canonical_mode(["--canonical"]), 0)
         self.assertEqual((dest / "foreign" / "custom.txt").read_text(), "keep exactly")
         self.assertFalse((dest / "retired").exists())
@@ -149,7 +156,9 @@ class DeployForeignPreservationTest(unittest.TestCase):
 
 
 class IntegrityOwnedScopeTest(unittest.TestCase):
-    """Integrity manifest hashes ONLY owned SKILL.md files."""
+    """Integrity manifest hashes every regular file in owned skill dirs
+    (full payload: SKILL.md + references/, evals/, assets/), never
+    foreign skill files."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="kit-integ-inv-"))
@@ -170,6 +179,37 @@ class IntegrityOwnedScopeTest(unittest.TestCase):
         rels = {p.relative_to(kit).as_posix() for p in files}
         self.assertIn("skills/alpha/SKILL.md", rels)
         self.assertNotIn("skills/firecrawl-x/SKILL.md", rels)
+
+    def test_owned_payload_files_hashed(self):
+        # v4.10.1: every regular file in an owned skill dir is in scope,
+        # not just SKILL.md — references/ payloads steer the agent too.
+        kit = make_kit(self.tmp / "kit2")
+        files = self.integrity.scope_files(kit)
+        rels = {p.relative_to(kit).as_posix() for p in files}
+        self.assertIn("skills/alpha/references/guide.md", rels)
+        self.assertIn("skills/beta/references/guide.md", rels)
+        self.assertNotIn("skills/firecrawl-x/references/guide.md", rels)
+
+    def test_owned_reference_tamper_detected(self):
+        kit = make_kit(self.tmp / "kit3")
+        self.integrity.update_or_create(kit)
+        _write(kit / "skills" / "alpha" / "references" / "guide.md",
+               "# TAMPERED reference\n")
+        problems = self.integrity.check(
+            kit, self.integrity.load_manifest(kit)["files"])
+        self.assertTrue(
+            any("skills/alpha/references/guide.md" in p
+                for p in problems), problems)
+
+    def test_foreign_reference_tamper_not_flagged(self):
+        kit = make_kit(self.tmp / "kit4")
+        self.integrity.update_or_create(kit)
+        _write(kit / "skills" / "firecrawl-x" / "references" / "guide.md",
+               "# user edited their own foreign skill\n")
+        problems = self.integrity.check(
+            kit, self.integrity.load_manifest(kit)["files"])
+        self.assertFalse(
+            any("firecrawl-x" in p for p in problems), problems)
 
     def test_owned_tamper_detected(self):
         kit = make_kit(self.tmp / "kit")

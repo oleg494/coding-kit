@@ -240,7 +240,12 @@ class DeployCanonicalTest(unittest.TestCase):
             make_kit_tree(root, {"alpha": "new"})
             drifted = root / ".agents" / "skills" / "alpha"
             drifted.mkdir(parents=True)
-            (drifted / "SKILL.md").write_text("old", encoding="utf-8")
+            # The drifted copy is kit-owned (claimed by the destination
+            # manifest), so canonical sync updates it rather than refusing
+            # the v4.10.1 foreign-collision gate.
+            (root / ".agents" / "skills" / ".kit-manifest.json").write_text(
+                '{"kit_version": "0.0.1", "skills": ["alpha"]}',
+                encoding="utf-8")
             self._deploy(root)
             self.assertEqual(
                 (drifted / "SKILL.md").read_text(encoding="utf-8"), "new")

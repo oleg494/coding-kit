@@ -7,6 +7,12 @@ Use separate clean sessions per input, with no shared history or host memory.
 The memory arm receives an isolated native memory root and search command.
 The inline arm controls for information availability versus memory retrieval.
 Save B outputs in answers.json: {case_id: {arm: {action, evidence, retrieved}}}.
+Optionally grade with --verify-retrieval PREPARED: re-run the isolated memory
+search for every memory arm against the prepared store and cross-check each
+retrieval claim against that real tool output. This is deterministic store
+verification of retrieval plumbing (CLI, database, query); it does not call a
+model, observe model behavior, or produce answers. Verification is null when
+a prepared memory root is missing or its search fails.
 Run: grade answers.json. Missing attempts remain missing, never counted as failure.
 This package does not provide OS isolation or call models; use an independently
 validated sandbox before a model trial. Never mount this evaluator or case oracle.
@@ -91,7 +97,40 @@ def prepare(output, notes):
             "path": str(output), "model_runs": 0}
 
 
-def grade(answers):
+def _store_sources(root, case):
+    """Decision ids present in real search output from the prepared store.
+
+    Searches the indexed topic (the case id); --source is a LIKE filter,
+    not the indexed text, so it cannot serve as the query itself.
+    """
+    output = memory_command(root, ["search", "--json", case["id"]], "")
+    sources = set()
+    for finding in json.loads(output):
+        source = finding.get("source")
+        if isinstance(source, str):
+            sources.add(source)
+    return sources
+
+
+def verify_retrieval(prepared):
+    """Re-run each prepared memory arm's search in its own subprocess.
+
+    Returns {case_id: set(decision ids present in real tool output)} and
+    covers only the memory arm. Cases without a usable prepared store are
+    simply absent (scored as null, never as a fabricated failure). This
+    exercises the retrieval plumbing only — no model, no answers.
+    """
+    stores = {}
+    for case in load_cases()["cases"]:
+        root = prepared / case["id"] / "memory" / "memory-root"
+        try:
+            stores[case["id"]] = _store_sources(root, case)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            continue
+    return stores
+
+
+def grade(answers, stores=None):
     rows = []
     for case in load_cases()["cases"]:
         for arm in ARMS:
@@ -105,8 +144,20 @@ def grade(answers):
                 row.update(status="observed", correct=answer["action"] == case["expected"],
                            provenance=case["required_source"] in answer["evidence"],
                            retrieval_claimed=case["decision"]["id"] in answer["retrieved"])
+                if arm == "memory":
+                    # Deterministic store verification, when a prepared
+                    # memory root was supplied: null (absent) without one;
+                    # true only when a retrieval claim is actually matched
+                    # by that decision id in real search output from the
+                    # case's store. Unclaimed answers never score true.
+                    stored = stores.get(case["id"]) if stores is not None else None
+                    in_store = (case["decision"]["id"] in stored
+                                if isinstance(stored, (set, frozenset)) else None)
+                    row["retrieval_verified"] = (
+                        None if in_store is None
+                        else bool(in_store and row["retrieval_claimed"]))
             rows.append(row)
-    return {"rows": rows, "caution": "Retrieval fields are self-reported; verify against tool traces. Correctness is action-based, not a wording or citation match. No causal claim from an unreplicated pilot."}
+    return {"rows": rows, "caution": "Retrieval claims are cross-checked only when store verification is enabled; without it they remain self-reported. Store verification checks retrieval plumbing, not model behavior: it re-runs the isolated search against the prepared store, calls no model, and grades no answers. Correctness is action-based, not a wording or citation match. No causal claim from an unreplicated pilot."}
 
 
 def main():
@@ -117,12 +168,18 @@ def main():
     p.add_argument("--notes", type=Path)
     g = subs.add_parser("grade")
     g.add_argument("answers", type=Path)
+    g.add_argument("--verify-retrieval", dest="verify", type=Path, default=None,
+                   help="re-run the isolated memory search per prepared memory "
+                        "root and cross-check retrieval claims (deterministic "
+                        "store verification; no model)")
     args = parser.parse_args()
     if args.command == "prepare":
         notes = json.loads(args.notes.read_text(encoding="utf-8")) if args.notes else None
         result = prepare(args.output, notes)
     else:
-        result = grade(json.loads(args.answers.read_text(encoding="utf-8")))
+        answers = json.loads(args.answers.read_text(encoding="utf-8"))
+        result = grade(answers, verify_retrieval(args.verify) if args.verify
+                       else None)
     print(json.dumps(result, indent=2))
 
 

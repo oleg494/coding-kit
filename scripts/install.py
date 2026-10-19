@@ -13,6 +13,12 @@ Creates (idempotent, nothing personal is ever written by this script):
 
 Then builds empty indexes and smoke-tests the search. Safe to re-run.
 
+Before writing, a link/reparse-aware preflight proves that MEMORY_ROOT
+and every managed destination — including intermediate ancestors
+(Wiki, db, scripts) and existing db/*.db entries — resolve inside the
+root; escapes and unresolvable links fail closed before any mutation.
+The db-tools engine link is the one intentional external link.
+
 Usage:
     python scripts/install.py           # default root ~/.memory
     MEMORY_ROOT=/x/y python scripts/install.py   # custom root
@@ -93,8 +99,8 @@ def check_python_environment(flags=None, executable=None) -> tuple[bool, str]:
     return (True, "standard Python environment")
 
 def _is_link(p: Path) -> bool:
-    """True for symlinks and Windows junctions (is_symlink() misses the
-    latter; Path.is_junction() needs py3.12, the kit supports 3.8+)."""
+    """True for symlinks and Windows junctions (is_symlink() misses
+    the latter)."""
     if p.is_symlink():
         return True
     try:
@@ -102,6 +108,114 @@ def _is_link(p: Path) -> bool:
         return True
     except OSError:
         return False
+
+
+def _norm_real(p: Path) -> str:
+    r"""Comparison key for a resolved path: strip the Windows extended
+    path prefix and normalize case/separators, so paths from resolve()
+    (\\?\-prefixed) compare equal to lexical paths (readlink targets,
+    abspath)."""
+    s = str(p)
+    if s.startswith("\\\\?\\"):
+        s = s[4:]
+    return os.path.normcase(os.path.normpath(s))
+
+
+def _resolve_managed(p: Path) -> Path | None:
+    """Resolve a possibly linked managed path.
+
+    Returns the path a write through p would land on, or None if p
+    does not exist and is not a link (a path the installer would
+    create cannot yet redirect a write). Path.resolve() (non-strict,
+    Python 3.12) walks reparse points link-by-link, keeps resolving
+    through DANGLING links to the real lexical target, and raises
+    RuntimeError on link loops — exactly the fail-closed semantics
+    the boundary check needs. Anything else that cannot be resolved
+    — unreadable reparse point, permission error — raises
+    RuntimeError: what cannot be proven safe is not accepted."""
+    if not _is_link(p):
+        if not p.exists():
+            return None
+    try:
+        return p.resolve()
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(
+            f"cannot resolve {p} ({exc}); an unresolvable path "
+            "cannot be proven safe") from None
+
+
+def _iter_managed_paths(root: Path) -> list[Path]:
+    """All paths the installer or its engine (build.py, search/smoke,
+    search logging) can write to under this root:
+    layout dirs incl. every intermediate ancestor (Wiki, db, scripts),
+    Wiki seed files, VERSION, copied scripts, and every *.db file in
+    db/ (build writes db/wiki.db; search logging opens db/research.db
+    read-write and sqlite follows file links — each *.db entry is a
+    real write target). <root>/db-tools is absent: the engine link is
+    the one intentional external link, handled by link_engine()."""
+    paths = [root / "db", root / "scripts", root / "Wiki"]
+    paths += [root / "Wiki" / t for t in WIKI_TYPES]
+    paths += [root / "Wiki" / name for name in _WIKI_SEEDS]
+    paths += [root / "VERSION",
+              root / "scripts" / "memory-warmup.py",
+              root / "scripts" / "_compat.py"]
+    try:
+        paths += [root / "db" / name for name in os.listdir(root / "db")]
+    except OSError:
+        pass  # no db/ dir yet (or unreadable): nothing to preflight
+    return paths
+
+
+def check_memory_boundary(root: Path) -> None:
+    """Fail closed unless every managed path — including every
+    intermediate ancestor and every db/*.db entry — provably resolves
+    inside MEMORY_ROOT, and MEMORY_ROOT itself is not a link pointing
+    at a different location (base-dir escape: writes would land in the
+    link target, not the requested location).
+
+    Existing links that stay inside the root are allowed. Links (or
+    dangling descendants under them) that would send installer or
+    engine writes outside the root are refused — including unresolvable
+    paths: what cannot be proven safe is not accepted. The installer
+    never writes where it was not asked to. This is a pre-mutation
+    check, not a sandbox: it binds what the layout would be NOW (TOCTOU
+    between check and write is accepted; bootstrap is not a crash-
+    atomic transaction)."""
+    try:
+        root_real = root.resolve()
+        root_is_link = _is_link(root)
+    except (OSError, RuntimeError) as exc:
+        raise RuntimeError(
+            f"MEMORY_ROOT {root} cannot be resolved ({exc}); refusing "
+            "to install into an unreadable path.") from None
+    escapes = []
+
+    if root_is_link and _norm_real(root_real) != _norm_real(
+            Path(os.path.abspath(str(root)))):
+        escapes.append(
+            f"MEMORY_ROOT is a link: {root} -> {root_real} "
+            "(writes would go to the link target, not the requested root)")
+    for p in _iter_managed_paths(root):
+        try:
+            real = _resolve_managed(p)
+        except RuntimeError as exc:
+            escapes.append(str(exc))
+            continue
+        if real is None:
+            continue
+        if (_norm_real(real) != _norm_real(root_real)
+                and _norm_real(root_real) not in
+                [_norm_real(q) for q in real.parents]):
+            rel = p.relative_to(root)
+            escapes.append(
+                f"{rel} is a link resolving outside MEMORY_ROOT: "
+                f"{p} -> {real}")
+    if escapes:
+        raise RuntimeError(
+            "Refusing to install: managed paths escape MEMORY_ROOT "
+            f"({root}):\n  " + "\n  ".join(escapes) +
+            "\nRemove or repoint the listed links, or choose a different "
+            "MEMORY_ROOT, then re-run install.py.")
 
 
 def link_engine(root: Path) -> bool:
@@ -216,6 +330,13 @@ def main(argv: list = None) -> int:
         return 2
     try:
         root = memory_root()
+    except RuntimeError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    try:
+        # link/reparse-aware preflight: nothing below may mutate
+        # anything before the boundary is proven safe
+        check_memory_boundary(root)
     except RuntimeError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

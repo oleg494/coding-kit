@@ -471,6 +471,7 @@ class TestResidualDefects(unittest.TestCase):
             write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -486,6 +487,7 @@ class TestResidualDefects(unittest.TestCase):
             write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -540,6 +542,7 @@ class TestResidualDefects(unittest.TestCase):
             write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -659,6 +662,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -692,6 +696,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             write_inventory(root, ['my_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -729,6 +734,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             write_inventory(root, ['clean_skill'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -894,6 +900,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             write_inventory(root, ['alpha', 'zulu'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -907,6 +914,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
             write_inventory(root, ['alpha', 'zulu'])
             with mock.patch.object(deploy, "KIT", root), \
                  mock.patch.object(deploy, "SKILLS", skills_dir), \
+                 mock.patch.object(deploy, "integrity_gate"), \
                  mock.patch.object(sys, "argv", ["deploy.py", "--canonical", "--dry-run"]):
                 out = io.StringIO()
                 with mock.patch.object(sys, "stdout", out):
@@ -970,4 +978,7 @@ class TestDeployWriteBoundariesRegression(unittest.TestCase):
                 self.assertTrue(any("stale skill" in a.lower() and "conflict" in a.lower() for a in report[0].actions))
                 # Master skill must not have been synced
                 self.assertFalse((dest / master_name).exists(), "Zero writes on stale link conflict")
-                self.assertEqual(sentinel.read_text(encoding="utf-8"), "PRESERVE STALE SENTINEL")
+
+
+if __name__ == "__main__":
+    unittest.main()

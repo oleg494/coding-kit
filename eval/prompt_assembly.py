@@ -2,9 +2,12 @@
 
 `assemble_prompt` builds `<skill manifest>\n\n<task body>` so the kit itself
 injects skill name/description lines plus one fully-inlined active skill into
-a subprocess executor prompt. Ambient CLI skills (those already loaded by the
-host harness) remain outside this module's purview.
+a subprocess executor prompt. `assemble_arm_profile` resolves the bare/thin/
+full rigor arms (research doc §5) into a deterministic policy-bundle
+inventory. Ambient CLI skills (those already loaded by the host harness)
+remain outside this module's purview.
 """
+import json
 import re
 from pathlib import Path
 
@@ -26,9 +29,76 @@ _InventoryError = KitInventoryError  # re-export for consumers/tests
 KIT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SKILLS_DIR = KIT_ROOT / "skills"
 
+ARM_PROFILES = ("bare", "thin", "full")
+
+
+def _skill_manifest_inventory(skills_root: Path) -> list[str]:
+    """Kit-owned SKILL.md paths actually listed by the manifest."""
+    root = Path(skills_root)
+    names = []
+    for item in skill_manifest(root):
+        if _read_skill(root, item["name"]) is not None:
+            names.append(f"skills/{item['name']}/SKILL.md")
+    return sorted(names)
+
+
+def assemble_arm_profile(profile: str, skills_root: Path) -> dict:
+    """Policy-bundle inventory for a rigor arm (docs/research/
+    2026-09-05-open-source-product-direction.md §5 arms).
+
+    Given the kit skills root and a profile name:
+
+    - ``bare``: no kit policy injection — nothing is included, not
+      even AGENTS.md. The mandatory harness system prompt is never
+      removed by this function; it only defines kit-side injection.
+    - ``thin``: always-loaded surface reduced to the AGENTS.md router
+      plus the OPS.md identity block. No SKILL_RUNTIME.md and no
+      skills manifest.
+    - ``full``: the current bundle — AGENTS.md, OPS.md,
+      SKILL_RUNTIME.md and the kit-owned skills manifest.
+
+    Returns ``{"profile": ..., "files": [...], "policy_bytes": N}``
+    where ``files`` is the sorted bundle inventory (relative paths,
+    POSIX separators) and ``policy_bytes`` the combined UTF-8 byte
+    size of the included files (manifest JSON serialized exactly as
+    ``eval.rigor.runner.policy_bytes`` does it).
+
+    Raises ValueError on an unknown profile and KitInventoryError
+    when ``skills_root`` has a present-but-invalid profile.yml —
+    the caller fails closed rather than silently inventing a bundle.
+    """
+    if profile not in ARM_PROFILES:
+        raise ValueError(
+            f"unknown arm profile {profile!r}; expected one of "
+            f"{', '.join(ARM_PROFILES)}")
+    kit_root = Path(skills_root).resolve().parent
+    router = kit_root / "AGENTS.md"
+    ops = kit_root / "OPS.md"
+    runtime = kit_root / "SKILL_RUNTIME.md"
+    missing = [f.name for f in (router, ops, runtime) if not f.is_file()]
+    if missing:
+        raise _InventoryError(
+            f"kit policy files missing at {kit_root}: {', '.join(missing)}")
+
+    files: list[Path] = []
+    if profile in ("thin", "full"):
+        files = [router, ops]
+    if profile == "full":
+        files.append(runtime)
+
+    inventory = sorted(str(f.relative_to(kit_root)).replace("\\", "/")
+                       for f in files)
+    total = sum(len(f.read_bytes()) for f in files)
+    if profile == "full":
+        manifest = skill_manifest(skills_root)
+        inventory += _skill_manifest_inventory(skills_root)
+        total += len(json.dumps(manifest, sort_keys=True,
+                                ensure_ascii=False).encode("utf-8"))
+    return {"profile": profile, "files": inventory, "policy_bytes": total}
+
 
 def skill_manifest_names(skills_root: Path, *,
-                          profile_path: Path | None = None) -> frozenset[str]:
+                         profile_path: Path | None = None) -> frozenset[str]:
     """Kit-owned skill slugs for the kit owning `skills_root`.
 
     Resolves the kit root from the default (in-kit) skills directory;

@@ -29,8 +29,19 @@ _spec.loader.exec_module(install)
 PROBE = "warmup"  # matches memory-warmup.py, indexed on every OS
 
 def _make_foreign_link(target: Path, dest: Path) -> None:
-    """Create a link (junction on NT, symlink elsewhere) target -> dest."""
+    """Create a link (junction on NT, symlink elsewhere) target -> dest.
+    NT cannot create a junction whose target is absent (New-Item
+    fails), so for a nonexistent dest a temporary target is created,
+    linked, then removed — leaving a genuinely dangling junction and
+    no leftover outside/ scaffolding (sentinel isolation)."""
     if os.name == "nt":
+        if dest.exists():
+            dangling = None
+        else:
+            dangling = dest  # topmost path mkdir(parents=True) creates
+            while not dangling.parent.exists():
+                dangling = dangling.parent
+            dest.mkdir(parents=True)
         env = dict(os.environ, KIT_LINK_PATH=str(target),
                    KIT_LINK_TARGET=str(dest))
         subprocess.run(
@@ -38,6 +49,8 @@ def _make_foreign_link(target: Path, dest: Path) -> None:
              "New-Item -ItemType Junction -Path $env:KIT_LINK_PATH "
              "-Target $env:KIT_LINK_TARGET | Out-Null"],
             check=True, env=env)
+        if dangling is not None:
+            shutil.rmtree(dangling)
     else:
         target.symlink_to(dest, target_is_directory=True)
 
@@ -330,5 +343,260 @@ class PythonEnvironmentCheckTest(unittest.TestCase):
                 self.assertFalse((tmp / "mem").exists())
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+class MemoryBoundaryPreflightTest(unittest.TestCase):
+    """CR (4.10.1): link/reparse-aware preflight — a pre-existing linked
+    managed path must not be able to send installer writes outside
+    MEMORY_ROOT. All roots are temporary; no production memory root is
+    touched."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="kit-boundary-"))
+        self.root = self.tmp / "mem"
+        # a probe post makes the post-install smoke search succeed
+        (self.root / "Wiki" / "reference").mkdir(parents=True)
+        (self.root / "Wiki" / "reference" / "probe.md").write_text(
+            "---\ntype: reference\ntitle: probe\n---\n"
+            "warmup: the agent searches the memory database\n", encoding="utf-8")
+        self._env = os.environ.get("MEMORY_ROOT")
+        os.environ["MEMORY_ROOT"] = str(self.root)
+
+    def tearDown(self):
+        if self._env is None:
+            os.environ.pop("MEMORY_ROOT", None)
+        else:
+            os.environ["MEMORY_ROOT"] = self._env
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_fresh_trusted_root_passes_preflight_and_installs(self):
+        self.assertEqual(install.main(), 0)
+        self.assertTrue((self.root / "VERSION").is_file())
+
+    def test_linked_managed_path_refused_and_outside_untouched(self):
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (outside / "sentinel.txt").write_text("do not touch\n", encoding="utf-8")
+        _make_foreign_link(self.root / "db", outside)
+        with mock.patch.dict(os.environ, {"MEMORY_ROOT": str(self.root)}):
+            rc = install.main()
+        self.assertEqual(rc, 1, "linked managed path must fail closed")
+        self.assertEqual((outside / "sentinel.txt").read_text(encoding="utf-8"),
+                         "do not touch\n", "outside root must stay untouched")
+        # fail closed means fail BEFORE any mutation: no layout, no VERSION
+        self.assertFalse((self.root / "VERSION").exists())
+        self.assertFalse((self.root / "scripts").exists())
+
+    def test_preflight_runs_before_any_mutation(self):
+        """The preflight must fire before the first mkdir/write: a
+        linked VERSION (a file the installer overwrites unconditionally)
+        pointing outside must abort with the root left empty apart from
+        the pre-seeded probe."""
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        _make_foreign_link(self.root / "VERSION", outside)
+        rc = install.main()
+        self.assertEqual(rc, 1)
+        self.assertFalse((self.root / "db").exists())
+        self.assertFalse((self.root / "scripts").exists())
+        self.assertFalse((outside / "db-tools").exists())
+        self.assertFalse((outside / "Wiki").exists())
+
+    def test_ancestor_link_managed_branch_refused(self):
+        """A link on an ancestor of managed paths (scripts/) counts as
+        an escape even though scripts/ itself is only created."""
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        self.root.mkdir(parents=True, exist_ok=True)
+        _make_foreign_link(self.root / "scripts", outside)
+        rc = install.main()
+        self.assertEqual(rc, 1)
+        # outside/scripts copy targets must not have been written
+        self.assertFalse((outside / "memory-warmup.py").exists())
+
+    def test_memory_root_itself_a_link_to_real_memory_refused(self):
+        """Base-dir escape: MEMORY_ROOT is a link; writes would go to
+        the link target, not the requested location. Fail closed."""
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        root_link = self.tmp / "memroot-link"
+        _make_foreign_link(root_link, outside)
+        with mock.patch.dict(os.environ, {"MEMORY_ROOT": str(root_link)}):
+            rc = install.main()
+        self.assertEqual(rc, 1)
+        self.assertFalse((outside / "VERSION").exists())
+        self.assertFalse((outside / "Wiki").exists())
+
+    def test_in_root_link_is_allowed_and_install_succeeds(self):
+        """A link that stays INSIDE the root is legitimate (versioned
+        layouts); install proceeds and writes land inside the root.
+        The link sits at a non-managed, non-db path: every managed
+        destination and db/*.db entry must still resolve inside."""
+        real_storage = self.root / "real-storage"
+        real_storage.mkdir(parents=True)
+        (real_storage / "keep.txt").write_text("data", encoding="utf-8")
+        (self.root / "extra").mkdir(exist_ok=True)  # parent for the link
+        _make_foreign_link(self.root / "extra" / "notes", real_storage)
+        self.assertEqual(install.main(), 0)
+        # smoke proves the engine ran inside the root's own layout
+        self.assertTrue(install._is_link(self.root / "db-tools"))
+        self.assertTrue((real_storage / "keep.txt").is_file())
+
+    def test_real_db_tools_dir_still_preserved_incomplete(self):
+        """Behavior preservation: the preflight must not change the
+        existing real-directory preservation contract."""
+        real = self.root / "db-tools"
+        real.mkdir(parents=True)
+        (real / "precious.txt").write_text("data", encoding="utf-8")
+        rc = install.main()
+        self.assertNotEqual(rc, 0)
+        self.assertTrue((real / "precious.txt").is_file())
+        self.assertFalse(install._is_link(real))
+
+    def test_rerun_after_successful_install_still_idempotent(self):
+        """The preflight must accept the installer's own db-tools link
+        (it resolves to the kit, which is by design outside the root:
+        engine links are the ONE intentional external link, created by
+        the installer itself, never by an attacker)."""
+        self.assertEqual(install.main(), 0)
+        self.assertEqual(install.main(), 0)
+
+def _make_file_link(target: Path, dest: Path) -> bool:
+    """Create a FILE symlink target -> dest. Junctions cannot target
+    files, so on Windows this needs symlink privileges: returns False
+    when the platform cannot, so tests skip that path."""
+    if os.name == "nt":
+        try:
+            target.symlink_to(dest)
+            return True
+        except (OSError, NotImplementedError):
+            return False
+    target.symlink_to(dest)
+    return True
+
+
+class MemoryBoundaryNestedLinkTest(unittest.TestCase):
+    """CR (4.10.2): the preflight must cover intermediate ancestors
+    (Wiki, db, scripts) and every db/*.db entry — including DANGLING
+    links whose descendants the old check skipped — and must fail
+    closed (rc 1, no mutations) on them. External sentinel files prove
+    nothing escapes the root. Bootstrap is best-effort pre-mutation
+    only: not a sandbox, not crash-atomic."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="kit-boundary2-"))
+        self.root = self.tmp / "mem"
+        (self.root / "Wiki" / "reference").mkdir(parents=True)
+        (self.root / "Wiki" / "reference" / "probe.md").write_text(
+            "---\ntype: reference\ntitle: probe\n---\n"
+            "warmup: the agent searches the memory database\n", encoding="utf-8")
+        self._env = os.environ.get("MEMORY_ROOT")
+        os.environ["MEMORY_ROOT"] = str(self.root)
+
+    def tearDown(self):
+        if self._env is None:
+            os.environ.pop("MEMORY_ROOT", None)
+        else:
+            os.environ["MEMORY_ROOT"] = self._env
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _assert_no_mutations(self):
+        self.assertFalse((self.root / "VERSION").exists())
+        self.assertFalse((self.root / "scripts").exists())
+        self.assertFalse((self.root / "db-tools").exists())
+
+    def test_dangling_wiki_link_to_outside_refused(self):
+        """A DANGLING Wiki link to a nonexistent outside path: the
+        old check skipped its nonexistent descendants, so
+        mkdir(Wiki/reference) would materialize the outside target."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(self.root / "Wiki")  # swap the real dir for a link
+        _make_foreign_link(self.root / "Wiki", self.tmp / "outside" / "Wiki")
+        rc = install.main()
+        self.assertEqual(rc, 1, "dangling ancestor link must fail closed")
+        self.assertFalse((self.tmp / "outside").exists(),
+                         "mkdir must not materialize the outside target")
+        self._assert_no_mutations()
+
+    def test_existing_wiki_link_to_outside_refused(self):
+        """An EXISTING Wiki ancestor link to an outside dir with
+        content: the managed type dirs inside would receive seeds."""
+        outside = self.tmp / "outside" / "Wiki"
+        outside.mkdir(parents=True)
+        (outside / "sentinel.txt").write_text("do not touch\n", encoding="utf-8")
+        self.root.mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(self.root / "Wiki")  # swap the real dir for a link
+        _make_foreign_link(self.root / "Wiki", outside)
+        rc = install.main()
+        self.assertEqual(rc, 1)
+        # seeds must not have been written through the link
+        for name in ("index.md", "log.md") + tuple(install.WIKI_TYPES):
+            self.assertFalse((outside / name).exists(),
+                             f"outside Wiki/{name} must stay untouched")
+        self.assertEqual((outside / "sentinel.txt").read_text(encoding="utf-8"),
+                         "do not touch\n")
+        self._assert_no_mutations()
+
+    def test_nested_db_link_to_outside_file_refused(self):
+        """db/research.db (an engine rw target: search logging opens
+        it read-write) as a file link to an outside file — sqlite
+        would write through it. Skipped where the platform cannot
+        create file symlinks."""
+        outside_dir = self.tmp / "outside"
+        outside_dir.mkdir()
+        sentinel = outside_dir / "research.db"
+        sentinel.write_text("do not touch\n", encoding="utf-8")
+        (self.root / "db").mkdir(exist_ok=True)
+        if not _make_file_link(self.root / "db" / "research.db", sentinel):
+            self.skipTest("file symlinks unavailable on this platform")
+        rc = install.main()
+        self.assertEqual(rc, 1, "linked db/*.db entry must fail closed")
+        self.assertEqual(sentinel.read_text(encoding="utf-8"),
+                         "do not touch\n",
+                         "outside db file must stay untouched")
+        self._assert_no_mutations()
+
+    def test_nested_db_dangling_link_to_outside_refused(self):
+        """A DANGLING db file link (sqlite creates the target on
+        first write — the write lands outside). Skipped where the
+        platform cannot create file symlinks."""
+        (self.root / "db").mkdir(exist_ok=True)
+        if not _make_file_link(self.root / "db" / "wiki.db",
+                               self.tmp / "outside" / "wiki.db"):
+            self.skipTest("file symlinks unavailable on this platform")
+        rc = install.main()
+        self.assertEqual(rc, 1, "dangling linked db entry must fail closed")
+        self.assertFalse((self.tmp / "outside").exists(),
+                         "engine build must not create the outside db")
+        self._assert_no_mutations()
+
+    def test_dangling_scripts_ancestor_link_refused(self):
+        """A dangling scripts/ ancestor link: the copied engine
+        scripts would materialize the outside target."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        _make_foreign_link(self.root / "scripts", self.tmp / "outside" / "scripts")
+        rc = install.main()
+        self.assertEqual(rc, 1)
+        self.assertFalse((self.tmp / "outside").exists())
+        self._assert_no_mutations()
+
+    def test_dangling_db_ancestor_link_refused(self):
+        """A dangling db/ ancestor link: build.py's wiki.db write
+        would materialize the outside target."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        _make_foreign_link(self.root / "db", self.tmp / "outside" / "db")
+        rc = install.main()
+        self.assertEqual(rc, 1)
+        self.assertFalse((self.tmp / "outside").exists())
+        self._assert_no_mutations()
+
+    def test_real_db_dir_with_real_files_still_installs(self):
+        """Behavior preservation: a real db/ directory containing
+        real (non-link) .db files is preflighted and accepted."""
+        (self.root / "db").mkdir(exist_ok=True)
+        (self.root / "db" / "wiki.db").write_text("", encoding="utf-8")
+        self.assertEqual(install.main(), 0)
+        self.assertTrue(install._is_link(self.root / "db-tools"))
+
 if __name__ == "__main__":
     unittest.main()

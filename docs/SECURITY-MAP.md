@@ -13,7 +13,10 @@ Control planes (verified 2026-09-01):
   failure (`python scripts/doctor.py`; the summary prints the live count).
 - **integrity manifest** — `scripts/tools/integrity_manifest.py` +
   `integrity-manifest.json` (wave1 Task 2): SHA-256 over every kit file
-  that executes or steers automatically; deploy refuses to copy on drift.
+  that executes or steers automatically — the control-plane scope plus
+  the full payload of each profile-declared owned skill directory
+  (SKILL.md, references/, evals/, assets/; foreign skill directories
+  and `.agents/` mirrors stay out). Deploy refuses to copy on drift.
 - **trap scenarios** — `eval/scenarios/*.md`, 26; scored by
   `eval/runner.py` with a judge prompt.
 - **OPS.md** — the always-loaded contract every harness reads first.
@@ -31,13 +34,12 @@ Control planes (verified 2026-09-01):
 | ASI07 | Insecure Inter-Agent Communication   | OPS dispatch discipline: subagent output is DATA to verify, not verdicts to obey (hub `send`/`wait` contract; verification-before-completion skill); fable-judge skill re-verifies claimed results. |
 | ASI08 | Cascading Failures                   | trap: `infinite-retry-masking`, `silent-failure`, `dead-flag`; results store (schema-v1, append-only) + evidence trend make failure visible instead of self-reinforcing. |
 | ASI09 | Human-Agent Trust Exploitation | `false-done` and `converge-audit` scenarios; OPS §3 requires applicable evidence, honest limitations and reviewer-owned signoff. |
-| ASI10 | Rogue Agents                         | trap: `false-done` + task oracle `verify.py` gates (task-smoke 4) + ImpossibleBench canaries (`005-canary-oneoff`, `006-canary-conflicting`: mutated oracles a hack could pass but honest work cannot; a canary PASS is recorded as `hacked` evidence, excluded from pass-rate baselines); results store append-only (no history rewrite); doctor manifest sync detects skill-tree tampering. |
+| ASI10 | Rogue Agents                         | trap: `false-done` + task oracle `verify.py` gates (task-smoke 4) + ImpossibleBench canaries (`005-canary-oneoff`, `006-canary-conflicting`: mutated oracles a hack could pass but honest work cannot; a canary PASS is recorded as `hacked` evidence, excluded from pass-rate baselines, and makes the whole process exit nonzero — suite and `task_runner.py` entrypoint alike, pinned in `tests/test_canaries.py`); results store append-only (no history rewrite); doctor manifest sync detects skill-tree tampering. Release separation of development vs operator-owned heldout cases, blind independent-judge requirements, and their limits: `docs/audit-methodology.md` § "Heldout corpus and release protocol". |
 
 ## AST — Agentic Skills Top 10
-
 | ID    | Risk                          | Kit control (wave1) |
 |-------|-------------------------------|---------------------|
-| AST01 | Malicious Skills              | Skills are first-party (no registry installs). doctor control: integrity manifest hash-pins every `skills/*/SKILL.md` (Task 2); AST01 cryptographic signing explicitly deferred (roadmap "Deferred": no key infrastructure for one user). |
+| AST01 | Malicious Skills              | Skills are first-party (no registry installs). doctor control: integrity manifest hash-pins every file in each profile-declared owned skill directory — SKILL.md and the whole payload, references included (Task 2); AST01 cryptographic signing explicitly deferred (roadmap "Deferred": no key infrastructure for one user). |
 | AST02 | Supply Chain Compromise       | doctor `check_skill_supply_chain` — WARN on inconsistent optional `license:` frontmatter across skills (hygiene seed; ok=True, soft-gate semantics). First-party-only distribution is the primary control. |
 | AST03 | Over-Privileged Skills        | harness-owned, N/A — skills carry no permission manifests; every side-effecting call flows through harness permission gates. Kit keeps skills instruction-only (no bundled executables). |
 | AST04 | Insecure Metadata | doctor validates owned-skill frontmatter; `profile.yml` declares 37 owned skills, with foreign directories excluded. |
