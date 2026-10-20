@@ -743,51 +743,44 @@ def render(results_dir: Path | None = None, baselines_dir: Path | None = None) -
 def _task_attempt_measured(att: dict) -> bool:
     """True for a task_runner attempt that reached a real oracle verdict.
 
-    task_runner attempts carry no `phase`: every FAIL comes from
-    `_fail_attempt` with only `error_class` (the six shared-taxonomy
-    values: syntax_error, test_timeout, malformed_response,
-    exhausted_context, user_asks, other) and a `trace_tail` where output
-    exists. The verifier oracle always prints a `FAIL: <reason>` line
-    before exiting nonzero, so a measured FAIL carries that prefix in its
-    trace; infrastructure failures (container/executor launch errors,
-    deadline kills, docker unavailability) never do — their traces hold
-    a bare `ExceptionName: message` or nothing at all, and deadline kills
-    classify as `test_timeout`. A PASS attempt means the oracle ruled.
+    task_runner attempts carry producer-owned stage provenance in `phase`:
+    `executor` (the model run failed or never launched), `verifier` (the
+    oracle launched but was killed or crashed — timeout, missing
+    dependency), `verdict` (the oracle completed and ruled). Only a
+    `verdict`-phase FAIL is measured; `verifier`/`executor` phases are
+    infrastructure failures and seed nothing. PASS always means the oracle
+    ruled (rc == 0 is the only PASS path).
+
+    Attempts without a `phase` (legacy artifacts) are legacy: their
+    provenance is unprovable, so a FAIL is unmeasured — never inferred
+    from `FAIL:` trace text, which an executor failure can forge.
+    `error_class` is evidence metadata, not provenance, and never decides
+    this predicate.
     """
     if att.get("verdict") == "PASS":
         return True
-    error_class = att.get("error_class")
-    # A missing or off-taxonomy class means no executed verifier signal.
-    if error_class not in ("syntax_error", "test_timeout",
-                           "malformed_response", "exhausted_context",
-                           "user_asks", "other"):
-        return False
-    # Timeout kills (executor or verifier deadline) never reach a verdict,
-    # but an oracle rejection can itself time out downstream (e.g. its
-    # isolated pytest run) — the FAIL: prefix is then still a real
-    # verdict, so class alone must not decide; the trace does below.
-    # Every oracle rejection prints a FAIL: line (fail-fast oracles); an
-    # infra failure trace is a bare `ExcName: msg` (container unavailable,
-    # bad image, argv refused) or empty. This is the executed-verifier
-    # signal: without it no oracle ever ruled on this attempt.
-    trace = str(att.get("trace_tail") or "").lstrip()
-    return trace.startswith("FAIL:")
+    return att.get("verdict") == "FAIL" and att.get("phase") == "verdict"
 
 
 def _row_verdicts_measured(row: object, kind: str | None = None) -> bool:
     """True for a row whose outcome came from a real measurement.
 
     A row is measured when it carries a PASS/FAIL verdict and none of its
-    attempts failed in the executor/judge phase (infrastructure failures:
-    the model answer or the judging never happened). A FAIL verdict from
-    the `verdict` phase is a valid measured failure and counts.
+    attempts failed in an infrastructure phase: `executor`/`judge` (the
+    trap runners; the model answer or the judging never happened) or
+    task_runner's `executor`/`verifier` (model run failed, or the oracle
+    was killed/crashed before ruling). A FAIL verdict from the `verdict`
+    phase — trap judge or task_runner oracle — is a valid measured
+    failure and counts.
 
-    task_runner rows carry no `phase` and no row-level error; a tasks row
-    with no PASS attempt is unmeasured unless every FAIL attempt reached
-    a real executed verifier signal (an oracle `FAIL:` rejection in its
-    trace_tail — see `_task_attempt_measured`). `error_class` never
-    appears in trap/trigger attempts, so an attempt carrying it is
-    judged by the tasks rule regardless of the passed kind.
+    For a tasks row with no PASS attempt, every FAIL attempt must carry
+    `phase == "verdict"` (see `_task_attempt_measured`); phase-less
+    legacy tasks attempts are unmeasured, never inferred from traces.
+    A PASS retry measures the row regardless of earlier FAIL attempts
+    (the oracle ultimately ruled; infra FAILs then only describe the
+    failed tries). `error_class` never appears in trap/trigger attempts,
+    so an attempt carrying it is judged by the tasks rule regardless of
+    the passed kind.
     """
     if not isinstance(row, dict):
         return False
@@ -806,16 +799,21 @@ def _row_verdicts_measured(row: object, kind: str | None = None) -> bool:
             # verdict never happened. A `verdict`-phase FAIL attempt may
             # carry the judge's first line under `error` — that is a
             # real measured failure and stays allowed.
-            if att.get("phase") in ("executor", "judge"):
-                return False
-            # task_runner attempts have no phase: judge the attempt shape
-            # itself (error_class + oracle trace) unless the row already
-            # holds a PASS verdict, in which case a retry measured the row.
-            # For tasks rows every FAIL attempt must carry error_class
-            # (task_runner invariant); trigger attempts legitimately do
-            # not, so they are only judged when they carry it.
-            if (not has_pass and "phase" not in att
-                    and (kind == "tasks" or "error_class" in att)):
+            # task_runner FAIL attempts (identified by `error_class`,
+            # which trap/trigger attempts never carry) may sit at the
+            # `executor`/`verifier` infrastructure phase; when a later
+            # attempt PASSed, the oracle ruled on the row and the retry
+            # measures it (pinned tasks retry contract), otherwise the
+            # row is unmeasured.
+            phase = att.get("phase")
+            if phase in ("executor", "judge", "verifier"):
+                if "error_class" not in att or not has_pass:
+                    return False
+            # phase-less task_runner FAIL attempts are legacy artifacts
+            # with unprovable provenance: unmeasured, never inferred from
+            # trace text. Trigger attempts carry no error_class, so they
+            # are only judged when they do.
+            if not has_pass and (kind == "tasks" or "error_class" in att):
                 if not _task_attempt_measured(att):
                     return False
     # trigger rows promote the first execution error to row level; a
@@ -833,8 +831,8 @@ def _measured_population(run: dict) -> bool:
     seed a baseline (a 0.0 cohort would poison every later delta).
     A top-level `total` alone is not trusted for kinds that carry
     rows/scenarios: every such row must hold a real measured verdict
-    (missing verdict, or attempts that failed in the executor/judge
-    phase, means the population was not actually measured).
+    (missing verdict, or attempts stuck in an infrastructure phase —
+    executor/judge/verifier — means the population was not measured).
     """
     kind = run.get("kind")
     if kind in ("trap", "tasks", "trigger"):

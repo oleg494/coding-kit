@@ -270,19 +270,19 @@ class CanonicalOwnershipTest(unittest.TestCase):
             (canon / "alpha").mkdir(parents=True)
             (canon / "alpha" / "SKILL.md").write_text(
                 "kit body", encoding="utf-8", newline="\n")
-            (canon / ".kit-manifest.json").write_text(
-                "{ this is not json", encoding="utf-8", newline="\n")
-            for argv in (["--canonical", "--dry-run"], ["--canonical"]):
-                with self.subTest(argv=argv):
-                    rc, out, err = _run_canonical(load_deploy(), root, argv)
-                    self.assertNotEqual(rc, 0,
-                                        "malformed manifest must fail the run")
-                    self.assertIn("ERROR", out)
-                    self.assertIn("manifest", out)
-                    # fail closed: no kit-owned write and no manifest rewrite
-                    self.assertEqual(
-                        (canon / ".kit-manifest.json").read_text(encoding="utf-8"),
-                        "{ this is not json")
+            for payload in ("{ this is not json", "[]", "null", "42", '"text"',
+                            '{"skills": 42}', '{"skills": [42]}'):
+                manifest = canon / ".kit-manifest.json"
+                manifest.write_text(payload, encoding="utf-8", newline="\n")
+                for argv in (["--canonical", "--dry-run"], ["--canonical"]):
+                    with self.subTest(payload=payload, argv=argv):
+                        rc, out, err = _run_canonical(load_deploy(), root, argv)
+                        self.assertNotEqual(rc, 0)
+                        self.assertIn("ERROR", out)
+                        self.assertIn("manifest", out)
+                        self.assertEqual(manifest.read_text(encoding="utf-8"), payload)
+                        self.assertEqual((canon / "alpha" / "SKILL.md").read_text(
+                            encoding="utf-8"), "kit body")
 
     def test_source_link_escape_blocks_plan_before_any_destination_write(self):
         """A linked/escaping SOURCE skill must fail the plan (dry-run and

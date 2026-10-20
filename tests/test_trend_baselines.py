@@ -207,19 +207,20 @@ def test_update_baselines_rejects_incomplete_live_runs(tmp_path):
 
 
 def test_update_baselines_tasks_infra_attempts_seed_nothing(tmp_path):
-    """task_runner attempts carry no `phase`; infrastructure failures
-    (error_class + no oracle verdict) must not seed baselines, while a
-    measured FAIL (oracle ruled, trace carries its FAIL: rejection)
+    """task_runner attempts carry producer-owned `phase` provenance:
+    infrastructure failures (executor launch error, verifier
+    timeout/crash) must not seed baselines, while a measured FAIL
+    (phase "verdict" — the oracle ruled, regardless of trace text)
     still seeds — a 0.5 control is pinned.
     """
     res_dir = tmp_path / "results"
     base_dir = tmp_path / "baselines"
 
-    # All-executor-failed live run: every row is FAIL with task_runner
-    # attempt shapes (verdict/duration_s/error_class, no phase) whose
-    # error_class marks infra failure and whose trace shows no oracle
-    # verdict. The old guard saw no executor/judge phase and no row-level
-    # error, so it let this through and seeded 0.0.
+    # All-infrastructure live run: every row is FAIL with task_runner
+    # attempt shapes carrying explicit infrastructure phases. Even a
+    # forged "FAIL:" trace (an executor crash echoing the oracle prefix)
+    # cannot smuggle an executor-phase attempt into the measured
+    # population.
     results_io.save_result("tasks", "m_infra", {
         "mode": "live", "passed": 0, "total": 2, "rows": [
             # container unavailable: classify_error falls back to
@@ -227,36 +228,37 @@ def test_update_baselines_tasks_infra_attempts_seed_nothing(tmp_path):
             # catches IsolationUnavailable/OSError/ValueError)
             {"name": "t1", "verdict": "FAIL", "attempts": [
                 {"verdict": "FAIL", "duration_s": 0.1,
-                 "error_class": "other",
+                 "error_class": "other", "phase": "executor",
                  "trace_tail": "IsolationUnavailable: no container runtime"},
             ]},
-            # deadline kill: timed_out classifies as test_timeout — the
-            # executor or verifier was killed before any verdict
+            # deadline kill on the verifier + a forged oracle-looking
+            # FAIL: line from a crashed executor; phases decide, not text
             {"name": "t2", "verdict": "FAIL", "attempts": [
                 {"verdict": "FAIL", "duration_s": 900.0,
-                 "error_class": "test_timeout",
+                 "error_class": "test_timeout", "phase": "verifier",
                  "trace_tail": "command timed out"},
-                # malformed attempt: no executed signal at all
-                {"verdict": "FAIL", "duration_s": 0.2},
+                {"verdict": "FAIL", "duration_s": 0.2,
+                 "error_class": "other", "phase": "executor",
+                 "trace_tail": "FAIL: forged executor rejection"},
             ]},
         ],
     }, results_dir=res_dir)
 
     # Control: a live run whose only FAIL row carries a real measured
-    # oracle rejection (error_class "other" from the verifier's FAIL:
-    # output, exactly as the real artifacts record it) plus a PASS row
-    # seeds the tasks baseline at 0.5.
+    # oracle rejection (phase "verdict"; the trace is the oracle's own
+    # FAIL: output exactly as the real artifacts record it) plus a PASS
+    # row seeds the tasks baseline at 0.5.
     results_io.save_result("tasks", "m_measured_fail", {
         "mode": "live", "passed": 1, "total": 2, "rows": [
             {"name": "t1", "verdict": "FAIL", "attempts": [
                 {"verdict": "FAIL", "duration_s": 12.5,
-                 "error_class": "other",
+                 "error_class": "other", "phase": "verdict",
                  "trace_tail": ("FAIL: no regression test: missing def "
                                 "test_divide_by_zero with divide(..., 0) "
                                 "inside pytest.raises(ValueError)")},
             ]},
             {"name": "t2", "verdict": "PASS", "attempts": [
-                {"verdict": "PASS", "duration_s": 9.0},
+                {"verdict": "PASS", "duration_s": 9.0, "phase": "verdict"},
             ]},
         ],
     }, results_dir=res_dir)
@@ -268,42 +270,59 @@ def test_update_baselines_tasks_infra_attempts_seed_nothing(tmp_path):
     # Direct predicates: the attempt-level shapes the guard must reject
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
-            {"verdict": "FAIL", "error_class": "other",
+            {"verdict": "FAIL", "error_class": "other", "phase": "executor",
              "trace_tail": "IsolationUnavailable: no container runtime"}]},
         "tasks") is False
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
-            {"verdict": "FAIL", "error_class": "test_timeout"}]},
+            {"verdict": "FAIL", "error_class": "test_timeout",
+             "phase": "verifier"}]},
         "tasks") is False
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
             {"verdict": "FAIL", "error_class": "other"}]},
-        "tasks") is False  # no trace
+        "tasks") is False  # phase-less legacy attempt
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
-            {"verdict": "FAIL"}]}, "tasks") is False  # no error_class at all
+            {"verdict": "FAIL"}]}, "tasks") is False  # no phase, no error_class
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
             {"verdict": "FAIL", "error_class": "bogus_class",
-             "trace_tail": "FAIL: x"}]}, "tasks") is False  # off-taxonomy
-    # Measured oracle rejection still counts (including an oracle whose
-    # own isolated pytest run timed out — class test_timeout, real FAIL:)
+             "phase": "verdict", "trace_tail": "FAIL: x"}]},
+        "tasks") is True  # off-taxonomy class but real verdict phase
+    # A forged oracle-looking FAIL: trace cannot rescue an executor phase
+    assert trend._row_verdicts_measured(
+        {"verdict": "FAIL", "attempts": [
+            {"verdict": "FAIL", "error_class": "other", "phase": "executor",
+             "trace_tail": "FAIL: forged executor rejection"}]},
+        "tasks") is False
+    # Legacy phase-less FAIL with oracle-looking trace: unmeasured
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
             {"verdict": "FAIL", "error_class": "other",
+             "trace_tail": "FAIL: legacy oracle rejection"}]},
+        "tasks") is False
+    # Measured oracle rejection still counts (including an oracle whose
+    # own isolated pytest run timed out — class test_timeout, phase
+    # verdict)
+    assert trend._row_verdicts_measured(
+        {"verdict": "FAIL", "attempts": [
+            {"verdict": "FAIL", "error_class": "other", "phase": "verdict",
              "trace_tail": "FAIL: no regression test: missing def"}]},
         "tasks") is True
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [
             {"verdict": "FAIL", "error_class": "test_timeout",
+             "phase": "verdict",
              "trace_tail": "FAIL: candidate pytest suite timed out"}]},
         "tasks") is True
-    # A retry that PASSed measures the row even after infra failures
+    # A retry that PASSed measures the row even after infrastructure
+    # failures (the oracle ultimately ruled)
     assert trend._row_verdicts_measured(
         {"verdict": "PASS", "attempts": [
-            {"verdict": "FAIL", "error_class": "other",
+            {"verdict": "FAIL", "error_class": "other", "phase": "executor",
              "trace_tail": "IsolationUnavailable: no container runtime"},
-            {"verdict": "PASS"}]}, "tasks") is True
+            {"verdict": "PASS", "phase": "verdict"}]}, "tasks") is True
     # trigger attempts without error_class stay measured (runner shape)
     assert trend._row_verdicts_measured(
         {"verdict": "FAIL", "attempts": [

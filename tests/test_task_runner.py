@@ -349,7 +349,8 @@ def test_suite_retries_a_fail_then_pass(tmp_path, monkeypatch):
         seen["n"] += 1
         if seen["n"] == 1:
             return {"verdict": "FAIL", "duration_s": 0.5,
-                    "error_class": "other", "trace_tail": "exit 1"}
+                    "error_class": "other", "phase": "executor",
+                    "trace_tail": "exit 1"}
         return {"verdict": "PASS", "duration_s": 1.0}
 
     monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
@@ -368,6 +369,7 @@ def test_suite_retries_a_fail_then_pass(tmp_path, monkeypatch):
     assert row["verdict"] == "PASS"
     assert len(row["attempts"]) == 2
     assert row["attempts"][0]["verdict"] == "FAIL"
+    assert row["attempts"][0]["phase"] == "executor"
     assert row["attempts"][1]["verdict"] == "PASS"
 
 

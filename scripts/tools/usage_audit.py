@@ -12,8 +12,12 @@ Per session we count:
 - memory_calls — shell-tool command executable entries matching explicit
   memory-engine entrypoints (memory-warmup, search_all.py, findings.py,
   repomap, build-memory), plus build.py only with a memory path marker
-  on the same command line. Reads of those files, echo/grep strings and
-  prompt/prose fields are NOT executions and do not count;
+  on the same command line (dropped by a later cd to an unrelated
+  path). Env assignment prefixes (quoted values included), runner
+  option values (-W/-X included) and -c/-m payloads (bare or
+  attached, also under uv run) are not the script; reads of those
+  files, echo/grep strings and prompt/prose fields are NOT
+  executions and do not count;
 - kit_diag_calls — shell-tool entries invoking kit diagnostic/maintenance
   commands (doctor.py, check_file_sizes), reported separately;
 - skill_search_calls — shell-tool entries invoking skills_search.py —
@@ -26,13 +30,17 @@ Per session we count:
 Skill reads measure requests, not successful loads or applied guidance. Shell/eval
 reads and harness-native skill loaders are not inferred from free text.
 Memory/kit-diag/skills_search attribution parses recognized shell tool
-records into command executable entries (a runner such as python plus the
-script it runs, or a directly invoked script), walking parallel tool
-wrappers recursively with their decoded arguments; non-shell tools and
-prose fields never count. Distinctive entrypoint basenames stay counted
+records into command executable entries (a runner such as python plus
+the script it runs, or a directly invoked script), walking parallel tool
+wrappers recursively with their decoded arguments; command fields and
+argv arrays are whitelisted, and env assignment prefixes (quoted
+values included), runner options with values (py -3, python -W error,
+--python 3.12) and -c/-m payloads (bare or attached, also under uv
+run) are never mistaken for the script; non-shell tools and prose
+fields never count. Distinctive entrypoint basenames stay counted
 wherever executed — same-named scripts in unrelated projects included
-(lexical ambiguity, see MEMORY_CALLS_NOTE). Historical totals from before
-this attribution fix are not comparable.
+(lexical ambiguity, see MEMORY_CALLS_NOTE). Historical totals from
+before this attribution fix are not comparable.
 
 Sessions are segregated kit-internal vs real by patterns: coding-kit /
 kit-eval / KODEKITTEST / CLAUDETESTS in the directory slug or session
@@ -95,10 +103,16 @@ KIT_PATTERNS = (
 # tokenized with a quote-aware scanner and split into commands only at
 # unquoted newline/;/&&/|| (a quoted payload never splits mid-quote);
 # bash/sh/pwsh -c inner scripts are parsed recursively; `uv run` resolves
-# to the executed script (`uv run python x.py` -> x.py). skills_search.py
-# is kit skill discovery (separate counter), not memory. Distinctive
-# entrypoint basenames stay counted wherever executed (lexical ambiguity,
-# see MEMORY_CALLS_NOTE); generic build.py needs a memory path marker.
+# to the executed script (`uv run python x.py` -> x.py). Leading env
+# assignments (PYTHONUTF8=1 python x.py, quoted values included) and
+# runner options with values (py -3, uv run --python 3.12, python -W
+# error) are skipped, a -c/-m payload (bare or attached, also under uv
+# run) never counts as the script, and a `cd` to an unrelated path
+# drops the carried memory-path marker.
+# skills_search.py is kit skill discovery (separate
+# counter), not memory. Distinctive entrypoint basenames stay counted
+# wherever executed (lexical ambiguity, see MEMORY_CALLS_NOTE); generic
+# build.py needs a memory path marker.
 MEMORY_ENTRY_RE = re.compile(
     r"memory-warmup\.py|search_all\.py|findings\.py|repomap"
     r"|build-memory")
@@ -116,7 +130,12 @@ MEMORY_CALLS_NOTE = (
     "match explicit memory-engine entrypoints, plus build.py only with "
     "a memory path marker. Command strings are split into commands only "
     "at unquoted separators, so quoted payloads (bash -c \"a; b\") are "
-    "parsed as the inner script; uv run resolves to the executed script. "
+    "parsed as the inner script; uv run resolves to the executed script; "
+    "leading env assignments (quoted values included) and runner "
+    "options with values (py -3, uv run --python 3.12, python -W "
+    "error) are skipped, a -c/-m payload (bare or attached, also "
+    "under uv run) is never the script, and a cd to an unrelated "
+    "path drops the carried marker. "
     "Reads of those files, echo strings, prompt and prose fields are not "
     "executions. Distinctive entrypoint basenames (memory-warmup, "
     "search_all.py, findings.py, repomap, build-memory) stay counted even "
@@ -125,8 +144,16 @@ MEMORY_CALLS_NOTE = (
     "Counts from before this attribution fix are not directly comparable.")
 
 SKILL_URI_RE = re.compile(r"skill://([A-Za-z0-9_-]+)(?:/[^?#]*)?(?:[:?#].*)?$")
+# `skills/<name>/<payload>` maps to <name>; a second-level
+# `skills/skills/` root (repo layout where the skills dir itself
+# contains skills/) is unwrapped first so skills/skills/beta/SKILL.md
+# resolves to `beta`, not a skill literally named `skills` (ancestor
+# capture). The payload segment after the skill name is required, so
+# any reference/eval/asset under the skill maps to it.
 SKILL_PATH_RE = re.compile(
-    r"(?:^|/)skills/([A-Za-z0-9_-]+)/(?!skills\b)[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*(?:[:?#].*)?$")
+    r"(?:^|/)skills/(?:skills/)?(?!skills\b)([A-Za-z0-9_-]+)/"
+    r"(?:[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)"
+    r"(?:[:?#].*)?$")
 SKILL_READ_NOTE = (
     "Skill reads are explicit read-tool requests, not successful loads or "
     "proof of use. Shell/eval reads, native skill loaders and omitted tool "
@@ -183,7 +210,9 @@ _CMD_VALUE_RE = re.compile(
     r"""(?xi)
     "(?:[^"\\]|\\.)*"         # double-quoted
   | '(?:[^'\\]|\\.)*'         # single-quoted
-  | [^\s;&|]+                 # bare token
+  | [^\s;&|"']+               # bare token (a quote always starts the
+                              # quoted alternative, so `BAR="a b"` is
+                              # `BAR=` + one quoted token, never split)
 """)
 
 
@@ -208,37 +237,101 @@ def _shell_tool_name(name: str) -> bool:
     return bool(SHELL_TOOL_RE.fullmatch(base))
 
 
+def _quote_argv_element(value: str) -> str:
+    """Serialize one argv element for this lexical parser, not execution.
+    Quotes shield separators; decode one layer before parsing shell -c.
+    """
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _join_argv(argv: list) -> str:
+    # elements keep their argument boundaries; quotes/escapes keep a
+    # hostile element from injecting command separators
+    parts = []
+    for v in argv:
+        if not isinstance(v, str):
+            continue
+        safe = (v if not _needs_quoting(v) and _ARGV_SAFE_RE.fullmatch(v)
+                else _quote_argv_element(v))
+        parts.append(safe)
+    return " ".join(parts)
+
+
+def _needs_quoting(value: str) -> bool:
+    return any(ch.isspace() for ch in value)
+
+
 def _command_fields(arguments) -> list[str]:
-    """Every string that can carry a command line from a decoded
-    shell-tool arguments object (union: command fields, args lists,
-    standalone strings). Fields like `i`, `prompt` and prose payloads
-    never reach the parser."""
+    """Command-carrying strings from a decoded shell-tool arguments
+    object: command line fields (string or string-list, joined into one
+    command), argv-style argument arrays (joined into one command so
+    quoted argument boundaries survive), and standalone strings. Env
+    assignment prefixes (PYTHONUTF8=1 ...), option values, `path`/`env`/
+    `prompt`/`i` and other fields never reach the parser."""
     if isinstance(arguments, str):
         return [arguments]
     if isinstance(arguments, dict):
         out: list[str] = []
         for key, val in arguments.items():
-            if isinstance(val, str) and key.lower() in (
-                    "command", "cmd", "script", "inline_script"):
-                out.append(val)
-            elif isinstance(val, list):
-                for v in val:
-                    if isinstance(v, str):
-                        out.append(v)
+            low = key.lower()
+            if low in ("command", "cmd", "script", "inline_script",
+                       "shellcommand", "commandline", "command_line"):
+                if isinstance(val, str):
+                    out.append(val)
+                elif isinstance(val, list):
+                    # command as pre-split argv (some harnesses emit
+                    # {"command": ["bash", "-c", "..."]})
+                    joined = _join_argv(val)
+                    if joined:
+                        out.append(joined)
+            elif low in ("argv", "args", "command_args"):
+                if isinstance(val, list):
+                    joined = _join_argv(val)
+                    if joined:
+                        out.append(joined)
         return out
     if isinstance(arguments, list):
+        # argv-shaped top level: ["/bin/bash", "-c", "inner"] is ONE
+        # command, not three separate command strings
+        if arguments and all(isinstance(v, str) for v in arguments):
+            return [_join_argv(arguments)]
         return [v for v in arguments if isinstance(v, str)]
     return []
 
 
 def _unquote(token: str) -> str:
     if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
-        return token[1:-1].replace('\\"', '"').replace("\\'", "'")
+        body = token[1:-1]
+        return re.sub(r'\\([\\"])', r'\1', body) if token[0] == '"' else body
     return token
 
 
 _SHELL_RUNNER_RE = re.compile(r"(?i)^(?:cmd|powershell|pwsh|bash|sh|"
                               r"zsh)(?:[.]exe)?$")
+
+# Leading shell env assignment: `PYTHONUTF8=1`, `FOO_BAR=x`.
+_ENV_ASSIGN_RE = re.compile(
+    r"^[A-Za-z_][A-Za-z0-9_]*(?:\[[^]=]+\])?=.+")
+# Env assignment whose quoted value tokenized separately (`BAR=` +
+# `"a b"`): the pair is consumed together when stripping prefixes.
+_ENV_ASSIGN_VALUE_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=$")
+# Runner options that consume the NEXT token as their value: a value
+# like `3.12` is never the executed script. Only documented
+# value-taking forms: python -W/-X, py -3/-V, uv --python/--venv/
+# --with/--project/--directory (long forms with `=` attached are
+# handled by the bare-flag branch).
+_RUN_OPTION_WITH_VALUE_RE = re.compile(
+    r"(?i)^--?(?:python|venv|with|project|directory)$")
+_RUN_OPTION_VALUE_RE = re.compile(r"(?i)^-[WX]$")
+# An argv element that needs no quoting: no whitespace, no quotes,
+# no shell separators, not empty.
+_ARGV_SAFE_RE = re.compile(r"^[^\\\"';&|\s]+$")
+
+# Runner flag with ATTACHED payload (`python -cX`, `python -mjson`,
+# `uv run python -mjson.tool`): behaves like the bare -c/-m flag — no
+# script position follows, the payload is code/module, not a script.
+_RUN_FLAG_PAYLOAD_RE = re.compile(r"(?i)^-[cm].+")
 
 
 def _split_commands(text: str) -> list[str]:
@@ -296,13 +389,19 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
     """(executable, context) pairs from one shell command string, split
     on unquoted newlines, `;`, `&&` and `||` so multi-command lines
     contribute each executable. Only tokens in command position (first
-    token, or the script following a python-family runner) are kept.
-    `bash -c "script"` / `sh -c` / `pwsh -c` parse the quoted inner
-    script recursively. `uv run <script>` (and `uv run python
-    <script>`) resolves to the actually executed script. Context is the
-    command segment plus markers carried by a preceding `cd <dir>` (so
-    `cd db-tools && python build.py` keeps the marker), never unrelated
-    echo strings."""
+    token, or the script following a python-family runner) are kept:
+    leading env assignments (PYTHONUTF8=1 python x.py, quoted values
+    included), runner options and their values (py -3, uv run
+    --python 3.12, python -W error -X utf8) never masquerade as the
+    script, and a -c/-m payload — bare or attached (-cX, -mjson),
+    also under uv run — is code, not an executable, and stops the
+    script search. `bash -c "script"` / `sh -c` / `pwsh -c` parse the
+    quoted inner script recursively. `uv run <script>` (and `uv run
+    python <script>`) resolves to the actually executed script. Context
+    is the command segment plus markers carried by a preceding `cd
+    <dir>` (so `cd db-tools && python build.py` keeps the marker); a
+    later `cd` to an unrelated path resets the marker, and echo
+    strings never contribute markers."""
     entries: list[tuple[str, str]] = []
     cd_marks: list[str] = []
     for chunk in _split_commands(text or ""):
@@ -312,26 +411,82 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
         toks = [t for t in (_unquote(r) for r in raw) if t.strip()]
         if not toks:
             continue
+        # leading env assignments: `PYTHONUTF8=1 python x.py` runs x.py;
+        # a quoted value (`BAR="a b"`) tokenizes as `BAR=` + one quoted
+        # token — consume that pair too. Slice BOTH views so the
+        # bash -c quoted check below still indexes the right token.
+        start = 0
+        while start < len(toks) - 1:
+            if _ENV_ASSIGN_RE.fullmatch(toks[start]):
+                start += 1
+            elif _ENV_ASSIGN_VALUE_RE.fullmatch(toks[start]) and \
+                    start + 1 < len(toks) and _is_quoted(raw[start + 1]):
+                start += 2
+            else:
+                break
+        if start:
+            toks = toks[start:]
+            raw = raw[start:]
+        if not toks:
+            continue
         first = toks[0].strip()
         context = " ".join(cd_marks + [chunk])
         if first == "cd":
             if len(toks) > 1 and MEMORY_MARKER_RE.search(toks[1]):
                 cd_marks = [toks[1]]
+            else:
+                # cd to an unrelated path: previous markers no longer
+                # apply to commands that follow
+                cd_marks = []
             continue
         if RUNNER_RE.fullmatch(first) and len(toks) > 1:
             script_index = 1
             if first.lower() in ("uv", "uvx") and toks[1] == "run":
-                # uv run <script> / uv run python <script>: the script is
-                # what actually executes, not the `run` subcommand. Skip
-                # run-flags and a nested runner to find it.
-                for j in range(2, len(toks)):
+                # uv run <script> / uv run python <script>: the script
+                # is what actually executes, not the `run` subcommand.
+                # Skip run-flags and their values (--python 3.12), a
+                # nested runner, and STOP at -c/-m (uv run python -c
+                # 'code' runs code, not a script).
+                j = 2
+                while j < len(toks):
                     tok = toks[j].strip()
+                    if tok in ("-c", "-m") or \
+                            _RUN_FLAG_PAYLOAD_RE.fullmatch(tok):
+                        script_index = len(toks)
+                        break
+                    if (_RUN_OPTION_WITH_VALUE_RE.fullmatch(tok)
+                            or _RUN_OPTION_VALUE_RE.fullmatch(tok)):
+                        j += 2
+                        continue
                     if tok.startswith("-") or RUNNER_RE.fullmatch(tok):
+                        j += 1
                         continue
                     script_index = j
                     break
                 else:
                     script_index = len(toks)
+            else:
+                # python-family options and their values (python -u,
+                # py -3, python -B x.py) never masquerade as the
+                # script; -c/-m (bare or attached) stop the search.
+                j = 1
+                while j < len(toks):
+                    tok = toks[j].strip()
+                    if tok in ("-c", "-m") or \
+                            _RUN_FLAG_PAYLOAD_RE.fullmatch(tok):
+                        script_index = len(toks)
+                        break
+                    if _RUN_OPTION_WITH_VALUE_RE.fullmatch(tok) or \
+                            _RUN_OPTION_VALUE_RE.fullmatch(tok):
+                        j += 2
+                        continue
+                    if tok.startswith("-"):
+                        j += 1
+                        continue
+                    script_index = j
+                    break
+                else:
+                    script_index = j
             if script_index < len(toks):
                 script = toks[script_index].strip()
                 if script and script not in ("-c", "-m"):

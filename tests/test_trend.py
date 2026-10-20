@@ -548,7 +548,7 @@ def test_explicit_mode_and_legacy_zero_result_dry_run_filtering(tmp_path):
         "mode": "live",
         "passed": 1,
         "total": 1,
-        "rows": [{"name": "task-1", "verdict": "PASS", "attempts": [{"verdict": "PASS", "phase": "verifier"}]}],
+        "rows": [{"name": "task-1", "verdict": "PASS", "attempts": [{"verdict": "PASS", "phase": "verdict"}]}],
     }, results_dir=res_dir)
 
     # 5. Legacy live run without mode but with real attempts

@@ -157,7 +157,8 @@ def test_runner_records_honest_canary_fail(tmp_path, monkeypatch):
     monkeypatch.setattr(
         task_runner, "_run_attempt",
         lambda name, record, *, timeout, verifier_image=None:
-            {"verdict": "FAIL", "duration_s": 0.1, "error_class": "other"},
+            {"verdict": "FAIL", "duration_s": 0.1, "error_class": "other",
+             "phase": "verdict"},
     )
     out = tmp_path / "canary_fail.json"
     rc = run_task_suite(["005-canary-oneoff", "006-canary-conflicting"],
@@ -175,7 +176,8 @@ def test_mixed_run_rates_exclude_canaries(tmp_path, monkeypatch):
     def fake_attempt(name, record, *, timeout, verifier_image=None):
         if name.startswith("005"):
             return {"verdict": "PASS", "duration_s": 0.1}
-        return {"verdict": "FAIL", "duration_s": 0.1, "error_class": "other"}
+        return {"verdict": "FAIL", "duration_s": 0.1, "error_class": "other",
+                "phase": "verdict"}
 
     monkeypatch.setattr(task_runner, "_run_attempt", fake_attempt)
     out = tmp_path / "mixed.json"
@@ -258,7 +260,7 @@ def test_honest_canary_fail_exits_process_zero(monkeypatch, tmp_path):
     def fake_attempt(name, record, *, timeout, verifier_image=None):
         if name in CANARIES:
             return {"verdict": "FAIL", "duration_s": 0.1,
-                    "error_class": "other"}
+                    "error_class": "other", "phase": "verdict"}
         return {"verdict": "PASS", "duration_s": 0.1}
 
     # Same in-process argv layout as the hacked-gate test: argv[0] is the

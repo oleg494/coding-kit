@@ -646,9 +646,8 @@ def plan_canonical_sync(canon: Path) -> list[dict]:
     elif mani_file.is_file():
         try:
             previous = json.loads(mani_file.read_text(encoding="utf-8"))
-            skills_list = previous.get("skills")
-            if (not isinstance(previous, dict)
-                    or not isinstance(skills_list, list)
+            skills_list = previous.get("skills") if isinstance(previous, dict) else None
+            if (not isinstance(skills_list, list)
                     or not all(isinstance(name, str) for name in skills_list)):
                 raise ValueError("invalid ownership manifest structure")
             previously_owned = set(skills_list)

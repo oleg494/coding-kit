@@ -61,6 +61,7 @@ def test_bare_includes_no_kit_policy(tmp_path):
     bundle = assemble_arm_profile("bare", _make_kit(tmp_path))
     assert bundle["files"] == []
     assert bundle["policy_bytes"] == 0
+    assert bundle["skill_manifest"] == []
 
 
 def test_thin_is_router_and_ops_only(tmp_path):
@@ -70,16 +71,14 @@ def test_thin_is_router_and_ops_only(tmp_path):
     expected = (len((skills.parent / "AGENTS.md").read_bytes())
                 + len((skills.parent / "OPS.md").read_bytes()))
     assert bundle["policy_bytes"] == expected
+    assert bundle["skill_manifest"] == []
 
 
 def test_full_matches_policy_plus_owned_manifest(tmp_path):
     skills = _make_kit(tmp_path)
     bundle = assemble_arm_profile("full", skills)
-    assert bundle["files"][:3] == ["AGENTS.md", "OPS.md",
-                                   "SKILL_RUNTIME.md"]
-    assert "skills/gamma-foreign/SKILL.md" not in bundle["files"]
-    assert bundle["files"][3:] == ["skills/alpha/SKILL.md",
-                                   "skills/beta/SKILL.md"]
+    assert bundle["files"] == ["AGENTS.md", "OPS.md", "SKILL_RUNTIME.md"]
+    assert {m["name"] for m in bundle["skill_manifest"]} == {"alpha", "beta"}
     expected_files = len((skills.parent / "AGENTS.md").read_bytes())
     expected_files += len((skills.parent / "OPS.md").read_bytes())
     expected_files += len((skills.parent / "SKILL_RUNTIME.md").read_bytes())
@@ -103,9 +102,7 @@ def test_missing_policy_files_fail_closed(tmp_path):
 
 def test_real_kit_full_matches_current_bundle():
     bundle = assemble_arm_profile("full", DEFAULT_SKILLS_DIR)
-    expected = {"AGENTS.md", "OPS.md", "SKILL_RUNTIME.md"} | {
-        f"skills/{m['name']}/SKILL.md"
-        for m in skill_manifest(DEFAULT_SKILLS_DIR)}
+    expected = {"AGENTS.md", "OPS.md", "SKILL_RUNTIME.md"}
     assert set(bundle["files"]) == expected
     assert bundle["files"] == sorted(bundle["files"])
     policy = (len((ROOT / "AGENTS.md").read_bytes())
@@ -125,3 +122,17 @@ def test_real_kit_bare_and_thin_bounds():
     assert bare["policy_bytes"] == 0
     assert 0 < thin["policy_bytes"] < full["policy_bytes"]
     assert thin["files"] == ["AGENTS.md", "OPS.md"]
+
+
+def test_skill_bodies_are_not_counted_as_injected_manifest(tmp_path):
+    skills = _make_kit(tmp_path)
+    before = assemble_arm_profile("full", skills)
+    body = skills / "alpha" / "SKILL.md"
+    with body.open("a", encoding="utf-8") as stream:
+        stream.write("\nNot injected: " + "body text " * 500)
+    assert assemble_arm_profile("full", skills) == before
+    body.write_text(body.read_text(encoding="utf-8").replace(
+        "alpha desc", "expanded alpha description"), encoding="utf-8")
+    after = assemble_arm_profile("full", skills)
+    assert after["policy_bytes"] - before["policy_bytes"] == len(
+        "expanded alpha description") - len("alpha desc")

@@ -7,8 +7,11 @@ kit-internal vs real sessions plus the per-session counters (human turns,
 memory-engine command entries, kit diagnostic calls, skills_search skill
 discovery calls, skill:// reads, OPS-in-context markers). Regressions pin
 the entry-based attribution: reads and echo mentions of entrypoints are
-not executions, nested parallel wrappers are walked recursively, and
-skills_search is reported separately from memory."""
+not executions, nested parallel wrappers are walked recursively,
+runner options with values, env assignment prefixes, -c/-m payloads,
+stale cd markers, argv arrays and skills/skills nesting are all
+resolved correctly, and skills_search is reported separately from
+memory."""
 import importlib.util
 import json
 import os
@@ -492,6 +495,264 @@ class SkillReadEvidenceTest(unittest.TestCase, FixtureBuilders):
             self.assertEqual(result["sessions"][0]["skill_reads"], [
                 "dev-wiki", "fable-judge", "fable-method", "ponytail",
                 "superpowers"])
+
+
+
+class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
+    """Behavioral regressions for command-entry attribution: runner
+    options and their values, env prefixes, -c/-m payloads, stale cd
+    markers, argv arrays and non-command fields."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def _session_with_commands(self, commands, tool="bash"):
+        rows = [self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                                 title="regressions"),
+                self.omp_message("user", "run it")]
+        rows.extend(self.omp_tool_call(tool, {"command": c}, id=f"r{i}")
+                    for i, c in enumerate(commands))
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "r.jsonl", rows)
+        return usage_audit.audit(claude_root=self.tmp / "claude",
+                                 omp_root=self.tmp / "omp", since=None
+                                 )["sessions"][0]
+
+    def test_python_flag_options_resolve_script(self):
+        """python -B/-u/-I (and py -3) resolve to the script, not the
+        option flag."""
+        s = self._session_with_commands([
+            "python -B memory-warmup.py",
+            "python -u -I search_all.py q",
+            "py -3 findings.py add x",
+        ])
+        self.assertEqual(s["memory_calls"], 3)
+
+    def test_option_values_not_scripts(self):
+        """A value consumed by an option (`uv run --python 3.12 x.py`)
+        is not the executed script — the script after it resolves;
+        -c/-m payloads (bare, attached, under uv) count nothing."""
+        s = self._session_with_commands([
+            "uv run --python 3.12 memory-warmup.py",
+            "python -c \"print('findings.py mentioned')\"",
+            "python -m json.tool",
+            "uv run python -c 'findings.py'",
+            "uv run python -m json.tool",
+            "python -mjson.tool",
+            "python -cX",
+        ])
+        self.assertEqual(s["memory_calls"], 1)
+
+    def test_python_w_x_options_skip_values(self):
+        """python -W error -X utf8 x.py: -W/-X consume the next token;
+        the script after them resolves."""
+        s = self._session_with_commands([
+            "python -W error -X utf8 memory-warmup.py",
+        ])
+        self.assertEqual(s["memory_calls"], 1)
+
+    def test_env_assignment_prefix_resolves_script(self):
+        """PYTHONUTF8=1 python x.py runs x.py; a quoted env value
+        (BAR="a b") is consumed as part of the assignment prefix, and
+        the assignment itself is not an executable."""
+        s = self._session_with_commands([
+            "PYTHONUTF8=1 python search_all.py q",
+            "FOO=1 BAR=\"a b\" py -3 findings.py add z",
+        ])
+        self.assertEqual(s["memory_calls"], 2)
+
+    def test_later_unrelated_cd_resets_marker(self):
+        """cd <memory dir> && cd <unrelated> && python build.py: the
+        second cd drops the marker, so build.py is not a memory call;
+        without the reset cd it counts."""
+        s = self._session_with_commands([
+            "cd ~/.memory/db-tools && cd C:/other-project && python build.py",
+        ])
+        self.assertEqual(s["memory_calls"], 0)
+        s = self._session_with_commands([
+            "cd ~/.memory/db-tools && python build.py",
+        ])
+        self.assertEqual(s["memory_calls"], 1)
+
+    def test_non_command_fields_never_parsed(self):
+        """env lists, paths and prompts in the arguments object are not
+        command lines; the real command field still counts."""
+        rows = [
+            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                             title="fields"),
+            self.omp_message("user", "run"),
+            self.omp_tool_call("bash", {
+                "command": "python findings.py add a --text b",
+                "env": ["PYTHONUTF8=1", "PATH=/usr/bin"],
+                "cwd": "C:/Users/oleg2/.memory/db-tools",
+                "prompt": "please run search_all.py",
+            }, id="f1"),
+            self.omp_tool_call("run_command", {
+                "argv": ["python", "search_all.py", "mp --substring"],
+            }, id="f2"),
+        ]
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "f.jsonl", rows)
+        s = usage_audit.audit(claude_root=self.tmp / "claude",
+                              omp_root=self.tmp / "omp",
+                              since=None)["sessions"][0]
+        self.assertEqual(s["memory_calls"], 2)
+
+    def test_malicious_payload_strings_in_env_and_paths_ignored(self):
+        """Literal injection strings (`; findings.py`, `&& python
+        search_all.py`) inside env/paths list values are inert data,
+        never parsed as commands."""
+        rows = [
+            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                             title="inert"),
+            self.omp_message("user", "check"),
+            self.omp_tool_call("bash", {
+                "command": "python -u x.py",
+                "env": ["MAL=1; python findings.py add evil"],
+                "paths": ["search_all.py && python search_all.py"],
+            }, id="m1"),
+        ]
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "m.jsonl", rows)
+        s = usage_audit.audit(claude_root=self.tmp / "claude",
+                              omp_root=self.tmp / "omp",
+                              since=None)["sessions"][0]
+        self.assertEqual(s["memory_calls"], 0)
+
+    def test_argv_array_preserves_quoted_boundaries(self):
+        """An argv array is one command; a quoted argument with spaces
+        stays one argument instead of being split into phantom
+        commands."""
+        rows = [
+            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                             title="argv"),
+            self.omp_message("user", "add note"),
+            self.omp_tool_call("bash", {
+                "argv": ["python", "findings.py", "add",
+                         "mp --text two words"],
+            }, id="a1"),
+            self.omp_tool_call("bash", {
+                "args": ["bash", "-c", "search_all.py q; echo done"],
+            }, id="a2"),
+        ]
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "a.jsonl", rows)
+        s = usage_audit.audit(claude_root=self.tmp / "claude",
+                              omp_root=self.tmp / "omp",
+                              since=None)["sessions"][0]
+        # findings.py once (quoted payload intact), search_all.py once
+        # (the echo mention inside the inner script is not an entry)
+        self.assertEqual(s["memory_calls"], 2)
+
+    def test_argv_injection_elements_stay_inert(self):
+        """Hostile argv elements (`; findings.py`, embedded quotes,
+        backslash separators, newlines) stay one inert argument and
+        never split into phantom commands."""
+        malicious = [
+            ["python", "x.py", "; findings.py"],
+            ["python", "x.py", 'a"; findings.py'],
+            ["python", "x.py", "a\\b && findings.py"],
+            ["python", "x.py", "line\nfindings.py"],
+            ["python", "x.py", "' || findings.py"],
+        ]
+        rows = [
+            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                             title="injection"),
+            self.omp_message("user", "guard"),
+        ]
+        rows.extend(self.omp_tool_call("bash", {"argv": argv}, id=f"i{i}")
+                    for i, argv in enumerate(malicious))
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "i.jsonl", rows)
+        s = usage_audit.audit(claude_root=self.tmp / "claude",
+                              omp_root=self.tmp / "omp",
+                              since=None)["sessions"][0]
+        # every argv resolves to x.py (not a memory entrypoint); no
+        # injected findings.py entry ever appears
+        self.assertEqual(s["memory_calls"], 0)
+
+    def test_command_list_field_is_one_command(self):
+        """A command field emitted as a pre-split list joins into one
+        command with argument boundaries preserved."""
+        rows = [
+            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                             title="cmdlist"),
+            self.omp_message("user", "run"),
+            self.omp_tool_call("bash", {
+                "command": ["python", "findings.py", "add", "a b"],
+            }, id="cl1"),
+        ]
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "cl.jsonl", rows)
+        s = usage_audit.audit(claude_root=self.tmp / "claude",
+                              omp_root=self.tmp / "omp",
+                              since=None)["sessions"][0]
+        self.assertEqual(s["memory_calls"], 1)
+
+    def test_top_level_argv_list_is_one_command(self):
+        """A top-level argv-style arguments list (decoded arguments
+        list of strings) is ONE command, not several command strings —
+        bash -c inner script parses as one command."""
+        rows = [
+            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+                             title="topargv"),
+            self.omp_message("user", "run"),
+            self.omp_tool_call("bash",
+                               ["bash", "-c", "findings.py q; echo done"],
+                               id="t1"),
+        ]
+        _write_jsonl(self.tmp / "omp" / "-Desktop-WORK-reg" / "t.jsonl", rows)
+        s = usage_audit.audit(claude_root=self.tmp / "claude",
+                              omp_root=self.tmp / "omp",
+                              since=None)["sessions"][0]
+        # one findings.py entry from the inner script; the echo mention
+        # is not a second execution
+        self.assertEqual(s["memory_calls"], 1)
+
+    def test_echo_mention_is_not_execution(self):
+        """echo strings mentioning entrypoint names never count."""
+        s = self._session_with_commands([
+            "echo 'findings.py was run earlier'",
+            "echo search_all.py",
+        ])
+        self.assertEqual(s["memory_calls"], 0)
+
+
+class SkillPathRegressionTest(unittest.TestCase, FixtureBuilders):
+    """Behavioral regressions for skills/skills/ nesting: the actual
+    skill name resolves, never a skill named `skills`."""
+
+    def test_nested_skills_root_resolves_real_skill(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            rows = [self.omp_session(), self.omp_message("user", "read")]
+            targets = [
+                ("read", {"path": "skills/skills/beta/SKILL.md"}),
+                ("Read", {"file_path":
+                          "C:\\repo\\skills\\skills\\beta\\references\\"
+                          "usage.md"}),
+                ("read_file", {"absolute_path":
+                               "/repo/skills/skills/beta/evals/e.json"}),
+                # still works without the extra level
+                ("read", {"path": "skills/beta/SKILL.md"}),
+            ]
+            rows.extend(self.omp_tool_call(name, args, id=f"n{i}")
+                        for i, (name, args) in enumerate(targets))
+            _write_jsonl(root / "omp" / "project" / "s.jsonl", rows)
+            result = usage_audit.audit(root / "claude", root / "omp", None)
+            self.assertEqual(result["sessions"][0]["skill_reads"],
+                             ["beta"])
+
+    def test_skills_container_segment_is_not_a_skill(self):
+        """skills/skills/SKILL.md and a bare skills/skills/beta path
+        do not resolve to a skill named `skills` (or at all)."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            rows = [self.omp_session(), self.omp_message("user", "read")]
+            targets = [
+                ("read", {"path": "skills/skills/SKILL.md"}),
+                ("read", {"path": "skills/skills/beta"}),
+                ("read", {"path": "skills/skills"}),
+            ]
+            rows.extend(self.omp_tool_call(name, args, id=f"c{i}")
+                        for i, (name, args) in enumerate(targets))
+            _write_jsonl(root / "omp" / "project" / "s.jsonl", rows)
+            result = usage_audit.audit(root / "claude", root / "omp", None)
+            self.assertEqual(result["sessions"][0]["skill_reads"], [])
 
 
 class AggregationTest(unittest.TestCase, FixtureBuilders):

@@ -39,9 +39,11 @@ targeted by `Read`, `read`, `read_file`, or `functions.read`, including
 `absolute_path`: skill URIs (`skill://<name>/...`) and Windows/POSIX paths to
 ANY file under a named skill payload — `SKILL.md`, `references/`, `evals/`,
 `assets/`, or arbitrary nested files — so a deep reference read attributes to
-its owning skill. Messages, result bodies, write payloads, non-read tools, and
-incidental argument text do not count. Repeat reads of the same skill count
-once per session.
+its owning skill. A second-level `skills/skills/` root is unwrapped, so
+`skills/skills/beta/SKILL.md` attributes to `beta`, never to a phantom
+skill named `skills`. Messages, result bodies, write payloads,
+non-read tools, and incidental argument text do not count. Repeat
+reads of the same skill count once per session.
 
 **Limits:** a request does not prove successful loading or useful application.
 Shell/eval reads and native skill loaders are not inferred; Gemini tool traffic
@@ -68,9 +70,22 @@ The counter now counts only:
   `findings.py`, `repomap`, `build-memory`;
 - `build.py` only when the same command line carries a memory path marker
   (`.memory`, `db-tools`, or a `memory/` path segment) — bare project
-  `build.py` does not count;
-- clearly kit-owned commands — `skills_search` (a kit lookup tool, not a
-  diagnostic).
+  `build.py` does not count, and a later `cd` to an unrelated path drops
+  the marker carried by an earlier `cd`.
+
+`skills_search` is counted separately in `skill_search_calls`, not in
+`memory_calls` or `kit_diag_calls`.
+
+Command lines are parsed structurally: leading environment assignments
+(`PYTHONUTF8=1 python x.py`, quoted values included), runner options
+and their values (`python -B`, `py -3`, `python -W error -X utf8`,
+`uv run --python 3.12`), and `-c`/`-m` payloads — bare or attached
+(`-cX`, `-mjson`), also under `uv run` — are never mistaken for the
+executed script; argv-style argument arrays are treated as one command
+with argument boundaries preserved (hostile elements carrying `;`,
+`&&`, quotes or newlines stay inert arguments); and only whitelisted
+command/argv fields of recognized shell tools are parsed (env lists,
+paths, prompts and prose never reach the parser).
 
 Kit diagnostic/maintenance commands (`doctor.py`, `check_file_sizes`) are
 counted separately in `kit_diag_calls` (per-session and per-aggregate,
@@ -78,13 +93,15 @@ additive JSON fields) so kit self-maintenance is visible without
 inflating memory-engine adoption. Existing `memory_calls` keys and the
 report shape are unchanged; consumers see new optional fields only.
 
-**Limits:** entrypoint matching is lexical on the tool name/arguments blob.
-A memory-engine invocation wrapped so that no known entrypoint string appears
-in the record is missed; a project whose own scripts share these names is
-over-counted (mitigated, not eliminated, by the build.py marker rule).
-Historical `memory_calls` totals computed before this correction are not
-directly comparable — re-run the audit over a fixed window instead of diffing
-pre/post numbers.
+**Limits:** entrypoint matching is lexical on the parsed executable
+entry. A memory-engine invocation wrapped so that no known entrypoint
+string appears in the record is missed; a project whose own scripts
+share these names is over-counted (mitigated, not eliminated, by the
+build.py marker rule). Command-shape knowledge is heuristic — options
+outside the known value-consuming set are skipped as bare flags.
+Historical `memory_calls` totals computed before this correction are
+not directly comparable — re-run the audit over a fixed window instead
+of diffing pre/post numbers.
 
 **Rule:** when reporting memory-engine adoption, quote both the corrected
 `memory_calls` and `kit_diag_calls` from the same run, and state the

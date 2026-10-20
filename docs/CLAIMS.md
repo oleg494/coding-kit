@@ -16,10 +16,9 @@ cited; it does not mean the command was re-run while you read this.
   `unverified (historical)` marks observations about past states that the
   current release does not claim to reproduce.
 
-Freshness: verified rows cite the last tagged release's recorded evidence
-([CHANGELOG](CHANGELOG.md)). Between tags the working tree may drift
-intentionally; every gate is re-run and re-recorded at tag time (see
-[Release acceptance gates](#release-acceptance-gates)).
+Freshness: each verified row names the revision or historical release whose
+evidence it cites ([CHANGELOG](CHANGELOG.md)). A local tag alone is not
+release approval; unobserved CI remains unverified.
 
 ## Claims
 
@@ -41,7 +40,7 @@ intentionally; every gate is re-run and re-recorded at tag time (see
 | C-14 | Backup/restore drill: DEGRADED snapshots refused; drill exits 0 only after `PRAGMA integrity_check` and search verification pass | `python -m pytest tests/test_backup_memory.py -q` | [tests/test_backup_memory.py](../tests/test_backup_memory.py) | verified |
 | C-15 | Handoff resume exit codes 0/1/2; stale evidence marked, embedded commands never executed | `python -m pytest tests/test_handoff.py -q` | [tests/test_handoff.py](../tests/test_handoff.py) | verified |
 | C-16 | Deploy rolls back earlier skills/routers on mid-deploy failure and keeps a recovery directory if rollback itself fails | `python -m pytest tests/test_deploy_rollback.py -q` | [tests/test_deploy_rollback.py](../tests/test_deploy_rollback.py) | verified |
-| C-17 | Trend compares only matching `comparison_id`s; baseline files are never rewritten; dry/zero/malformed runs seed nothing | `python -m pytest tests/test_trend.py tests/test_trend_baselines.py -q` | [tests/test_trend.py](../tests/test_trend.py) | verified |
+| C-17 | Trend compares only matching `comparison_id`s; rendering never rewrites baselines; explicit updates require complete measured runs | `python -m pytest tests/test_trend.py tests/test_trend_baselines.py -q` | [tests/test_trend.py](../tests/test_trend.py) | verified |
 | C-18 | Rigor A/B acceptance gate can reject a candidate policy change | `python -m pytest tests/test_rigor_gate.py -q` | [tests/test_rigor_gate.py](../tests/test_rigor_gate.py) | verified |
 | C-19 | Prompt confinement: bare host commands refused; `docker:` executors with declared read-only mounts only | `python -m pytest tests/test_prompt_confinement.py -q` | [tests/test_prompt_confinement.py](../tests/test_prompt_confinement.py) | verified |
 | C-20 | Hermes adapter generates the owned-skill projection into `SOUL.md` | `python -m pytest tests/test_hermes_adapter.py -q` | [tests/test_hermes_adapter.py](../tests/test_hermes_adapter.py) | verified |
@@ -62,9 +61,13 @@ Notes on the unverified rows:
 
 ## Release acceptance gates
 
-All of the following must be green on the exact tree being tagged, and the
-results recorded in [CHANGELOG](CHANGELOG.md) before the version tag is
-created. CI must also be green on both OS legs for the tag commit.
+A local working tree or commit is a **candidate**, not an approved release.
+Gates 1–6 establish local evidence; gate 7 is required for release approval.
+Record results on the exact candidate commit before creating a release tag.
+Push/CI/publication require separate authorization; missing CI never counts
+as green. The existing local v4.10.3 tag was created prematurely and failed
+review; preserve it for provenance, do not publish or move it. Corrections
+remain untagged until all gates pass on a subsequent commit.
 
 1. **Full suite**: `python -m pytest tests -q` — zero failures; skips must
    be limited to documented environment prerequisites (Docker/task images,

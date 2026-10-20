@@ -32,16 +32,6 @@ DEFAULT_SKILLS_DIR = KIT_ROOT / "skills"
 ARM_PROFILES = ("bare", "thin", "full")
 
 
-def _skill_manifest_inventory(skills_root: Path) -> list[str]:
-    """Kit-owned SKILL.md paths actually listed by the manifest."""
-    root = Path(skills_root)
-    names = []
-    for item in skill_manifest(root):
-        if _read_skill(root, item["name"]) is not None:
-            names.append(f"skills/{item['name']}/SKILL.md")
-    return sorted(names)
-
-
 def assemble_arm_profile(profile: str, skills_root: Path) -> dict:
     """Policy-bundle inventory for a rigor arm (docs/research/
     2026-09-05-open-source-product-direction.md §5 arms).
@@ -57,11 +47,11 @@ def assemble_arm_profile(profile: str, skills_root: Path) -> dict:
     - ``full``: the current bundle — AGENTS.md, OPS.md,
       SKILL_RUNTIME.md and the kit-owned skills manifest.
 
-    Returns ``{"profile": ..., "files": [...], "policy_bytes": N}``
-    where ``files`` is the sorted bundle inventory (relative paths,
-    POSIX separators) and ``policy_bytes`` the combined UTF-8 byte
-    size of the included files (manifest JSON serialized exactly as
-    ``eval.rigor.runner.policy_bytes`` does it).
+    Returns ``profile``, ``files`` (whole policy files, relative POSIX paths),
+    ``skill_manifest`` (injected name/description records, not skill bodies),
+    and ``policy_bytes``: the raw bytes of ``files`` plus the manifest JSON
+    serialized with sorted keys and ensure_ascii=False for the full arm.
+    Bare/thin inject no manifest. This is bundle accounting, not execution.
 
     Raises ValueError on an unknown profile and KitInventoryError
     when ``skills_root`` has a present-but-invalid profile.yml —
@@ -89,12 +79,12 @@ def assemble_arm_profile(profile: str, skills_root: Path) -> dict:
     inventory = sorted(str(f.relative_to(kit_root)).replace("\\", "/")
                        for f in files)
     total = sum(len(f.read_bytes()) for f in files)
+    manifest = skill_manifest(skills_root) if profile == "full" else []
     if profile == "full":
-        manifest = skill_manifest(skills_root)
-        inventory += _skill_manifest_inventory(skills_root)
         total += len(json.dumps(manifest, sort_keys=True,
                                 ensure_ascii=False).encode("utf-8"))
-    return {"profile": profile, "files": inventory, "policy_bytes": total}
+    return {"profile": profile, "files": inventory,
+            "skill_manifest": manifest, "policy_bytes": total}
 
 
 def skill_manifest_names(skills_root: Path, *,

@@ -403,20 +403,19 @@ class ClaimsLedgerTest(unittest.TestCase):
                       "the DeepSWE historical row must be labeled "
                       "unverified (historical)")
 
-    def test_ledger_documents_release_gates_and_rollback(self):
-        """The ledger must keep the release acceptance gates and the three
-        rollback commitments (tag revert, integrity regeneration, memory
-        root isolation) as section headings, so a structural disappearance
-        fails the contract."""
-        text = self.LEDGER.read_text(encoding="utf-8")
-        for heading in ("## Release acceptance gates", "## Rollback"):
-            self.assertIn(heading, text,
-                          f"ledger must keep section {heading!r}")
-        for required in ("integrity_manifest.py --update",
-                         "git revert",
-                         "MEMORY_ROOT"):
-            self.assertIn(required, text,
-                          f"rollback section must name {required!r}")
+    def test_local_evidence_targets_and_release_records_exist(self):
+        for rid, _cmd, evidence, _status in self._rows():
+            for target, version in re.findall(
+                    r"\]\(([^)]+)\)(?:\s+v(\d+\.\d+\.\d+))?", evidence):
+                if "://" in target:
+                    continue
+                with self.subTest(row=rid, target=target, version=version):
+                    path = self.LEDGER.parent / target.split("#", 1)[0]
+                    self.assertTrue(path.is_file(), f"missing evidence: {path}")
+                    if version:
+                        records = re.findall(r"^- \*\*v(\d+\.\d+\.\d+)\b",
+                                             path.read_text(encoding="utf-8"), re.M)
+                        self.assertIn(version, records, "cited release record is missing")
 
     def test_readme_links_the_ledger(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

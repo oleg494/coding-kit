@@ -12,9 +12,10 @@ scoring is reproducible and model-agnostic.
 
 Every attempt runs against a pristine fixture copy, so a retry can never
 inherit a previous attempt's mutations. Each attempt records its own
-`verdict`, `duration_s`, and (on failure) an `error_class` from the shared
-taxonomy plus a `trace_tail` where output exists. This is a smoke canary,
-never a benchmark.
+`verdict`, `duration_s`, `phase` (executor/verifier/verdict — which stage
+ruled, so consumers never infer provenance from trace text), and (on
+failure) an `error_class` from the shared taxonomy plus a `trace_tail`
+where output exists. This is a smoke canary, never a benchmark.
 
 Usage:
     python eval/task_runner.py --dry-run                     # validate layout
@@ -69,7 +70,17 @@ _TRACE_TAIL_CHARS = 2000
 # the container backend's verifier budget, not the executor's.
 _VERIFIER_TIMEOUT = 120
 
-# "auto" is the shared timestamped store (eval/results/), reproduced here so
+# Producer-owned stage provenance (shared trap-phase vocabulary): every
+# FAIL attempt names the stage that ruled. `executor` — the model run
+# failed or never launched; `verifier` — the trusted oracle failed to
+# run to completion (launch error, deadline kill, docker 125/126/127,
+# crash) after the executor succeeded; `verdict` — the oracle completed
+# and ruled (rc 1 FAIL; rc 0 is recorded as a PASS attempt). trend
+# trusts only `phase == "verdict"` (or PASS) as a measured oracle
+# signal; trace text is never inspected to infer provenance.
+_VERIFIER_PHASES = frozenset({"executor", "verifier", "verdict"})
+
+# "auto" is the shared timestamped store (eval/results/), reproduced so
 # the suite-level entry point stays compatible with main()'s --json PATH|auto.
 _AUTO = "auto"
 
@@ -274,11 +285,14 @@ def classify_error(*, returncode: int = 0, stdout: str = "",
 
 
 def _fail_attempt(duration: float, error_class: str,
-                  stdout: str, stderr: str) -> dict:
+                  stdout: str, stderr: str, phase: str) -> dict:
+    if phase not in _VERIFIER_PHASES:
+        raise ValueError(f"unknown attempt phase: {phase!r}")
     attempt: dict = {
         "verdict": "FAIL",
         "duration_s": duration,
         "error_class": error_class,
+        "phase": phase,
     }
     trace = "\n".join(p for p in (stdout or "", stderr or "") if p).strip()
     if trace:
@@ -325,7 +339,7 @@ def _run_attempt(name: str, record: dict, *, timeout: int,
             # instead of crashing the whole run; the trace tail is bounded.
             duration = round(time.monotonic() - started, 3)
             return _fail_attempt(duration, "other", "",
-                                 f"{type(e).__name__}: {e}")
+                                 f"{type(e).__name__}: {e}", "executor")
 
         duration = round(time.monotonic() - started, 3)
         stdout = _as_text(run["stdout"])
@@ -343,7 +357,7 @@ def _run_attempt(name: str, record: dict, *, timeout: int,
         if run["timed_out"] or run["rc"] != 0:
             attempt = _fail_attempt(duration, classify_error(
                 returncode=run["rc"] or 0, stdout=stdout, stderr=stderr,
-                timed_out=run["timed_out"]), stdout, stderr)
+                timed_out=run["timed_out"]), stdout, stderr, "executor")
             attempt["shortcuts"] = shortcuts
             return attempt
 
@@ -357,16 +371,24 @@ def _run_attempt(name: str, record: dict, *, timeout: int,
                 ro_mounts=((TASKS, container.VERIFIER_MOUNT),))
         except (container.IsolationUnavailable, OSError, ValueError) as e:
             return _fail_attempt(duration, "other", "",
-                                 f"{type(e).__name__}: {e}")
-        if v["rc"] == 0:
+                                 f"{type(e).__name__}: {e}", "verifier")
+        if v["rc"] == 0 and not v["timed_out"]:
             return {"verdict": "PASS", "duration_s": duration,
-                    "shortcuts": shortcuts}
+                    "phase": "verdict", "shortcuts": shortcuts}
 
         v_stdout = _as_text(v["stdout"])
         v_stderr = _as_text(v["stderr"])
+        # The oracle's contract is exactly rc 0 (PASS) / rc 1 (FAIL).
+        # Only a clean rc 1 without a deadline kill is a measured
+        # verdict; any other exit (docker 125/126/127, signals, rc 0
+        # after a kill) means the oracle itself failed to run to
+        # completion, so the attempt is infrastructure, phase "verifier".
+        phase = ("verdict"
+                 if (v["rc"] == 1 and not v["timed_out"])
+                 else "verifier")
         failed = _fail_attempt(duration, classify_error(
             returncode=v["rc"] or 0, stdout=v_stdout, stderr=v_stderr,
-            timed_out=v["timed_out"]), v_stdout, v_stderr)
+            timed_out=v["timed_out"]), v_stdout, v_stderr, phase)
         failed["shortcuts"] = shortcuts
         return failed
 
