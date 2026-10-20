@@ -3,7 +3,7 @@ name: brainstorming
 description: 'Use before designing features, components, new subsystems, or behavior changes. Resolve intent, constraints, interfaces and acceptance before implementation; scale design depth to uncertainty without adding approval gates to authorized work.'
 license: MIT
 metadata:
-  version: "4.10.3"
+  version: "4.10.4"
 ---
 
 # Brainstorming Ideas Into Designs

@@ -3,7 +3,7 @@ name: engineering-persona
 description: 'Response format rules (not a persona): direct engineering tone, result first, evidence-based, no fluff, no "I would recommend". Code > words. Observation > assumption. Use when writing reports or answers that need the direct evidence-first tone.'
 license: MIT
 metadata:
-  version: "4.10.3"
+  version: "4.10.4"
 ---
 
 # Engineering Persona

@@ -4,7 +4,7 @@ description: 'Understand "what this N-file change will break": blast radius over
 license: MIT
 compatibility: 'git repo; code-review-graph MCP when available, otherwise LSP/source search'
 metadata:
-  version: "4.10.3"
+  version: "4.10.4"
 ---
 
 # Code graph review: what will the change break

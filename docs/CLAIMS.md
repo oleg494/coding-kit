@@ -66,8 +66,8 @@ Gates 1–6 establish local evidence; gate 7 is required for release approval.
 Record results on the exact candidate commit before creating a release tag.
 Push/CI/publication require separate authorization; missing CI never counts
 as green. The existing local v4.10.3 tag was created prematurely and failed
-review; preserve it for provenance, do not publish or move it. Corrections
-remain untagged until all gates pass on a subsequent commit.
+review; preserve it for provenance, do not publish or move it. The corrected
+v4.10.4 candidate may be tagged only after all gates pass on its commit.
 
 1. **Full suite**: `python -m pytest tests -q` — zero failures; skips must
    be limited to documented environment prerequisites (Docker/task images,

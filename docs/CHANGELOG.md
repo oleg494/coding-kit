@@ -1,9 +1,9 @@
 # Changelog — Coding Agent OS
 
-- **Unreleased — corrections to the rejected local v4.10.3 candidate:**
-  - The v4.10.3 tag was created before CI approval and subsequently failed
-    review. It is retained for provenance, not approved for publication.
-    No corrective release tag has been created or moved.
+- **v4.10.4 (2026-10-20) — safety, measurement integrity and release repairs:**
+  - Supersedes the rejected local v4.10.3 candidate, including its safety,
+    evaluation and product-proof changes documented below. The old local tag
+    is retained for provenance and must not be published or moved.
   - Restored all 48 historical release records from commit 6c92813 after
     the v4.10.3 write accidentally deleted them. Ledger evidence checks
     now resolve local evidence files and cited release records instead of
@@ -29,8 +29,8 @@
     integrity 213 files, size gate hard 0, canonical dry-run no changes.
     Runtime probes confirmed safe malformed-manifest refusal without writes,
     interpreter/env/argv attribution, and exact arm byte accounting.
-    Docker-dependent paths and remote CI remain unverified. These results
-    cover the corrected working tree, not the unchanged v4.10.3 tag.
+    Docker-dependent paths remain subject to documented prerequisites.
+    Publication requires green Windows and Ubuntu CI on the release commit.
 
 - **v4.10.3 (2026-10-20) — product proof plumbing (local release):**
   - Claims ledger docs/CLAIMS.md (25 rows): every public claim carries a

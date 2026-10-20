@@ -3,7 +3,7 @@ name: ponytail
 description: 'Use for coding tasks to deliver the smallest change that fully solves the request without cutting requested behavior: scope first, reuse existing code, stdlib and platform features before new code, root-cause fixes, a check where the logic needs one, and a reply naming what was skipped and any risk. Use when the user says "ponytail", "be lazy", "simplest solution", or complains about over-engineering or bloat. Levels: lite, full (default), ultra.'
 license: MIT
 metadata:
-  version: "4.10.3"
+  version: "4.10.4"
 ---
 
 # Ponytail — lazy senior dev mode
