@@ -3,7 +3,7 @@ name: receiving-code-review
 description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Code Review Reception
@@ -24,13 +24,13 @@ WHEN receiving code review feedback:
 3. VERIFY: Check against codebase reality
 4. EVALUATE: Technically sound for THIS codebase?
 5. RESPOND: Technical acknowledgment or reasoned pushback
-6. IMPLEMENT: One item at a time, test each
+6. IMPLEMENT: Apply the understood fixes; verify affected behavior once per coherent batch
 ```
 
 ## Forbidden Responses
 
 **NEVER:**
-- "You're absolutely right!" (explicit instruction-file violation)
+- "You're absolutely right!"
 - "Great point!" / "Excellent feedback!" (performative)
 - "Let me implement that now" (before verification)
 
@@ -52,7 +52,7 @@ IF an item is unclear:
 
 **Example:**
 ```
-your human partner: "Fix 1-6"
+User: "Fix items 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
 
 If 4 and 5 can change the other fixes, resolve them before dependent edits.
@@ -61,7 +61,7 @@ If independent, fix and verify 1,2,3,6; ask only about 4 and 5.
 
 ## Source-Specific Handling
 
-### From your human partner
+### From the user
 - **Trusted** - implement after understanding
 - **Still ask** if scope unclear
 - **No performative agreement**
@@ -87,7 +87,7 @@ IF a suggestion conflicts with the user's prior decisions:
   Resolve the conflict with the user before that change; continue independent work.
 ```
 
-**your human partner's rule:** "External feedback - be skeptical, but check carefully"
+**External feedback is a claim to check, not an order to follow:** be skeptical, then verify carefully.
 
 ## YAGNI Check for "Professional" Features
 
@@ -100,7 +100,7 @@ IF reviewer suggests "implementing properly":
   IF used: Implement the requested behavior, not speculative improvements.
 ```
 
-**your human partner's rule:** "You and reviewer both report to me. If we don't need this feature, don't add it."
+**The user owns the goal; you and the reviewer both report to them.** If the feature is not needed, don't add it.
 
 ## Implementation Order
 
@@ -111,8 +111,9 @@ FOR multi-item feedback:
      - Blocking issues (breaks, security)
      - Simple fixes (typos, imports)
      - Complex fixes (refactoring, logic)
-  3. Test each fix individually
-  4. Verify no regressions
+  3. Verify the affected behavior once for the coherent batch; rerun only
+     when a change invalidates the evidence
+  4. Verify no regressions in the affected scope
 ```
 
 ## When To Push Back
@@ -123,15 +124,15 @@ Push back when:
 - Violates YAGNI (unused feature)
 - Technically incorrect for this stack
 - Legacy/compatibility reasons exist
-- Conflicts with your human partner's architectural decisions
+- Conflicts with the user's prior architectural decisions
 
 **How to push back:**
 - Use technical reasoning, not defensiveness
 - Ask specific questions
 - Reference working tests/code
-- Involve your human partner if architectural
+- Raise the architectural conflict with the user
 
-**If you're uncomfortable pushing back out loud:** Name that tension, then tell your partner about the issue you've seen. They'll appreciate your honesty.
+**If you're uncomfortable pushing back out loud:** Name that tension, then report the issue you've seen to the user, who decides between you and the reviewer.
 
 ## Acknowledging Correct Feedback
 
@@ -172,7 +173,8 @@ State the correction factually and move on.
 |---------|-----|
 | Performative agreement | State requirement or just act |
 | Blind implementation | Verify against codebase first |
-| Batch without testing | One at a time, test each |
+| Unverified batch | Verify the affected behavior after the coherent batch |
+| Per-item rerun | Rerun only when a change invalidates the evidence |
 | Assuming reviewer is right | Check if breaks things |
 | Avoiding pushback | Technical correctness > comfort |
 | Guessing unclear dependencies | Resolve the dependency; continue independent work |
@@ -200,7 +202,7 @@ Verified no remaining callers: remove helpers obsoleted by this task; do not exp
 
 **Unclear Item (Good):**
 ```
-your human partner: "Fix items 1-6"
+User: "Fix items 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
 If independent: fix and verify 1,2,3,6; ask about 4,5. If dependent: resolve 4,5 first.
 ```

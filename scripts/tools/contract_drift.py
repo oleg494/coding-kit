@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""contract_drift.py — AGENTS.md contract materiality gate (wave5 Task 17).
+"""contract_drift.py — contract-review pointer for high-materiality diffs.
 
-Review-time check, NOT a doctor row: it needs the diff context (changed
-paths) that the doctor, which audits the tree as-is, does not have.
-fable-judge's "contract drift?" step runs it; CONTRIBUTING.md
-names it.
+Review-time advisory, NOT a gate and NOT a doctor row: it needs the diff
+context (changed paths) that the doctor, which audits the tree as-is,
+does not have. fable-judge's contract-review step uses it;
+CONTRIBUTING.md names it.
 
 materiality(changed_paths) -> "high" | "medium" | "low"
 
@@ -23,11 +23,18 @@ materiality(changed_paths) -> "high" | "medium" | "low"
              setup.cfg, tox.ini).
     low    — everything else.
 
-needs_contract_update(paths) -> True iff the diff touches high
-files WITHOUT any contract document (AGENTS.md, OPS.md,
-CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md,
-docs/CHANGELOG.md) in the same diff — i.e. the contract silently
-drifted from the tree it describes.
+needs_contract_review(paths) -> True iff the diff touches high-
+materiality files. This is a path heuristic: it points at a diff worth
+a contract review, it cannot prove coverage. A contract document
+(AGENTS.md, OPS.md, CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md,
+docs/CHANGELOG.md) in the same diff does NOT clear the pointer — its
+presence says nothing about whether it describes the change. The
+reviewer decides: update the contract, or explain why no change is
+needed.
+
+CLI: `contract_drift.py '["<paths>"]'` prints summarize() and exits 0
+(advisory, even for HIGH). No argument means an empty diff. Invalid JSON,
+non-array/non-string values or extra arguments exit 2 with a stderr diagnostic.
 
 Stdlib only; Windows-safe (backslash paths normalized).
 """
@@ -39,12 +46,6 @@ HIGH = "high"
 MEDIUM = "medium"
 LOW = "low"
 
-# Contract documents: their presence in the same diff proves the change
-# carried its contract update. Kept lowercase; compare against _norm().
-_CONTRACT_FILES = frozenset(p.lower() for p in (
-    "AGENTS.md", "OPS.md", "CONTRIBUTING.md", "README.md",
-    "docs/SECURITY-MAP.md", "docs/CHANGELOG.md",
-))
 _HIGH_EXACT = frozenset({
     "version", "profile.yml", "ops.md", "agents.md",
     "integrity-manifest.json", "pyproject.toml", "setup.py",
@@ -107,28 +108,27 @@ def materiality(changed_paths: list[str]) -> str:
     return LOW
 
 
-def needs_contract_update(changed_paths: list[str]) -> bool:
-    """True iff high-materiality files changed and no contract doc did."""
-    paths = [_norm(p) for p in changed_paths]
-    has_high = any(_is_high(p) for p in paths)
-    has_contract = any(p in _CONTRACT_FILES for p in paths)
-    return has_high and not has_contract
+def needs_contract_review(changed_paths: list[str]) -> bool:
+    """True iff any changed path is high-materiality.
+
+    Advisory side only: paths are a heuristic for "worth a contract
+    review", never proof that the contract covers (or misses) the
+    change. A contract document in the same diff does not clear it.
+    """
+    return materiality(changed_paths) == HIGH
 
 
 def summarize(changed_paths: list[str]) -> str:
-    """Human-readable one-liner for a review report."""
+    """Human-readable neutral one-liner for a review report."""
     tier = materiality(changed_paths)
     if tier != HIGH:
-        return f"contract drift? materiality {tier} — no gate"
+        return f"contract review? materiality {tier} — no review pointer"
     paths = [_norm(p) for p in changed_paths]
     high_files = sorted(p for p in paths if _is_high(p))
-    if needs_contract_update(changed_paths):
-        return ("contract drift? materiality HIGH (" +
-                ", ".join(high_files) +
-                ") without a contract doc — update AGENTS.md/OPS.md "
-                "or justify in the report")
-    return ("contract drift? materiality HIGH (" +
-            ", ".join(high_files) + ") — contract doc present, OK")
+    return ("contract review? materiality HIGH (" +
+            ", ".join(high_files) +
+            ") — review the relevant contract (AGENTS.md/OPS.md); update it "
+            "if affected or explain why no change")
 
 
 if __name__ == "__main__":
@@ -139,6 +139,15 @@ if __name__ == "__main__":
     if argv and argv[0] in ("-h", "--help"):
         print(__doc__)
         raise SystemExit(0)
-    paths = json.loads(argv[0]) if argv else []
+    if len(argv) > 1:
+        print("error: expected one JSON array of path strings", file=sys.stderr)
+        raise SystemExit(2)
+    try:
+        paths = json.loads(argv[0]) if argv else []
+    except json.JSONDecodeError as exc:
+        print(f"error: invalid JSON: {exc.msg}", file=sys.stderr)
+        raise SystemExit(2)
+    if not isinstance(paths, list) or any(not isinstance(p, str) for p in paths):
+        print("error: expected a JSON array of path strings", file=sys.stderr)
+        raise SystemExit(2)
     print(summarize(paths))
-    raise SystemExit(1 if needs_contract_update(paths) else 0)

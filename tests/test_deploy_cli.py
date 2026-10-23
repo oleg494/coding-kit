@@ -11,6 +11,9 @@ Ensures:
 - `deploy.py` (no args) still runs the full documented deploy sequence,
   including bump_claude_md (behavioral replacement for the deleted
   source-text pin in test_release_contract.py).
+- Managed dates: a later-day redeploy/preview whose version and payload did
+  not change leaves routers, CLAUDE.md and backups byte-identical; a version
+  or payload change takes the current date.
 
 --canonical tests live in test_canonical_deploy.py."""
 import hashlib
@@ -269,39 +272,47 @@ class DeployDryRunBoundaryTest(unittest.TestCase):
             "CLAUDE.md bump (verify() fails on every VERSION bump without it)")
 
 
+def run_main(home: Path, argv: list, today: str | None = None):
+    """Run deploy.main() against a fake home; returns
+    (deploy_module, claude_md_path, rc, stdout, stderr)."""
+    deploy = load_deploy()
+    out_buf = io.StringIO()
+    err_buf = io.StringIO()
+    claude_md = home / ".claude" / "CLAUDE.md"
+    patchers = [
+        mock.patch.object(sys, "argv", ["deploy.py", *argv]),
+        mock.patch.object(sys, "stdout", out_buf),
+        mock.patch.object(sys, "stderr", err_buf),
+        mock.patch.object(deploy, "SYNC_TARGETS",
+                          [str(home / ".claude" / "skills"), str(home / ".agents" / "skills")]),
+        mock.patch.object(deploy, "HARNESSES", [
+            {"id": "test_omp", "router": str(home / ".omp" / "agent" / "AGENTS.md"),
+             "name": "TestOMP", "skills_line": None, "skills_dir": None},
+        ]),
+        mock.patch.object(deploy, "CLAUDE_MD", claude_md),
+        mock.patch.object(deploy, "integrity_gate"),
+    ]
+    if today is not None:
+        patchers.append(mock.patch.object(deploy, "TODAY", today))
+    for p in patchers:
+        p.start()
+    try:
+        rc = deploy.main()
+        rc = 0 if rc is None else rc
+    except SystemExit as e:
+        rc = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
+    finally:
+        for p in patchers:
+            p.stop()
+    return deploy, claude_md, rc, out_buf.getvalue(), err_buf.getvalue()
+
+
 class DeployPreviewTest(unittest.TestCase):
     """CK-01 preview subset: the preview computes the same plan as a real deploy,
     mutates nothing, and predicts the exact set of touched files."""
 
     def _run(self, home: Path, argv: list):
-        deploy = load_deploy()
-        out_buf = io.StringIO()
-        err_buf = io.StringIO()
-        claude_md = home / ".claude" / "CLAUDE.md"
-        patchers = [
-            mock.patch.object(sys, "argv", ["deploy.py", *argv]),
-            mock.patch.object(sys, "stdout", out_buf),
-            mock.patch.object(sys, "stderr", err_buf),
-            mock.patch.object(deploy, "SYNC_TARGETS",
-                              [str(home / ".claude" / "skills"), str(home / ".agents" / "skills")]),
-            mock.patch.object(deploy, "HARNESSES", [
-                {"id": "test_omp", "router": str(home / ".omp" / "agent" / "AGENTS.md"),
-                 "name": "TestOMP", "skills_line": None, "skills_dir": None},
-            ]),
-            mock.patch.object(deploy, "CLAUDE_MD", claude_md),
-            mock.patch.object(deploy, "integrity_gate"),
-        ]
-        for p in patchers:
-            p.start()
-        try:
-            rc = deploy.main()
-            rc = 0 if rc is None else rc
-        except SystemExit as e:
-            rc = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
-        finally:
-            for p in patchers:
-                p.stop()
-        return deploy, claude_md, rc, out_buf.getvalue(), err_buf.getvalue()
+        return run_main(home, argv)
 
     def test_preview_mutates_nothing_and_predicts_real_deploy(self):
         with tempfile.TemporaryDirectory(prefix="test-preview-home-") as td:
@@ -482,6 +493,158 @@ class DeployPreviewSubprocessTest(unittest.TestCase):
                              "the deployed-from repository must stay byte-identical")
             self.assertEqual(snapshot(home / ".claude" / "skills"), snapshot(home / ".agents" / "skills"),
                              "every sync target must receive the same skill bytes")
+
+
+class ManagedDateStampTest(unittest.TestCase):
+    """Routers and CLAUDE.md carry a managed date. A roll-out on a later day
+    whose version and payload are unchanged must leave those files untouched
+    (no write, no backup); a version or payload change must still take the
+    current date."""
+
+    ROUTER_REL = Path(".omp") / "agent" / "AGENTS.md"
+
+    def _drive(self, home: Path, *, today: str, version: str | None = None,
+               skills_line: str | None = None, skills=("alpha",), dry=False):
+        deploy = load_deploy()
+        router = home / self.ROUTER_REL
+        claude = home / ".claude" / "CLAUDE.md"
+        patchers = [
+            mock.patch.object(deploy, "TODAY", today),
+            mock.patch.object(deploy, "HARNESSES", [
+                {"id": "t", "router": str(router), "name": "TestOMP",
+                 "skills_line": skills_line, "skills_dir": None},
+            ]),
+            mock.patch.object(deploy, "CLAUDE_MD", claude),
+            mock.patch.object(deploy, "master_skill_names",
+                              lambda: list(skills)),
+        ]
+        if version is not None:
+            patchers.append(mock.patch.object(deploy, "VERSION", version))
+        for p in patchers:
+            p.start()
+        try:
+            return (deploy.regen_routers(dry=dry),
+                    deploy.bump_claude_md(dry=dry))
+        finally:
+            for p in patchers:
+                p.stop()
+
+    @staticmethod
+    def _seed_claude(home: Path) -> None:
+        f = home / ".claude" / "CLAUDE.md"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(
+            "coding-kit v0.0.1 (repo master; machine CLAUDE.md"
+            " refreshed 2020-01-01) (0, English)\n"
+            "# machine-local triggers stay below the version line\n",
+            encoding="utf-8")
+
+    def test_second_day_roll_out_is_a_noop(self):
+        with tempfile.TemporaryDirectory(prefix="test-date-stable-") as td:
+            home = Path(td)
+            self._seed_claude(home)
+            router = home / self.ROUTER_REL
+            actions, status = self._drive(home, today="2026-10-20")
+            self.assertEqual(actions, [(str(router), "regenerated")])
+            self.assertEqual(status, "bumped")
+            first = snapshot(home)
+            self.assertIn("installed 2026-10-20",
+                          router.read_text(encoding="utf-8"))
+            self.assertIn(
+                "refreshed 2026-10-20",
+                (home / ".claude" / "CLAUDE.md").read_text(encoding="utf-8"))
+            backup = Path(str(router) + ".kit-bak")
+            self.assertFalse(backup.exists(),
+                             "a fresh router needs no backup")
+
+            self.assertEqual(self._drive(home, today="2026-10-21"),
+                             ([(str(router), "unchanged")], "unchanged"))
+            self.assertEqual(snapshot(home), first,
+                             "a date-only later day must not change bytes")
+            self.assertFalse(backup.exists(),
+                             "an unchanged router must not produce a backup")
+
+            self.assertEqual(self._drive(home, today="2026-10-22", dry=True),
+                             ([(str(router), "unchanged")], "unchanged"))
+            self.assertEqual(snapshot(home), first,
+                             "a later-day preview must stay read-only")
+
+    def test_version_change_takes_current_date(self):
+        with tempfile.TemporaryDirectory(prefix="test-date-version-") as td:
+            home = Path(td)
+            self._seed_claude(home)
+            self._drive(home, today="2026-10-20")
+            router = home / self.ROUTER_REL
+            old_router = router.read_text(encoding="utf-8")
+
+            actions, status = self._drive(home, today="2026-10-21",
+                                          version="9.9.9")
+            self.assertEqual(actions, [(str(router), "regenerated")])
+            self.assertEqual(status, "bumped")
+            text = router.read_text(encoding="utf-8")
+            self.assertIn("v9.9.9", text)
+            self.assertIn("installed 2026-10-21", text)
+            claude = (home / ".claude" / "CLAUDE.md").read_text(encoding="utf-8")
+            self.assertIn("v9.9.9", claude)
+            self.assertIn("refreshed 2026-10-21", claude)
+            self.assertEqual(
+                Path(str(router) + ".kit-bak").read_text(encoding="utf-8"),
+                old_router,
+                "the replaced router must keep its pre-change bytes in the backup")
+
+    def test_payload_change_takes_current_date(self):
+        with tempfile.TemporaryDirectory(prefix="test-date-payload-") as td:
+            home = Path(td)
+            self._seed_claude(home)
+            self._drive(home, today="2026-10-20")
+            router = home / self.ROUTER_REL
+
+            actions, status = self._drive(home, today="2026-10-21",
+                                          skills_line="# Skills: added pointer")
+            self.assertEqual(actions, [(str(router), "regenerated")])
+            self.assertEqual(status, "unchanged",
+                             "the CLAUDE.md line does not depend on the router payload")
+            text = router.read_text(encoding="utf-8")
+            self.assertIn("# Skills: added pointer", text)
+            self.assertIn("installed 2026-10-21", text)
+
+
+class DeploySecondDayTest(unittest.TestCase):
+    """A real apply followed by a later-day apply must change nothing at all —
+    skills, manifest, routers, CLAUDE.md and backups stay byte-identical."""
+
+    def test_second_day_redeploy_and_preview_are_byte_noops(self):
+        with tempfile.TemporaryDirectory(prefix="test-second-day-") as td:
+            home = Path(td)
+            seed_home(load_deploy(), home)
+            _, _, rc, out, err = run_main(home, [], today="2026-10-20")
+            self.assertEqual(rc, 0, f"first apply must succeed: {out}{err}")
+            router = home / ".omp" / "agent" / "AGENTS.md"
+            self.assertIn("installed 2026-10-20",
+                          router.read_text(encoding="utf-8"))
+            self.assertIn(
+                "refreshed 2026-10-20",
+                (home / ".claude" / "CLAUDE.md").read_text(encoding="utf-8"))
+            # An older backup must survive the later-day runs untouched too.
+            backup = Path(str(router) + ".kit-bak")
+            backup.write_text("prior router backup\n", encoding="utf-8")
+            first = snapshot(home)
+
+            _, claude_md, rc, out, err = run_main(
+                home, ["--dry-run"], today="2026-10-21")
+            self.assertEqual(rc, 0, f"later-day preview must succeed: {out}{err}")
+            self.assertIn("DRY RUN", out)
+            self.assertEqual(
+                plan_paths(load_deploy(), home, claude_md, out, snapshot(home)),
+                set(), "a settled machine must preview no file changes")
+            self.assertEqual(snapshot(home), first,
+                             "the preview must not write")
+
+            _, _, rc, out, err = run_main(home, [], today="2026-10-21")
+            self.assertEqual(rc, 0, f"later-day apply must succeed: {out}{err}")
+            self.assertEqual(
+                snapshot(home), first,
+                "a later-day redeploy must not rewrite bytes or create backups")
 
 
 if __name__ == "__main__":

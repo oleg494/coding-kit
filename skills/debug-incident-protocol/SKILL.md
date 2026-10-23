@@ -4,7 +4,7 @@ description: 'Use when the user says: «it doesn''t work», «still broken», «
 license: MIT
 compatibility: 'any stack: processes, logs, DB, network, tests'
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Debug & incident protocol: facts before theories

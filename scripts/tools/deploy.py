@@ -58,6 +58,8 @@ SOUL_MARKER = "# coding-kit — Agent Soul"
 MANIFEST_NAME = ".kit-manifest.json"
 TODAY = time.strftime("%Y-%m-%d")
 VERSION = (KIT / "VERSION").read_text(encoding="utf-8").strip()
+# Managed rewrite dates: a later calendar day alone must not rewrite these files.
+_MANAGED_DATE = re.compile(r"\(installed \d{4}-\d{2}-\d{2}, machine-adapted\)|machine CLAUDE\.md refreshed \d{4}-\d{2}-\d{2}")
 
 # Harnesses with a uniform regenerable router.
 # skills_dir None = harness has no own kit skills copy (omp auto-discovers
@@ -500,7 +502,8 @@ def regen_routers(dry: bool = False):
             "",
         ]
         new = "\n".join(lines) + "\n" + codegraph_block(old)
-        if new == old.rstrip() + ("\n" if old else "") or new == old:
+        date_only = _MANAGED_DATE.sub("", new) == _MANAGED_DATE.sub("", old)
+        if date_only or new == old.rstrip() + ("\n" if old else "") or new == old:
             actions.append((str(path), "unchanged"))
         elif dry:
             actions.append((str(path), "would regenerate"))
@@ -530,7 +533,7 @@ def bump_claude_md(dry: bool = False):
         f" refreshed {TODAY})",
         t, count=1)
     t2 = re.sub(r"\(\d+, English\)", f"({n}, English)", t2, count=1)
-    if t2 != t:
+    if t2 != t and _MANAGED_DATE.sub("", t2) != _MANAGED_DATE.sub("", t):
         if dry:
             return "would bump"
         safe_write_text(CLAUDE_MD, t2)

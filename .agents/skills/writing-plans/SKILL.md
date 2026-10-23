@@ -1,9 +1,9 @@
 ---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching code
+description: Use when a spec or requirements describe complex or coupled work whose task boundaries, shared interfaces or verification need deciding before code changes; a small single change does not need a plan
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Writing Plans
@@ -13,11 +13,12 @@ scope or inventing interfaces. Planning is part of authorized implementation,
 not a separate approval transaction. Plan-only requests remain plan-only.
 
 The plan is the set of decisions an implementer cannot make alone: what done
-means, which files and symbols, which interfaces cross task boundaries, which
-checks prove each outcome. Everything a competent implementer derives from the
-codebase stays out. If implementation bodies dominate, replace them with
-signatures and checks. Lines that decide nothing ("handle edge cases", "add
-appropriate validation") are the opposite failure.
+means, which files and symbols, which checks prove each outcome, and — when
+work is split or delegated — which interfaces cross a boundary. Everything a
+competent implementer derives from the codebase stays out. If implementation
+bodies dominate, replace them with signatures and checks. Lines that decide
+nothing ("handle edge cases", "add appropriate validation") are the opposite
+failure.
 
 ## Scope and structure
 
@@ -28,35 +29,38 @@ appropriate validation") are the opposite failure.
   documentation into the task whose deliverable needs them; split only where
   a whole outcome is separately rejectable. Include failure paths in the task
   whose deliverable needs them.
-- State dependencies and exact shared interfaces before parallel execution.
-  Keep related changes together; no unrelated refactoring.
-- Define behavior checks before implementation. Bug fixes need a failing
-  reproduction; do not prescribe tests that assert source text or wiring.
+- State dependencies, and the exact shared interfaces that actually cross a
+  boundary, before parallel execution. Keep related changes together; no
+  unrelated refactoring.
+- Define behavior checks before implementation. For bugs, use applicable
+  failure evidence or reproduce when needed; do not prescribe tests that
+  assert source text or wiring. Report unavailable reproduction honestly.
 
 ## Plan content
 
-A useful plan contains:
+A plan carries the sections that decide something; a section with nothing to
+decide is omitted rather than filled in:
 
 1. **Goal and boundaries:** full requested outcome, exclusions, constraints.
-2. **Approach:** existing patterns reused, important decisions and risks.
+2. **Approach:** existing patterns reused, important decisions and risks —
+   when a decision or risk is not obvious from the codebase.
 3. **Global constraints:** project-wide requirements from the spec or user —
    version floors, dependency limits, naming or copy rules, platform
    requirements — one line each with exact values, verbatim. Every task
-   implicitly includes this section; do not restate it per task.
+   implicitly includes this section; do not restate it per task. Omit when
+   the spec imposes none.
 4. **Changes:** exact files/symbols and required behavioral changes, ordered by
    dependency. Include caller migration and obsolete-path removal when needed.
-5. **Per-task contracts:** for each task, inputs/outputs/failure behavior and
-   the interfaces it **consumes** from earlier tasks and **produces** for later
-   ones — exact names, signatures and value shapes. A worker who sees only
-   their own task learns neighboring names from these blocks, not from the
-   other tasks' bodies.
-6. **Review focus:** boundary and failure inputs the spec implies but no task's
-   checks exercise — empty/oversized/malformed input, the "impossible" state
-   a caller can still build, platform or locale edge — one line each, most
-   likely to bite a real user first. Each line names the input, the behavior
-   a reasonable person would expect, and the task that owns the code; the
-   check is added to that owning task. An empty section means you checked and
-   found none, not that you skipped the check.
+5. **Boundary interfaces:** for split or delegated work only — the exact names,
+   signatures and value shapes a task **consumes** from another and
+   **produces** for another, stated where the work crosses that boundary. A
+   self-contained task needs no block; internal wiring is not an interface.
+6. **Review focus:** where the spec implies boundary or failure inputs —
+   empty/oversized/malformed input, the "impossible" state a caller can still
+   build, platform or locale edge — that no task's checks would otherwise
+   exercise: one line each naming the input, the behavior a reasonable person
+   would expect and the task that owns the code, whose checks cover it.
+   Omit when the spec implies none; do not manufacture placeholder lines.
 7. **Verification:** scenario/command, observable expected result and isolation.
 
 Steps should be decisions, not transcripts: a code step carries the exact
@@ -73,12 +77,13 @@ step per task is not required. Commits follow OPS.md §1.
 ## Self-review
 
 Compare every requirement with its implementation task and check. Add missing
-paths; resolve contradictory signatures and platform requirements; confirm
-per-task Produces/Consumes blocks agree — a function named `clearLayers()` in
-task 3 but `clearFullLayers()` in task 7 is a bug. Steps such as "handle
-errors" without named failure behavior are incomplete. Cover the Review Focus
-lines with checks in their owning tasks. The plan must be actionable, but
-should not duplicate the entire future implementation.
+paths; resolve contradictory signatures and platform requirements; confirm each
+name that crosses a task boundary is spelled identically on both sides — a
+function named `clearLayers()` in task 3 but `clearFullLayers()` in task 7 is a
+bug. Steps such as "handle errors" without named failure behavior are
+incomplete. Cover each Review Focus line with checks in its owning task. The
+plan must be actionable, but should not duplicate the entire future
+implementation.
 
 ## Execute
 

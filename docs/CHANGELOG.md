@@ -1,4 +1,67 @@
 # Changelog — Coding Agent OS
+- **v5.0.0 (2026-10-22) — procedural simplification candidate:**
+  - Kept the v4 safety contract: authorization boundaries, stop handling,
+    read-only memory rules, consumer-visible verification and honest
+    unavailable evidence remain mandatory.
+  - Narrowed planning, TDD, delegation and review skills to complex or
+    behavior-changing work. Related review fixes may share one verification
+    boundary; valid evidence may be reused until its checked state changes.
+  - Made local memory proactive: retrieve relevant context and retain useful
+    verified task results without repeated permission prompts. Read-only,
+    no-save and stop override retention; no duplicate Wiki/finding/ADR copies.
+  - Made contract-drift detection advisory: high-materiality paths request
+    semantic contract review; filenames cannot prove documentation coverage
+    or block a valid CLI invocation.
+  - Stopped deploy from rewriting routers and CLAUDE.md solely because the
+    calendar date changed. Version, payload and ownership protections remain.
+  - Initial candidate checks (Windows/Python 3.12): full suite 974 passed,
+    22 skipped, 590 subtests; focused policy/tooling set 63 passed and 40
+    subtests. These shell runs did not inherit the separately prepared
+    isolated MEMORY_ROOT; do not describe the full run as globally isolated.
+    Doctor used --expect-skills-drift: 14 checks returned OK, including an
+    expected installed-skill drift warning and a 36-day backup warning. The
+    repo canonical mirror was already synced; ~/.agents is a separate copy.
+    Integrity verified 215 files; size gate had zero hard violations.
+    Dry-run input validation covered 50 scenarios, 6 tasks and 149 queries.
+    Deployment regressions used temporary homes. Four model text probes
+    checked stated actions only, not tool behavior. CI remains unobserved.
+  - Memory-policy correction: proactive retention and no-save/read-only/stop
+    cases now share one policy across OPS, dev-wiki, autonomous-work and
+    user docs. Current user evidence is not discarded when absent from older
+    memory. In an explicitly redirected temporary HOME/USERPROFILE and
+    MEMORY_ROOT, 101 focused tests and 78 subtests passed; doctor returned
+    14/14 with only the fresh sandbox's missing-backup warning. Canonical
+    preview showed no changes; 151 trigger inputs and both changed scenario
+    inputs validated. A real temporary-DB CLI smoke saved, retrieved and
+    updated the same finding without duplication. Scenario and held-out
+    model probes chose automatic retention, honored no-save/read-only/stop
+    and refused unapproved external transfer; these are stated-action text
+    observations, not tool-execution or model-quality measurements.
+  - Final CLI review closed an inherited input-shape bug: contract_drift now
+    rejects non-array JSON, non-string entries and extra arguments with exit 2
+    and a stderr diagnostic, instead of silently classifying malformed input
+    as low materiality. Invalid JSON also exits 2 without a traceback; valid
+    arrays and no-argument empty diffs retain their advisory exit 0 behavior.
+  - Final candidate verification (Windows/Python 3.12, disposable repository
+    copy and explicit HOME/USERPROFILE/MEMORY_ROOT): 976 tests passed,
+    22 skipped, 600 subtests passed via `python -B -X utf8 -m pytest tests
+    -q -rs -p no:cacheprovider`. Skips cover Docker/task-image availability,
+    Windows symlink/8.3 support and environment-dependent compatibility.
+    CLI-focused checks: 20 passed, 40 subtests; direct CLI probes confirmed
+    rejection with exit 2 and valid advisory output with exit 0. Doctor:
+    14/14 with the fresh sandbox's missing-backup warning; integrity: 215
+    files; size gate: zero hard violations. Excluding unrelated .worktrees
+    leaves 30 soft-size warnings (not the earlier whole-workspace 161).
+    Dry runs validated 50 scenarios, 6 tasks and 151 trigger inputs;
+    canonical preview reported no changes. These are local candidate
+    observations, not GitHub CI or live model performance measurements.
+  - Pre-release sandbox deployment observation: actual deploy, preview and
+    repeat apply passed; advancing only the clock date preserved routers,
+    CLAUDE.md, skill payloads and backups byte-for-byte. Live user profiles
+    were not deployed. Two independent source reviews of implementation and
+    policy reported no findings; they do not replace the required live CI.
+  - This is a local candidate. No model-quality, token-efficiency or CI
+    publication claim follows from these text and tooling changes.
 
 - **v4.10.4 (2026-10-20) — safety, measurement integrity and release repairs:**
   - Supersedes the rejected local v4.10.3 candidate, including its safety,

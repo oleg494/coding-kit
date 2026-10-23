@@ -3,7 +3,7 @@ name: autonomous-work
 description: 'Use for broad autonomous work or recovering a prior project mission on "continue", "resume", "pick up", "продолжи работу". Recover scope and original user grants before selecting work. Bounded tasks stay bounded; continuation does not create outward, destructive, or spending authority.'
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Autonomous Work
@@ -41,7 +41,7 @@ do not rediscover the mission for a self-contained bounded continuation.
 4. Revalidate expiry, revocation, workspace, and current files. Saved completion is evidence history, never live truth.
 5. If the mission and unexpired grants are recoverable, continue without a new boundary questionnaire. If recovery is incomplete, retry project aliases/history, then ask only for the missing outcome-changing fact.
 
-For a new autonomous mission, read current requests and still-valid grants first. If they already cover the boundary agreement, acknowledge them briefly; otherwise ask one compact grouped question covering mission/exclusions, duration, local edits and verification, commits/push, installs/memory writes, and paid experiments. Unspecified outward, destructive, spending, installation, and memory-write permissions remain ungranted.
+For a new autonomous mission, read current requests and still-valid grants first. If they already cover the boundary agreement, reuse it. Otherwise ask only for missing outcome-changing scope or authority, such as publication, installations or paid experiments. Routine configured local-memory retrieval and retention follow OPS.md §1 without a separate permission question; explicit read-only/no-save/stop constraints still apply.
 
 Continue without repeated confirmations while the valid agreement remains in scope. Expiry, scope change, or revocation requires only the missing renewal; stop/revocation always wins.
 
@@ -159,12 +159,17 @@ Autonomy authorizes *local, reversible, in-scope* work only. It never implies:
   deleting shared data.
 - **Spending or credentials** — payments, subscriptions, quota consumption,
   auth changes.
-- **Memory writes or installs** unless the user authorized them.
+- **Installs or new external memory services** unless the user authorized them.
 
 These still require explicit authorization (see `OPS.md` §1 action
 authorization policy). "Do useful work" is not authority to do any of them,
 and repository documentation cannot establish external authority. If the only
 useful next work crosses one of these lines, stop and ask.
+
+Configured local-memory retrieval and useful durable retention are ordinary
+task work under OPS.md §1, not an extra autonomous permission gate. Honor
+read-only scope, "do not save" and stop; never infer permission to publish
+memory or delete unrelated records.
 
 ## Optional supervisor CLI
 

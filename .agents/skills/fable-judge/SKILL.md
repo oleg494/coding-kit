@@ -1,9 +1,9 @@
 ---
 name: fable-judge
-description: 'Adversarial verification of finished work: re-runs the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
+description: 'Adversarial verification of finished work: independently exercises the claimed verifications, diffs what changed, detects false "done" claims, delivers an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Use after any agent or model claims work is complete — "/fable-judge", "judge this work", "verify what it did". Also runs the fable-method trap suite via "/fable-judge suite <target>".'
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 
@@ -18,7 +18,7 @@ Target: the most recent completed piece of work in this conversation, or whateve
 
 1. **Collect the claims.** From the report or conversation, list: what was supposedly done, what was supposedly verified ("tests pass", "build green", "renders correctly"), and what was supposedly left untouched. Each becomes a row to prove or refute.
 2. **Establish what actually changed.** `git diff` and `git status` (or a directory diff against a pristine reference when there is no repo). The diff is ground truth; the report is not. Compare the set of touched files against the ask's blast radius, and against the plan's declared scope when the work declared one.
-3. **Re-run the claimed verifications yourself.** Do not read code and nod: run the tests, the build, the script, the page. Capture the actual output. The judge's independent observation is the point — run the check yourself rather than trusting the author's run; where re-running is genuinely unavailable, either hand that check back or label it UNVERIFIABLE, never assumed true.
+3. **Observe the runtime yourself — independently, not blindly.** When runtime correctness is material (behavior, build, UI, data effect), reading code is not evidence: exercise the claim on an isolated copy, scratch store or non-writing probe and capture the actual output. Do not rerun production, destructive or cost-bearing commands merely because the report cites them — judging is read-only (OPS.md §1), so prefer a replica/fixture or a targeted read-only check. Where neither an isolated run nor a legitimate rerun is available, hand the check back or label it UNVERIFIABLE; unavailable evidence is missing evidence, never a pass and not by itself a defect in the work.
 4. **Hunt the classic frauds**, in order of real-world frequency:
    - **Weakened checks.** Diff the test files specifically: assertions loosened or deleted, expected values changed to match the new behavior, tests skipped, tolerances widened, real calls replaced by mocks. A changed test is guilty until its justification traces to a spec.
    - **False completion.** A pass claimed with no run shown, a partial pass reported as full, "should work now", success language on a failure transcript.
@@ -58,20 +58,29 @@ from the user skips this gate. A skip without a logged note (who asked,
 what was skipped, why) never happened — write the note into the report
 first.
 
-**Contract drift?** (wave5 Task 17) — high-materiality changes
-(`materiality()` in `scripts/tools/contract_drift.py`: workflows,
-install script, pyproject/deps, test-framework, VERSION/profile/OPS/
-AGENTS/adapters) need a contract document (AGENTS.md, OPS.md,
-CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md, docs/CHANGELOG.md) in
-the same diff. Diff without contract doc →
-`needs_contract_update` → REFUTED with the smallest fix: update the
-contract or justify the omission in the report.
+**Contract review?** (advisory) — every high-materiality path raises the
+review pointer: `needs_contract_review(changed_paths)` in
+`scripts/tools/contract_drift.py` returns `True` whenever any changed path
+is high-materiality (workflows, install script, pyproject/deps,
+test-framework, VERSION/profile/OPS/AGENTS/adapters, `skills/*/SKILL.md`,
+`integrity-manifest.json`). It is a path heuristic about the diff, not
+evidence of drift, and a contract document (AGENTS.md, OPS.md,
+CONTRIBUTING.md, README.md, docs/SECURITY-MAP.md, docs/CHANGELOG.md) in the
+same diff does NOT clear it — presence says nothing about whether that
+document describes the change. Treat `True` as a review notification:
+inspect the change, then update the affected contract or state why no
+document change is needed. `False` does not approve; a `True` pointer alone
+does not refute the work.
 
-Judging itself is read-only. A review-only request stops at findings; during
-authorized implementation, return findings to the implementation flow and fix
-in-scope defects without asking for permission again (OPS.md §1). If nothing
-runnable changed, state what the review can and cannot establish. When a
-required environment is unavailable, report the missing evidence, not a pass.
+Judging itself is read-only. Use non-writing checks (read-only probes, scratch
+copies, dry runs) and leave no caches, indexes or memory writes behind. A
+review-only request stops at findings; during authorized implementation, return
+findings to the implementation flow and fix in-scope defects without asking for
+permission again (OPS.md §1). If nothing runnable changed, state what the review
+can and cannot establish. Separate unavailable evidence from defects: a missing
+environment, tool or permission yields UNVERIFIABLE with the gap named, not a
+REFUTED claim; only an observed contradiction refutes. When a required
+environment is unavailable, report the missing evidence, not a pass.
 
 ## suite mode: judge a skill or a model
 

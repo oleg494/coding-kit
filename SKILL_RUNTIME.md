@@ -1,6 +1,6 @@
 # Coding Agent OS — Skill Runtime
 
-> **v4.10.4** | Host integration notes, not another operating contract.
+> **v5.0.0** | Host integration notes, not another operating contract.
 
 ## Startup
 
@@ -29,8 +29,10 @@ tool. Local implementation checks and external effects follow OPS §1.
 
 ## Memory
 
-No automatic warmup, global findings feed, recursive integrity scan or save
-ritual. Retrieve memory when prior decisions matter, using project/topic scope.
+No automatic warmup, global findings feed or recursive integrity scan.
+Retrieve relevant local memory proactively; retain useful verified results
+once, without per-use confirmation or duplicate save rituals (OPS §1).
+Read-only, "do not save" and stop override automatic retention.
 Explicit availability check: `python memory/scripts/memory-warmup.py` from the
 clone, or the installed script under `~/.memory/scripts/`. Full diagnostics:
 add `--full`. `MEMORY_ROOT` selects the store; no mode may silently migrate it.

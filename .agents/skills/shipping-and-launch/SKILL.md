@@ -3,7 +3,7 @@ name: shipping-and-launch
 description: Prepares production launches. Use when preparing to deploy to production. Use when you need a pre-launch checklist, when setting up monitoring, when planning a staged rollout, or when you need a rollback strategy.
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Shipping and Launch

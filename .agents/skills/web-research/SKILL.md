@@ -3,7 +3,7 @@ name: web-research
 description: 'Use when you need a fact from the outside world: "find out", "look up", "what do they say about", "how it works", "compare", "find information". Protocol: web search → primary sources → cross-check → answer with sources. Do not use for searching the knowledge base (business-wiki) or for facts already in the Wiki.'
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Web Research — facts from the outside world
@@ -50,7 +50,7 @@ search cannot materially change the answer.
 - **Result first line.** What was found, briefly.
 - **Details with sources.** Every fact with a link.
 - **Caveats.** What wasn't verified, what's in question.
-- **Memory.** Save only durable findings within existing authorization; do not add a save-confirmation ritual to every answer.
+- **Memory.** Retain useful durable findings in configured local memory under OPS §1 without repeated confirmation. Skip duplicates and speculation; honor read-only, "do not save" and stop.
 
 ## Gotchas
 

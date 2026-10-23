@@ -24,19 +24,19 @@ release approval; unobserved CI remains unverified.
 
 | ID | Claim | Verification command | Evidence | Status |
 |---|---|---|---|---|
-| C-01 | Full test suite passes on Windows/Python 3.12 (846 passed, 20 skipped, 488 subtests at v4.10.0) | `python -m pytest tests -q` | [CHANGELOG](CHANGELOG.md) v4.10.0 verification record | verified |
-| C-02 | CI kit gates run on both Windows and Ubuntu with Python 3.12 and read-only permissions | `python -m pytest tests/test_ci_workflow.py -q` | [.github/workflows/test.yml](../.github/workflows/test.yml) | verified |
-| C-03 | Doctor: 14/14 repository and memory checks green at v4.10.0 | `python scripts/doctor.py` | [CHANGELOG](CHANGELOG.md) v4.10.0 verification record | verified |
-| C-04 | Integrity manifest: zero control-plane drift (182 files pinned at v4.10.0) | `python scripts/tools/integrity_manifest.py` | [integrity-manifest.json](../integrity-manifest.json) | verified |
-| C-05 | File-size gate green (0 hard violations at v4.10.0) | `python scripts/tools/check_file_sizes.py --ci` | [CHANGELOG](CHANGELOG.md) v4.10.0 verification record | verified |
-| C-06 | Trap-suite dry-run validates scenario inputs (DRY_RUN rows, exit 0) | `python eval/runner.py --inline-skills` | [CHANGELOG](CHANGELOG.md) v4.10.0 input-validation record | verified |
-| C-07 | Task-runner dry-run validates task inputs (DRY_RUN rows, exit 0) | `python eval/task_runner.py --dry-run` | [CHANGELOG](CHANGELOG.md) v4.10.0 input-validation record | verified |
-| C-08 | Trigger-eval input validation covers colocated cases plus the 80-query fallback corpus | `python eval/trigger_eval.py --queries auto` | [eval/trigger_queries.json](../eval/trigger_queries.json) | verified |
-| C-09 | Full deploy to all local harnesses; repeat deployment changes no bytes | `python scripts/tools/deploy.py --dry-run` (must report no pending changes after a deploy) | [CHANGELOG](CHANGELOG.md) v4.10.0 verification record | verified |
-| C-10 | Canonical mirror `.agents/skills/` is byte-identical to repo masters | `python scripts/tools/deploy.py --canonical --dry-run` (must report no changes) | [tests/test_canonical_deploy.py](../tests/test_canonical_deploy.py) | verified |
-| C-11 | All 37 profile-declared skills exist on disk; manifest equals disk | `python scripts/doctor.py` (manifest check) | [profile.yml](../profile.yml) | verified |
-| C-12 | Installer bootstraps the memory store and passes the search smoke check | `python scripts/install.py` (look for `search smoke: OK`) | [tests/test_install.py](../tests/test_install.py) | verified |
-| C-13 | `memory-warmup.py` honors `MEMORY_ROOT` and is not auto-run by generated routers | `python -m pytest tests/test_v29.py tests/test_deploy_cli.py -q` | [tests/test_v29.py](../tests/test_v29.py) | verified |
+| C-01 | Full test suite passes on Windows/Python 3.12 (976 passed, 22 skipped, 600 subtests on the isolated v5.0.0 local candidate) | `python -B -X utf8 -m pytest tests -q -rs -p no:cacheprovider` | [CHANGELOG](CHANGELOG.md) v5.0.0 final candidate verification record | verified |
+| C-02 | CI kit gates are configured for Windows and Ubuntu with Python 3.12 and read-only permissions; live candidate CI remains unobserved | `python -m pytest tests/test_ci_workflow.py -q` | [.github/workflows/test.yml](../.github/workflows/test.yml) | verified |
+| C-03 | Doctor: 14/14 checks on the isolated v5.0.0 candidate; fresh sandbox warns that no backup exists | `python scripts/doctor.py` | [CHANGELOG](CHANGELOG.md) v5.0.0 final candidate verification record | verified |
+| C-04 | Integrity manifest: zero control-plane drift (215 files pinned on the v5.0.0 candidate) | `python scripts/tools/integrity_manifest.py` | [integrity-manifest.json](../integrity-manifest.json), [CHANGELOG](CHANGELOG.md) v5.0.0 | verified |
+| C-05 | File-size gate green (0 hard violations on the v5.0.0 candidate) | `python scripts/tools/check_file_sizes.py --ci` | [CHANGELOG](CHANGELOG.md) v5.0.0 final candidate verification record | verified |
+| C-06 | Trap-suite dry-run validates 50 scenario inputs (DRY_RUN rows, exit 0; not behavioral proof) | `python eval/runner.py --inline-skills` | [CHANGELOG](CHANGELOG.md) v5.0.0 input-validation record | verified |
+| C-07 | Task-runner dry-run validates 6 task inputs (DRY_RUN rows, exit 0; not execution) | `python eval/task_runner.py --dry-run` | [CHANGELOG](CHANGELOG.md) v5.0.0 input-validation record | verified |
+| C-08 | Trigger-eval auto mode validates 151 queries total, assembled from colocated cases and fallback queries | `python eval/trigger_eval.py --queries auto` | [CHANGELOG](CHANGELOG.md) v5.0.0 input-validation record | verified |
+| C-09 | Full sandbox deploy and repeat apply preserve installed bytes; live user profiles were not deployed for v5.0.0 | `python scripts/tools/deploy.py --dry-run` (no pending changes after sandbox deploy) | [CHANGELOG](CHANGELOG.md) v5.0.0 sandbox deployment record | verified |
+| C-10 | Canonical mirror `.agents/skills/` is byte-identical to repo masters | `python scripts/tools/deploy.py --canonical --dry-run` | [CHANGELOG](CHANGELOG.md) v5.0.0 final candidate verification record | verified |
+| C-11 | All 37 profile-declared skills exist on disk; manifest equals disk | `python scripts/doctor.py` (manifest check) | [CHANGELOG](CHANGELOG.md) v5.0.0 final candidate verification record | verified |
+| C-12 | Installer bootstraps the memory store and passes the search smoke check | `python scripts/install.py` (look for `search smoke: OK`) | [CHANGELOG](CHANGELOG.md) v5.0.0 final candidate verification record | verified |
+| C-13 | `memory-warmup.py` honors `MEMORY_ROOT` and is not auto-run by generated routers | `python -m pytest tests/test_v29.py tests/test_deploy_cli.py -q` | [tests/test_v29.py](../tests/test_v29.py), [CHANGELOG](CHANGELOG.md) v5.0.0 | verified |
 | C-14 | Backup/restore drill: DEGRADED snapshots refused; drill exits 0 only after `PRAGMA integrity_check` and search verification pass | `python -m pytest tests/test_backup_memory.py -q` | [tests/test_backup_memory.py](../tests/test_backup_memory.py) | verified |
 | C-15 | Handoff resume exit codes 0/1/2; stale evidence marked, embedded commands never executed | `python -m pytest tests/test_handoff.py -q` | [tests/test_handoff.py](../tests/test_handoff.py) | verified |
 | C-16 | Deploy rolls back earlier skills/routers on mid-deploy failure and keeps a recovery directory if rollback itself fails | `python -m pytest tests/test_deploy_rollback.py -q` | [tests/test_deploy_rollback.py](../tests/test_deploy_rollback.py) | verified |
@@ -66,8 +66,8 @@ Gates 1–6 establish local evidence; gate 7 is required for release approval.
 Record results on the exact candidate commit before creating a release tag.
 Push/CI/publication require separate authorization; missing CI never counts
 as green. The existing local v4.10.3 tag was created prematurely and failed
-review; preserve it for provenance, do not publish or move it. The corrected
-v4.10.4 candidate may be tagged only after all gates pass on its commit.
+review; preserve it for provenance, do not publish or move it. The current local
+v5.0.0 candidate may be tagged only after all gates pass on its commit.
 
 1. **Full suite**: `python -m pytest tests -q` — zero failures; skips must
    be limited to documented environment prerequisites (Docker/task images,

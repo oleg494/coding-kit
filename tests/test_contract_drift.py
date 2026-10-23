@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Wave 5 v3.9.0 Task 17: AGENTS.md contract materiality gate.
+"""Contract-review pointer: materiality classification and advisory CLI.
 
-Contract:
+Contract (v5.0.0, advisory — not a gate):
 - scripts/tools/contract_drift.py — consumed at review time (a
   fable-judge step), NOT a doctor row (needs a diff context the doctor
   does not have).
@@ -11,20 +11,26 @@ Contract:
             files, test-framework files (tests/conftest.py,
             pytest.ini, tests/_util*), major restructures (VERSION,
             profile.yml, OPS.md, AGENTS.md, adapters/*,
-            integrity-manifest.json);
+            integrity-manifest.json, skills/*/SKILL.md);
     medium: lint rules (ruff.toml, .ruff.toml, setup.cfg,
-            tox.ini), big dep bumps (requirements*.txt, Pipfile,
-            poetry.lock);
+            tox.ini); dep files are high, not medium;
     low:    everything else.
-- needs_contract_update(paths: list[str]) -> bool — True iff the diff
-  touches high-materiality files WITHOUT any contract document
+- needs_contract_review(paths: list[str]) -> bool — True iff the diff
+  touches high-materiality files. Path detection points at a possible
+  contract review; it cannot prove coverage, so a contract document
   (AGENTS.md, OPS.md, CONTRIBUTING.md, README.md,
-  docs/SECURITY-MAP.md, docs/CHANGELOG.md) in the same diff.
-- CONTRIBUTING.md gains one paragraph naming the gate.
-- fable-judge gains a "contract drift?" step.
+  docs/SECURITY-MAP.md, docs/CHANGELOG.md) in the same diff does NOT
+  clear the pointer.
+- CLI exits 0 for valid input regardless of tier; malformed input
+  still fails loudly.
+
+Behavior only: no source-text/wording pins of the docs or skills that
+describe this helper.
 
 Run: python -m pytest tests/test_contract_drift.py -v
 """
+import json
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -34,9 +40,7 @@ sys.path.insert(0, str(KIT / "scripts" / "tools"))
 
 import contract_drift
 
-CONTRIBUTING = KIT / "CONTRIBUTING.md"
-
-FABLE = KIT / "skills" / "fable-judge" / "SKILL.md"
+SCRIPT = KIT / "scripts" / "tools" / "contract_drift.py"
 
 
 class MaterialityTest(unittest.TestCase):
@@ -64,7 +68,8 @@ class MaterialityTest(unittest.TestCase):
 
     def test_major_restructure_high(self):
         for p in ("VERSION", "profile.yml", "OPS.md", "AGENTS.md",
-                  "adapters/UNIVERSAL.md", "integrity-manifest.json"):
+                  "adapters/UNIVERSAL.md", "integrity-manifest.json",
+                  "skills/fable-judge/SKILL.md"):
             with self.subTest(path=p):
                 self.assertEqual(contract_drift.materiality([p]), "high")
 
@@ -82,6 +87,9 @@ class MaterialityTest(unittest.TestCase):
     def test_empty_diff_low(self):
         self.assertEqual(contract_drift.materiality([]), "low")
 
+    def test_blank_entries_ignored(self):
+        self.assertEqual(contract_drift.materiality(["", "  ", "./"]), "low")
+
     def test_high_wins_over_low(self):
         self.assertEqual(
             contract_drift.materiality(["README.md", "VERSION"]), "high")
@@ -94,90 +102,86 @@ class MaterialityTest(unittest.TestCase):
             contract_drift.materiality(["scripts\\install.py"]), "high")
 
 
-class NeedsContractUpdateTest(unittest.TestCase):
-    """High without contract docs in the same diff -> True."""
+class NeedsContractReviewTest(unittest.TestCase):
+    """Path detection points at a contract review; contract-doc presence
+    is not semantic proof, so it never clears the pointer."""
 
     CONTRACT_FILES = ("AGENTS.md", "OPS.md", "CONTRIBUTING.md",
                       "README.md", "docs/SECURITY-MAP.md",
                       "docs/CHANGELOG.md")
 
-    def test_high_without_contract_true(self):
-        self.assertTrue(contract_drift.needs_contract_update(
-            [".github/workflows/ci.yml", "src/app.py"]))
+    def test_high_flags_review(self):
+        for paths in ([".github/workflows/ci.yml", "src/app.py"],
+                      ["scripts/install.py"],
+                      ["skills\\fable-judge\\SKILL.md", "src/app.py"]):
+            with self.subTest(paths=paths):
+                self.assertTrue(contract_drift.needs_contract_review(paths))
 
-    def test_high_with_contract_false(self):
+    def test_contract_doc_does_not_clear_flag(self):
         for cf in self.CONTRACT_FILES:
             with self.subTest(contract=cf):
-                self.assertFalse(contract_drift.needs_contract_update(
+                self.assertTrue(contract_drift.needs_contract_review(
                     ["scripts/install.py", cf]))
 
     def test_medium_low_never_flags(self):
-        self.assertFalse(contract_drift.needs_contract_update(
-            ["ruff.toml", "src/app.py"]))
-        self.assertFalse(contract_drift.needs_contract_update([]))
-
-    def test_summary_names_tier_and_files(self):
-        """Review-facing helper: a human-readable summary of the gate."""
-        text = contract_drift.summarize(
-            [".github/workflows/ci.yml", "ruff.toml", "src/app.py"])
-        self.assertIn("HIGH", text)
-        self.assertIn(".github/workflows/ci.yml", text)
-        self.assertIn("AGENTS.md", text)
-        low = contract_drift.summarize(["src/app.py"]).lower()
-        self.assertIn("no gate", low)
+        for paths in (["ruff.toml", "src/app.py"], [], [""]):
+            with self.subTest(paths=paths):
+                self.assertFalse(contract_drift.needs_contract_review(paths))
 
 
-class ContributingContractPathTest(unittest.TestCase):
-    """Regression (v4.0.2): the contract-document path is root
-    CONTRIBUTING.md. The gate listed docs/CONTRIBUTING.md, which does
-    not exist in the kit, so an update to the real contract file did
-    not satisfy the gate."""
 
-    def test_contributing_lives_at_root_only(self):
-        self.assertTrue(CONTRIBUTING.is_file(),
-                        "CONTRIBUTING.md must exist at the repo root")
-        self.assertFalse((KIT / "docs" / "CONTRIBUTING.md").exists(),
-                         "docs/CONTRIBUTING.md must not exist")
+class CliAdvisoryTest(unittest.TestCase):
+    """The CLI is advisory for valid input and still fails on malformed input."""
 
-    def test_root_contributing_satisfies_gate(self):
-        self.assertFalse(contract_drift.needs_contract_update(
-            [".github/workflows/ci.yml", "CONTRIBUTING.md"]))
+    def _run(self, arg):
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), arg],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=120)
 
-    def test_stale_docs_path_dropped(self):
-        self.assertNotIn("docs/contributing.md",
-                         contract_drift._CONTRACT_FILES,
-                         "the nonexistent docs/ path must leave the gate")
+    def test_high_materiality_exits_zero(self):
+        proc = self._run(json.dumps(
+            [".github/workflows/ci.yml", "README.md"]))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("HIGH", proc.stdout)
+        self.assertIn(".github/workflows/ci.yml", proc.stdout)
 
+    def test_low_materiality_exits_zero(self):
+        proc = self._run(json.dumps(["src/app.py"]))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("low", proc.stdout)
 
-class FableJudgeStepTest(unittest.TestCase):
-    """fable-judge gains the 'contract drift?' step."""
+    def test_no_paths_exits_zero(self):
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT)],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("low", proc.stdout)
 
-    def test_contract_drift_step_present(self):
-        text = FABLE.read_text(encoding="utf-8")
-        self.assertIn("contract drift", text.lower(),
-                      "fable-judge must carry the materiality step")
-        self.assertIn("contract_drift", text,
-                      "the step must name the module")
+    def test_malformed_input_fails(self):
+        for raw in ('[not json', '"VERSION"', '{}', 'null', 'true', '7',
+                    '["VERSION", null]', '[false]', '[{}]', '[["VERSION"]]'):
+            with self.subTest(raw=raw):
+                proc = self._run(raw)
+                self.assertEqual(proc.returncode, 2, proc.stderr)
+                self.assertEqual(proc.stdout, "")
+                self.assertTrue(proc.stderr.strip())
+                self.assertNotIn("Traceback", proc.stderr)
 
-    def test_step_names_materiality(self):
-        text = FABLE.read_text(encoding="utf-8")
-        self.assertIn("materiality", text.lower())
+    def test_extra_argument_fails_instead_of_ignoring_paths(self):
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), '[]', '["VERSION"]'],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertEqual(proc.stdout, "")
+        self.assertTrue(proc.stderr.strip())
 
-
-class ContributingParagraphTest(unittest.TestCase):
-    def test_contributing_names_the_gate(self):
-        text = CONTRIBUTING.read_text(encoding="utf-8")
-        self.assertIn("contract_drift", text,
-                      "CONTRIBUTING must document the materiality gate")
-        self.assertIn("materiality", text.lower())
-        self.assertIn("AGENTS.md", text,
-                      "the paragraph must say which contract to update")
-
-    def test_doctor_check_count_agnostic(self):
-        text = CONTRIBUTING.read_text(encoding="utf-8")
-        self.assertNotIn("# 9 checks", text,
-                         "the check count drifts; say 'all checks'")
-        self.assertIn("# all checks", text)
+    def test_empty_array_is_valid(self):
+        proc = self._run('[]')
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("low", proc.stdout)
 
 
 if __name__ == "__main__":

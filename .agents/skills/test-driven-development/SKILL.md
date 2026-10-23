@@ -1,9 +1,9 @@
 ---
 name: test-driven-development
-description: Drives development with tests. Use when implementing any logic, fixing any bug, or changing any behavior. Use when you need to prove that code works, when a bug report arrives, or when you're about to modify existing functionality.
+description: Use when designing new behavior whose expected failure must be specified first, fixing a reported failure, or when regression coverage for a change is uncertain; ordinary edits with adequate coverage do not need it
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Test-Driven Development
@@ -23,8 +23,8 @@ Define acceptance and a behavior check before implementation. For bug fixes, rep
    Test FAILS        Test PASSES        Tests still PASS
 ```
 
-### Step 1: RED — Write a Failing Test
-For a bug or new missing behavior, observe the check fail for the intended reason before the fix — freshly, or by reusing prior failure evidence valid for the unchanged state. A passing check can establish existing behavior, but cannot establish that it reproduced the reported bug; a user-supplied failure report is ground truth for the symptom. Do not manufacture failures in unrelated behavior.
+### Step 1: RED — Establish Failing Evidence
+For a bug or new missing behavior, observe the check fail for the intended reason before the fix — freshly, or by reusing prior failure evidence valid for the unchanged state. Reuse follows OPS.md §3: a recorded failure still covers the same state, command and environment, and a new session or phase alone does not invalidate it. A passing check can establish existing behavior, but cannot establish that it reproduced the reported bug; a user-supplied failure report is ground truth for the symptom. Do not manufacture failures in unrelated behavior.
 
 ### Step 2: GREEN — Make It Pass
 Write the smallest correct implementation of the full request, not just the subset exercised by the current test. Don't over-engineer or drop acceptance criteria.

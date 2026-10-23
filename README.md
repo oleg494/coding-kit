@@ -13,6 +13,33 @@ agent runtime, a sandbox, or a guarantee of better answers.
 
 [Get started](#get-started) · [Daily use](#daily-use) · [Evidence and limitations](#evidence-and-limitations) · [Contributing](CONTRIBUTING.md)
 
+## 5.0 migration (local candidate)
+
+5.0 keeps the existing safety contract and memory format; it does not reset
+project history or require a memory migration. Planning and TDD helpers load
+for an unresolved execution or failure-check question, not every multi-step
+edit. Relevant local memory is retrieved proactively; useful durable task
+results are retained without repeated permission prompts. Read-only,
+"do not save" and stop override retention. Review fixes may share one
+relevant verification boundary.
+
+The breaking tooling change is `contract_drift.needs_contract_review(paths)`,
+replacing `needs_contract_update(paths)`. It identifies high-materiality paths
+for human/agent review even when a README is included. Valid CLI invocations
+exit zero: path names cannot prove documentation coverage or block a release.
+Update callers that used its old boolean or exit code as an approval gate.
+The CLI accepts one JSON array of path strings (or no argument for an empty
+diff). Invalid JSON, other JSON shapes, non-string entries and extra arguments
+exit 2 with a diagnostic on stderr; they never produce a review summary.
+
+Deployment preserves existing router/refreshed dates when only the calendar
+changed. Actual instruction or version changes still update managed content.
+Host-mandated skill loading takes precedence; this release does not silently
+change host settings. Global deployment, tags and publication remain separate
+authorized actions. Candidate checks do not establish a model-quality or
+token-efficiency improvement; see [Evidence and limitations](#evidence-and-limitations).
+
+
 ## What you can use it for
 
 - **Carry decisions across sessions.** Save findings in your private memory
@@ -136,9 +163,13 @@ python memory/db-tools/search_all.py "deployment decision" --importance high
 python memory/db-tools/findings.py projects
 ```
 
-Ask the agent to save a decision when it is worth carrying into another
-session. Memory writes need authorization; a read-only review should not
-silently modify your knowledge base.
+The agent retrieves relevant local memory without waiting for a reminder and
+retains useful verified decisions, fixes, configurations and preferences from
+ordinary task work without asking again. Update an existing record rather
+than duplicating it; omit secrets, speculation and unnecessary personal data.
+A read-only/review-only/plan-only task or "do not save" suppresses retention;
+stop ends all actions. New remote stores, publication and destructive memory
+maintenance still require their own authority.
 
 On "continue work on X", the agent first recovers the project's mission,
 original user grants and next action from memory and available history.
@@ -174,7 +205,8 @@ features, which ordinary coding tasks do not require.
 
 Memory availability is an explicit check: `python
 memory/scripts/memory-warmup.py`; add `--full` only for diagnostic feeds and
-integrity inspection. No automatic global findings feed or memory writes.
+integrity inspection. No automatic global findings feed; useful local
+retention follows the ordinary task policy above.
 
 Your knowledge lives in `~/.memory/` (or `MEMORY_ROOT`), **outside the kit
 repository**. The clone contains methodology and tooling, not your personal

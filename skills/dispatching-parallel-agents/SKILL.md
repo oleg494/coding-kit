@@ -1,9 +1,9 @@
 ---
 name: dispatching-parallel-agents
-description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+description: Use when several work slices are worth delegating and can be completed independently, without shared state or sequential dependencies
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Dispatching Parallel Agents
@@ -14,7 +14,7 @@ You delegate tasks to specialized agents with isolated context. By precisely cra
 
 When you have multiple unrelated failures (different test files, different subsystems, different bugs), investigating them sequentially wastes time. Each investigation is independent and can happen in parallel.
 
-**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently. If you can parallelize work by delegating — whether you are the root agent or a subagent — do so when it saves time or improves quality; under-delegating sequential work that was independent is its own failure mode. Delegation is a tool, not a requirement: a host without subagents, or a task whose slices share state, is executed inline without ceremony.
+**Core principle:** Give each independently completable slice its own isolated worker, and delegate only when the slice is worth the coordination cost. The count is not a quota: a task too small to hand over, a host without subagents, or a task whose slices share state runs inline without ceremony.
 
 ## When to Use
 
@@ -37,8 +37,8 @@ digraph when_to_use {
 ```
 
 **Use when:**
-- 3+ test files failing with different root causes
-- Multiple subsystems broken independently
+- Several failures or work slices have different root causes
+- Multiple subsystems are broken independently
 - Each problem can be understood without context from others
 - No shared state between investigations
 
@@ -46,6 +46,7 @@ digraph when_to_use {
 - Failures are related (fix one might fix others)
 - Need to understand full system state
 - Agents would interfere with each other
+- One slice is too small to be worth handing over
 - The host has no subagent tool — run the work inline; never fabricate a dispatch
 
 ## The Pattern
@@ -65,21 +66,20 @@ Each agent gets:
 - **Specific scope:** One test file or subsystem
 - **Clear goal:** Make these tests pass
 - **Constraints:** Don't change other code
-- **Interfaces:** What the task consumes from and produces for siblings — exact names and signatures, so a worker who sees only their task still matches neighboring code
+- **Interfaces:** only where the slice shares a real boundary with a sibling —
+  exact consumed/produced names and signatures, so a worker who sees only their
+  task still matches neighboring code
 - **Expected output:** Summary of what you found and fixed
 
-### 3. Dispatch in Parallel
+### 3. Dispatch with the Host's Delegation Mechanism
 
-Issue all three subagent dispatches in the same response — they run in parallel:
-
-```text
-Subagent (general-purpose): "Fix agent-tool-abort.test.ts failures"
-Subagent (general-purpose): "Fix batch-completion-behavior.test.ts failures"
-Subagent (general-purpose): "Fix tool-approval-race-conditions.test.ts failures"
-# All three run concurrently.
-```
-
-Multiple dispatch calls in one response = parallel execution. One per response = sequential.
+Use the API the current host actually exposes — its task/subagent tool, its
+agent-role selector, or a worktree-isolated worker — not another platform's
+example. When that tool supports concurrent dispatch, issue the independent
+slices as one batch; verify from its own documentation or a prior run whether
+they actually run concurrently rather than inferring it from call placement,
+since a host may serialize queued workers. Each worker keeps the isolated
+scope, constraints and interfaces from step 2.
 
 ### 4. Review and Integrate
 
@@ -132,7 +132,7 @@ Return: Summary of what you found and what you fixed.
 **✅ Specific:** "Return summary of root cause and changes"
 
 **❌ No interfaces:** Sibling tasks guess each other's names
-**✅ Interfaces:** State consumed/produced names and signatures per task
+**✅ Interfaces:** State names and signatures that cross a real sibling boundary
 
 ## When NOT to Use
 

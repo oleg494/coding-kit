@@ -3,7 +3,7 @@ name: verification-before-completion
 description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires applicable verification evidence (run when no valid evidence exists; valid prior evidence reusable for the unchanged state) before making any success claims; evidence before assertions always
 license: MIT
 metadata:
-  version: "4.10.4"
+  version: "5.0.0"
 ---
 
 # Verification Before Completion
@@ -26,6 +26,7 @@ Reuse existing evidence until an invalidation condition occurs (code
 change, failure, or unresolved concern) and report that provenance instead
 of treating the chat turn as a clock; a fresh invocation is required only
 when no valid evidence for the checked state exists.
+
 ## The Gate Function
 
 ```
@@ -60,7 +61,7 @@ check exposed.
 | Linter clean | Linter output: 0 errors | Extrapolating to the claim's scope; a different check's output for that scope |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
-| Regression test works | Red-green cycle verified | Test passes once |
+| Regression test works | Before-fix failure evidence established, then the behavior re-exercised | Test passes once |
 | Agent completed | Inspect changed artifacts and exercise the claimed behavior | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
 
@@ -68,12 +69,13 @@ check exposed.
 
 - Presenting "should", "probably" or "seems to" as proof, rather than explicitly labeled uncertainty
 - Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR without verification
+- About to commit/push/PR without applicable evidence
 - Trusting agent success reports
 - Extrapolating a partial check to the full claimed scope without narrowing the claim
 - Thinking "just this once"
 - Tired and wanting work over
-- **ANY wording implying success without having run verification**
+- **ANY success wording not backed by applicable evidence — a run for the
+  checked state, or reused evidence you can name with its provenance**
 
 ## Rationalization Prevention
 
@@ -96,7 +98,7 @@ check exposed.
 ❌ "Should pass now" / "Looks correct"
 ```
 
-**Regression tests (TDD Red-Green):**
+**Regression tests:**
 ```
 PASS: Use applicable before-fix failure evidence, then exercise the same behavior after the fix. For a regression-test claim, establish that the test detects the defect, using an isolated pre-fix copy if needed; never revert the user's tree.
 If before-fix evidence is unavailable, report that limitation and the narrower after-fix observation. Do not claim a demonstrated red-green regression.
