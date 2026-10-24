@@ -3,7 +3,7 @@ name: writing-plans
 description: Use when a spec or requirements describe complex or coupled work whose task boundaries, shared interfaces or verification need deciding before code changes; a small single change does not need a plan
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Writing Plans

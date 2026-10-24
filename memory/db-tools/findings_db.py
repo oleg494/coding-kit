@@ -178,3 +178,48 @@ def connect_read():
         con.close()
         return connect()  # D-C: rw backfill heals, then read
     return con
+
+
+def connect_read_strict():
+    """Strictly read-only connection for the SEARCH path: never writes.
+
+    Unlike connect_read(), which heals an absent/desynced store by routing
+    to the rw connect(), this variant performs NO DDL, NO backfill and NO
+    first-run creation — a read-only query must not mutate memory. Returns
+    ``(con, problem)``: ``problem`` is None on success, otherwise a
+    one-line diagnostic explaining why the store cannot answer (absent
+    file, missing/partial schema, desynced FTS index). The caller reports
+    the diagnostic; it must never repair the store by writing."""
+    if not os.path.exists(DB):
+        return None, (f"no findings store at {DB} "
+                      "(nothing to search; not creating one)")
+    try:
+        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+    except sqlite3.OperationalError as e:
+        return None, f"findings store unreadable: {e}"
+    con.row_factory = sqlite3.Row
+    try:
+        names = {r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name IN ('findings', 'findings_fts')")}
+        if names != {"findings", "findings_fts"}:
+            con.close()
+            return None, (f"findings store at {DB} has no usable schema "
+                          "(findings/findings_fts missing); run "
+                          "'findings.py list' to migrate")
+        n_tab = con.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+    except sqlite3.Error as e:
+        con.close()
+        return None, f"findings store unreadable: {e}"
+    try:
+        n_fts = con.execute(
+            "SELECT COUNT(*) FROM findings_fts_docsize").fetchone()[0]
+    except sqlite3.OperationalError:
+        n_fts = 1  # shadow table absent (columnsize=0) — desync undetectable
+    if n_tab and not n_fts:
+        con.close()
+        return None, ("findings FTS index is desynced (content present, "
+                      "index empty); run 'findings.py doctor' or "
+                      "'findings.py list' to heal — a read-only search "
+                      "will not repair the store")
+    return con, None

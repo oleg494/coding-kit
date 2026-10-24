@@ -20,10 +20,15 @@ class MemoryOrganizationTest(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="test_mem_org_")
         self.db_path = os.path.join(self.tmpdir, "research.db")
+        self._saved_db_override = os.environ.get("MEMORY_ROOT_RESEARCH_DB")
         os.environ["MEMORY_ROOT_RESEARCH_DB"] = self.db_path
         findings_db.DB = self.db_path
 
     def tearDown(self):
+        if self._saved_db_override is None:
+            os.environ.pop("MEMORY_ROOT_RESEARCH_DB", None)
+        else:
+            os.environ["MEMORY_ROOT_RESEARCH_DB"] = self._saved_db_override
         findings_db.DB = findings_db.research_db_path()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 

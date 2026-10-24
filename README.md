@@ -13,7 +13,16 @@ agent runtime, a sandbox, or a guarantee of better answers.
 
 [Get started](#get-started) · [Daily use](#daily-use) · [Evidence and limitations](#evidence-and-limitations) · [Contributing](CONTRIBUTING.md)
 
-## 5.0 migration (local candidate)
+## 5.1: optional semantic memory search
+
+5.1 adds `--mode vector|hybrid` to memory search on top of the unchanged
+lexical default; no memory migration is required. Semantic modes need a local
+model and index (see [Daily use](#daily-use)). Searches are now strictly
+read-only: an absent or desynced findings store is reported instead of being
+created or repaired on the read path; run `findings.py list` or the doctor to
+heal it.
+
+## 5.0 migration
 
 5.0 keeps the existing safety contract and memory format; it does not reset
 project history or require a memory migration. Planning and TDD helpers load
@@ -162,6 +171,31 @@ python memory/db-tools/search_all.py "deployment decision" --project coding-kit
 python memory/db-tools/search_all.py "deployment decision" --importance high
 python memory/db-tools/findings.py projects
 ```
+
+`--mode lexical` remains the default. Optional semantic retrieval uses a
+local multilingual MiniLM ONNX model, never a hosted inference API. It needs
+`numpy`, `onnxruntime`, and `tokenizers` only for semantic commands; ordinary
+FTS5 search and installation do not require those packages. Prepare the model
+and build the disposable index explicitly:
+
+```text
+python memory/db-tools/vector_search.py prepare-model --model-dir ~/.local/share/coding-kit/models/paraphrase-multilingual-MiniLM-L12-v2
+python memory/db-tools/vector_search.py build --model-dir ~/.local/share/coding-kit/models/paraphrase-multilingual-MiniLM-L12-v2
+python memory/db-tools/search_all.py "resume interrupted work" --mode vector --model-dir ~/.local/share/coding-kit/models/paraphrase-multilingual-MiniLM-L12-v2
+python memory/db-tools/search_all.py "resume interrupted work" --mode hybrid --model-dir ~/.local/share/coding-kit/models/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+The pinned public model is
+`Xenova/paraphrase-multilingual-MiniLM-L12-v2` at revision
+`2c4055b12046f11709e9df2c122e59ffbdc2f900`; preparation downloads only its
+quantized ONNX graph and tokenizer, verifies their fingerprints, and never
+executes remote code. `MEMORY_EMBEDDING_MODEL_DIR` may replace repeated
+`--model-dir` flags. Semantic reads do not repair stale indexes: rebuild after
+memory changes. Index writes are temporary and atomic; source databases are
+authoritative. Semantic index files are disposable, not personal data
+backups. `findings.py search` also accepts `--mode`, `--model-dir`, and
+`--index`; both CLIs expose `--state all|current|superseded` and
+`--verification all|verified|unverified` before result limits.
 
 The agent retrieves relevant local memory without waiting for a reminder and
 retains useful verified decisions, fixes, configurations and preferences from

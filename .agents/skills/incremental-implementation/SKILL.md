@@ -3,7 +3,7 @@ name: incremental-implementation
 description: Delivers changes incrementally in thin vertical slices. Use when a task touches many files or spans several independently landable capabilities, or when a large change would otherwise land in one unverified step.
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Incremental Implementation

@@ -3,7 +3,7 @@ name: dev-wiki
 description: 'Use when past project decisions or user preferences matter, or completed work produces a useful durable result. Retrieve relevant local memory proactively and save verified decisions, fixes and configurations without repeated permission prompts. Honor read-only, stop and "do not save". Also handles "напомни", "do you remember", "запомни" and "save this". Not process RAM or a substitute for current evidence.'
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Dev Wiki — cross-chat developer memory
@@ -107,9 +107,12 @@ python ~/.memory/db-tools/search_all.py "query"                                 
 python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high     # exact project scoped retrieval
 python ~/.memory/db-tools/search_all.py "query" --project portable                    # portable cross-cutting retrieval
 python ~/.memory/db-tools/search_all.py "query" --substring                           # declensions/substrings
+python ~/.memory/db-tools/search_all.py "query" --mode hybrid --model-dir <local-model-dir>
+python ~/.memory/db-tools/search_all.py "query" --state current --verification verified
 ```
 - Retrieve stored history from the configured memory source; do not invent records from recollection. Keep current user statements and live source evidence distinguishable from stored history; newer corrections take precedence.
-- Search is lexical FTS, not semantic: plain space-separated terms all must match. Start with a distinctive project or component token, not a natural-language sentence; narrow only after seeing results.
+- Lexical FTS5 remains the default: plain space-separated terms all must match. Start with a distinctive project or component token, not a natural-language sentence; narrow only after seeing results. Optional `vector` and `hybrid` modes require an explicitly built local ONNX semantic index (see README); never silently substitute lexical hashes or a hosted embedding API.
+- Use `--state current` to exclude superseded findings, `--state superseded` to inspect historical replacements, and `--verification verified|unverified` to filter evidence before ranking limits. Project/importance filters likewise apply before limits.
 - Search when history or an unresolved project-specific decision matters; do not add mandatory retrieval when the current authoritative source already settles the question.
 - A hit is a snippet, not the complete decision: open `findings.py show <id>` or the source file before relying on it. If a query is empty, try a materially better token or supported `OR` alternative — keep going while a better query could change the next action; the stop condition is evidence, not a retry count. `--substring` applies to indexed files, while findings retain word matching.
 - Project + portable composition: `--project portable` selects findings classified portable; global search also searches indexed Wiki/project files. To scope retrieval without losing portable patterns, query both target `--project <slug>` and `--project portable` or query globally.

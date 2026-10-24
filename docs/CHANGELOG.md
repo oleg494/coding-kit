@@ -1,4 +1,38 @@
 # Changelog — Coding Agent OS
+- **v5.1.0 (2026-10-25) — optional offline semantic memory retrieval:**
+  - `search_all.py` / `findings.py search` gain `--mode lexical|vector|hybrid`
+    (lexical FTS5 stays the default). Vector mode uses a local multilingual
+    MiniLM ONNX model (`vector_search.py prepare-model` downloads the pinned
+    public revision once; no hosted inference). numpy/onnxruntime/tokenizers
+    are imported only by semantic modes.
+  - Disposable index `<memory>/indexes/semantic.sqlite`, built atomically by
+    `vector_search.py build`. Every query checks model fingerprint, store
+    paths and per-document digests; a stale, missing or foreign index fails
+    explicitly instead of serving old facts. Source stores stay authoritative.
+  - `--state all|current|superseded` and `--verification all|verified|unverified`
+    filter in every mode before LIMIT; project/importance filters likewise.
+  - Read-only search: findings search no longer creates or migrates the store;
+    absent/desynced stores are reported (`findings.py list`/`doctor` heal).
+    Fixed scoped empty/prefix retries losing filter bindings and the legacy
+    projection using an alias inside WHERE.
+  - Warmup: query/store errors are reported, the Wiki count follows
+    MEMORY_ROOT, the engine resolves next to the script.
+  - `findings.py` split by concern (`findings_semantic.py`, `findings_verify.py`)
+    to stay under the 1000-line gate; test isolation fix restores
+    MEMORY_ROOT_RESEARCH_DB after `test_memory_organization`.
+  - Benchmark `eval/memory_retrieval.py` (public synthetic bilingual set,
+    16 docs / 32 paraphrase queries, Windows CPU): recall@5 lexical 0.344,
+    vector 0.969, hybrid 0.875; MRR@5 0.287 / 0.785 / 0.747; median query
+    2.0 / 9.6 / 11.8 ms after caching the loaded model per fingerprint.
+    Synthetic set only — not a measurement on real memory or model quality.
+  - Version restamped 5.0.0 → 5.1.0 (minor: backward-compatible opt-in feature).
+  - Release gates (Windows/Python 3.12): full suite 1006 passed, 22 skipped
+    (Docker/symlink/8.3 prerequisites), 602 subtests; doctor 14/14 green;
+    integrity 221 files; size gate hard 0; dry-run validations (runner,
+    task_runner, trigger_eval auto) exit 0; live deploy to all harnesses
+    VERDICT ALL OK, repeat `--dry-run` and `--canonical --dry-run` report no
+    changes. Real-memory hybrid smoke via the installed engine returned
+    coding-kit findings. CI (gate 7) is observed after push, not claimed here.
 - **v5.0.0 (2026-10-22) — procedural simplification candidate:**
   - Kept the v4 safety contract: authorization boundaries, stop handling,
     read-only memory rules, consumer-visible verification and honest

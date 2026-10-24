@@ -3,7 +3,7 @@ name: finishing-a-development-branch
 description: Use when a verified local change needs an authorized integration decision, merge, publication, or worktree cleanup.
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Finishing a Development Branch

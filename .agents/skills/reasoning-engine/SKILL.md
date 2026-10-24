@@ -3,7 +3,7 @@ name: reasoning-engine
 description: 'Evidence-first reasoning for non-trivial tasks: define the outcome, inspect authoritative sources, resolve material uncertainty, act within scope and verify. Use when a question needs a reasoned, source-checked answer and no task-specific skill covers it. Scale analysis to consequences rather than fixed step or source counts.'
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Reasoning Engine — the core of the agent's thinking

@@ -3,7 +3,7 @@ name: test-driven-development
 description: Use when designing new behavior whose expected failure must be specified first, fixing a reported failure, or when regression coverage for a change is uncertain; ordinary edits with adequate coverage do not need it
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Test-Driven Development

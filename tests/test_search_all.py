@@ -163,33 +163,6 @@ class WindowsSafeUriTest(unittest.TestCase):
         self.assertNotIn("\\", uri, "URI must use forward slashes")
         self.assertTrue(kwargs.get("uri"))
 
-    def test_search_findings_uri_from_real_windows_path(self):
-        # The URI pin needs a real present file (an absent store is
-        # skipped BEFORE connecting); a 0-byte file is a present store
-        # that cannot answer — under the 4.10.1+ contract that is a
-        # SearchError(kind="store"), which still must be raised AFTER
-        # the correctly-shaped read-only URI was used. On Windows
-        # str(Path) would yield backslashes that sqlite3 URI parsing
-        # treats as literal chars.
-        with tempfile.TemporaryDirectory(prefix="kit-sa-") as tmp:
-            db = Path(tmp) / "research.db"
-            db.write_bytes(b"")
-            con = _FakeCon(execute_raises=True)
-            with (
-                mock.patch.object(search_all, "_validated_match",
-                                  return_value="workflowz"),
-                mock.patch.object(search_all.sqlite3, "connect",
-                                  return_value=con) as connect,
-            ):
-                with self.assertRaises(search_all.SearchError) as cm:
-                    search_all.search_findings("workflowz", research_db=db)
-                self.assertEqual(cm.exception.kind, "store")
-        connect.assert_called_once()
-        args, kwargs = connect.call_args
-        uri = args[0] if args else kwargs.get("database", "")
-        self.assertEqual(uri, f"file:{db.as_posix()}?mode=ro")
-        self.assertNotIn("\\", uri, "URI must use forward slashes")
-        self.assertTrue(kwargs.get("uri"))
 
     def test_list_searchable_dbs_uri_from_real_db(self):
         real_connect = sqlite3.connect

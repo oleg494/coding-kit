@@ -3,7 +3,7 @@ name: autonomous-work
 description: 'Use for broad autonomous work or recovering a prior project mission on "continue", "resume", "pick up", "продолжи работу". Recover scope and original user grants before selecting work. Bounded tasks stay bounded; continuation does not create outward, destructive, or spending authority.'
 license: MIT
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # Autonomous Work

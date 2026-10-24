@@ -87,13 +87,14 @@ class PreFtsMigrationTest(unittest.TestCase):
     def test_pre_existing_rows_searchable_after_migration(self):
         """RED before P5: MATCH returns [] because the triggers only fire on
         NEW writes; the two seeded rows are invisible forever."""
+        r = self._run("list")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         r = self._run("search", "trigram", "--json")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         import json
         rows = json.loads(r.stdout)
         self.assertEqual(len(rows), 1,
-                         f"pre-FTS row invisible to search after connect() "
-                         f"migration — FTS backfill missing: {r.stdout}")
+                         f"pre-FTS row invisible after explicit migration: {r.stdout}")
         self.assertEqual(rows[0]["topic"], "ancient row")
 
     def test_migration_is_idempotent(self):
@@ -271,6 +272,19 @@ class ReadOnlyConnectTest(unittest.TestCase):
         r = subprocess.run(
             [sys.executable, str(FINDINGS), "search", "readonly",
              "--json"],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", env=self.env, timeout=60)
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertIn("desynced", r.stderr)
+        self.assertEqual(r.stdout, "")
+        # Explicit doctor repair is a separate write action; query does not heal.
+        r = subprocess.run(
+            [sys.executable, str(FINDINGS), "doctor"],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", env=self.env, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        r = subprocess.run(
+            [sys.executable, str(FINDINGS), "search", "readonly", "--json"],
             capture_output=True, text=True, encoding="utf-8",
             errors="replace", env=self.env, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)

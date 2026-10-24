@@ -4,7 +4,7 @@ description: 'Use for an explicit /fable-method request or an uncovered evidence
 license: MIT
 trigger: /fable-method
 metadata:
-  version: "5.0.0"
+  version: "5.1.0"
 ---
 
 # The Fable Method
