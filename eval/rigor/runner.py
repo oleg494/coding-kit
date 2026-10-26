@@ -251,9 +251,8 @@ def policy_bytes(bundle_root: Path) -> int:
 
 def _policy_prefix(bundle_mount: str) -> str:
     return (f"The policy bundle is mounted read-only at: {bundle_mount}\n"
-            "Read AGENTS.md, OPS.md, SKILL_RUNTIME.md and "
-            "skills/superpowers/SKILL.md there, then execute the task below "
-            "following that policy exactly.\n\n")
+            "Read AGENTS.md, OPS.md and SKILL_RUNTIME.md there, then "
+            "execute the task below following that policy exactly.\n\n")
 
 
 def evaluate_route(bundle_root: Path, executor_cmd: str | None = None,
@@ -271,10 +270,6 @@ def evaluate_route(bundle_root: Path, executor_cmd: str | None = None,
         if fpath.is_file():
             always_loaded += f"=== {fn} ===\n" + fpath.read_text(
                 encoding="utf-8") + "\n\n"
-    sp = bundle_root / "skills" / "superpowers" / "SKILL.md"
-    if sp.is_file():
-        always_loaded += ("=== skills/superpowers/SKILL.md ===\n"
-                          + sp.read_text(encoding="utf-8") + "\n\n")
 
     for case in cases:
         for repetition in range(1, ROUTE_REPETITIONS + 1):

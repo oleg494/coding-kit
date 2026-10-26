@@ -130,14 +130,14 @@ flowchart TD
     B -->|yes| J["fable-judge"]
     B -->|no| C{"Does a task-specific skill resolve<br/>an unanswered domain question?"}
     C -->|yes| G["Load that skill only"]
-    C -->|no| D{"Explicit Fable request or<br/>uncovered judgment task?"}
+    C -->|no| D{"Explicit /fable-method request,<br/>or a judgment domain its<br/>references cover?"}
     D -->|yes| M["Use fable-method"]
     D -->|no| CORE["Use the core OPS contract"]
 ```
 
 ## Reading these as a model
 
-Follow the decisions, not a reporting costume. Establish intent, authority and observable proof; no fixed `INTENT:` or `TWINS:` label is required. A user stop overrides every branch. Phase transitions and retry counts are not new permission gates.
+Follow the decisions, not a reporting costume. Establish intent, authority and observable proof; no fixed report headings or labels are required. A user stop overrides every branch. Phase transitions and retry counts are not new permission gates.
 
 ## Provenance
 

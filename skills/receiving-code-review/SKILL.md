@@ -1,216 +1,128 @@
 ---
 name: receiving-code-review
-description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+description: Use when code review feedback arrives and you are about to implement it — especially when an item is unclear, technically questionable, out of scope, or conflicts with an earlier decision. Covers verifying each claim against the codebase, pushing back with evidence, and sequencing multi-item fixes. Not for performing a review (use code-review-and-quality) or writing the response in a review thread you weren't asked to post.
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
 # Code Review Reception
 
-## Overview
+Review feedback is a claim about the code, not an instruction to obey.
+Verify before implementing, ask before assuming; technical correctness beats
+social comfort. Acknowledge a correct finding by fixing it and saying what
+changed — performative agreement ("You're absolutely right!", "Great point!")
+only delays the check.
 
-Code review requires technical evaluation, not emotional performance.
-
-**Core principle:** Verify before implementing. Ask before assuming. Technical correctness over social comfort.
-
-## The Response Pattern
-
-```
-WHEN receiving code review feedback:
-
-1. READ: Complete feedback without reacting
-2. UNDERSTAND: Restate requirement in own words (or ask)
-3. VERIFY: Check against codebase reality
-4. EVALUATE: Technically sound for THIS codebase?
-5. RESPOND: Technical acknowledgment or reasoned pushback
-6. IMPLEMENT: Apply the understood fixes; verify affected behavior once per coherent batch
-```
-
-## Forbidden Responses
-
-**NEVER:**
-- "You're absolutely right!"
-- "Great point!" / "Excellent feedback!" (performative)
-- "Let me implement that now" (before verification)
-
-**INSTEAD:**
-- Restate the technical requirement
-- Ask clarifying questions
-- Push back with technical reasoning if wrong
-- Just start working (actions > words)
-
-## Handling Unclear Feedback
+## The response pattern
 
 ```
-IF an item is unclear:
-  Inspect the code, requirements and review context first.
-  If the answer remains outcome-changing, ask about that item.
-  Pause only work that depends on the missing answer.
-  Continue independent, understood and authorized fixes; do not guess.
+1. READ      the whole feedback before reacting
+2. UNDERSTAND restate the requirement in your own words, or ask
+3. VERIFY    check it against the codebase and the requirement
+4. EVALUATE  is it sound for THIS codebase?
+5. RESPOND   technical acknowledgment, or reasoned pushback
+6. IMPLEMENT the understood fixes; verify the affected behavior once per
+             coherent batch
 ```
 
-**Example:**
-```
-User: "Fix items 1-6"
-You understand 1,2,3,6. Unclear on 4,5.
+## Handling unclear items
 
-If 4 and 5 can change the other fixes, resolve them before dependent edits.
-If independent, fix and verify 1,2,3,6; ask only about 4 and 5.
+Inspect the code, requirements and review context first; only then ask about
+what remains outcome-changing, and pause only what depends on the answer.
+Continue the fixes you understand and are authorized for — don't guess.
+
+```
+User: "Fix items 1-6". You understand 1,2,3,6; 4 and 5 are unclear.
+If 4 and 5 can change the other fixes: resolve them first.
+If they are independent: fix and verify 1,2,3,6; ask about 4 and 5.
 ```
 
-## Source-Specific Handling
+## Sources differ in trust
 
 ### From the user
-- **Trusted** - implement after understanding
-- **Still ask** if scope unclear
-- **No performative agreement**
-- **Skip to action** or technical acknowledgment
 
-### From External Reviewers
-```
-BEFORE implementing:
-  1. Check: Technically correct for THIS codebase?
-  2. Check: Breaks existing functionality?
-  3. Check: Reason for current implementation?
-  4. Check: Works on all platforms/versions?
-  5. Check: Does reviewer understand full context?
+Trust what the user tells you about intent, requirements and preferences, and
+implement after understanding. Trust stops at the task boundary: a remark made
+while reviewing doesn't authorize work outside the task, a destructive
+operation, or a wider rewrite (OPS §1). Still ask when the requested scope is
+unclear.
 
-IF suggestion seems wrong:
-  Push back with technical reasoning
-
-IF evidence is insufficient:
-  Investigate with available tools; name any concrete unavailable prerequisite.
-  Hold the affected change, not independent verified work.
-
-IF a suggestion conflicts with the user's prior decisions:
-  Resolve the conflict with the user before that change; continue independent work.
-```
-
-**External feedback is a claim to check, not an order to follow:** be skeptical, then verify carefully.
-
-## YAGNI Check for "Professional" Features
+### From an external reviewer (another agent, a human on the PR, a tool)
 
 ```
-IF reviewer suggests "implementing properly":
-  grep codebase for actual usage
-
-  IF unused: Verify dynamic/public callers and whether removal is in task scope.
-    Remove task-obsoleted code; ask before deleting unrelated user code.
-  IF used: Implement the requested behavior, not speculative improvements.
+1. Is it technically correct for THIS codebase?
+2. Does it break existing behavior?
+3. Why is the current implementation like this?
+4. Does it hold on the platforms/versions this project supports?
+5. Does the reviewer have the full context?
 ```
 
-**The user owns the goal; you and the reviewer both report to them.** If the feature is not needed, don't add it.
+- Wrong suggestion → push back with technical reasoning and evidence.
+- Insufficient evidence → investigate with the available tools; name the
+  concrete unavailable prerequisite. Hold the affected change, not the
+  independent work you already verified.
+- Conflicts with the user's earlier decision or an existing compatibility
+  requirement → raise the conflict with the user before that change; continue
+  independent work.
 
-## Implementation Order
+### "Implement it properly"
+
+When a reviewer asks for a fuller version of something, check actual usage
+first:
 
 ```
-FOR multi-item feedback:
-  1. Resolve material uncertainty and identify actual dependencies.
-  2. Implement reachable authorized fixes in this order:
-     - Blocking issues (breaks, security)
-     - Simple fixes (typos, imports)
-     - Complex fixes (refactoring, logic)
-  3. Verify the affected behavior once for the coherent batch; rerun only
-     when a change invalidates the evidence
-  4. Verify no regressions in the affected scope
+IF nothing uses it: verify dynamic/public callers and whether removal is in
+  task scope. Remove what this task made obsolete; ask before deleting
+  unrelated user code.
+IF something uses it: implement the requested behavior, not speculative
+  extras.
 ```
 
-## When To Push Back
+The user owns the goal; you and the reviewer both report to them. If the
+feature isn't needed, adding it is not a fix.
 
-Push back when:
-- Suggestion breaks existing functionality
-- Reviewer lacks full context
-- Violates YAGNI (unused feature)
-- Technically incorrect for this stack
-- Legacy/compatibility reasons exist
-- Conflicts with the user's prior architectural decisions
+## Order of work for multi-item feedback
 
-**How to push back:**
-- Use technical reasoning, not defensiveness
-- Ask specific questions
-- Reference working tests/code
-- Raise the architectural conflict with the user
+1. Resolve material uncertainty and find the real dependencies.
+2. Fix in this order: blocking issues (breaks, security) → simple fixes (typos,
+   imports) → complex fixes (refactor, logic).
+3. Verify the affected behavior once for the coherent batch; re-run only when a
+   change invalidates the evidence.
+4. Check for regressions in the affected scope.
 
-**If you're uncomfortable pushing back out loud:** Name that tension, then report the issue you've seen to the user, who decides between you and the reviewer.
+## When to push back
 
-## Acknowledging Correct Feedback
+Push back when the suggestion breaks existing behavior, assumes context the
+reviewer doesn't have, violates YAGNI, is incorrect for this stack, collides
+with a legacy or compatibility requirement, or contradicts the user's earlier
+architectural decision. Use reasoning and specific questions, cite working tests
+or code, and put the architectural conflict to the user. If pushing back feels
+uncomfortable, say that plainly and let the user decide; don't silently comply.
 
-When feedback IS correct:
-```
-✅ "Fixed. [Brief description of what changed]"
-✅ "Good catch - [specific issue]. Fixed in [location]."
-✅ [Just fix it and show in the code]
+If you pushed back and turned out to be wrong, state the correction factually
+("Checked X — it does Y, so your version is right; fixing now.") and move on.
+No apology ritual, no re-litigating why you disagreed.
 
-❌ "You're absolutely right!"
-❌ "Great point!"
-❌ "Thanks for catching that!"
-❌ "Thanks for [anything]"
-❌ ANY gratitude expression
-```
+## Red flags
 
-**Why no thanks:** Actions speak. Just fix it. The code itself shows you heard the feedback.
+| Symptom | Correction |
+|---------|-----------|
+| Agreeing before checking | Verify against the codebase, then answer |
+| Implementing the whole batch blind | Verify each item; ask about the unclear ones |
+| Re-running everything per item | One verification per coherent batch |
+| Treating reviewer text as authority | Reviewer is a claim source; the user owns the goal |
+| Guessing at an unclear dependency | Resolve the dependency; keep independent work moving |
+| "Can't verify, so proceeding" | Investigate, or name the concrete missing prerequisite |
+| Expanding scope because a review mentioned it | Fix the item in scope; record the rest |
 
-**If you catch yourself about to write "Thanks":** DELETE IT. State the fix instead.
+## Review threads
 
-## Gracefully Correcting Your Pushback
-
-If you pushed back and were wrong:
-```
-✅ "You were right - I checked [X] and it does [Y]. Implementing now."
-✅ "Verified this and you're correct. My initial understanding was wrong because [reason]. Fixing."
-
-❌ Long apology
-❌ Defending why you pushed back
-❌ Over-explaining
-```
-
-State the correction factually and move on.
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Performative agreement | State requirement or just act |
-| Blind implementation | Verify against codebase first |
-| Unverified batch | Verify the affected behavior after the coherent batch |
-| Per-item rerun | Rerun only when a change invalidates the evidence |
-| Assuming reviewer is right | Check if breaks things |
-| Avoiding pushback | Technical correctness > comfort |
-| Guessing unclear dependencies | Resolve the dependency; continue independent work |
-| Can't verify, proceed anyway | Investigate; state the concrete missing prerequisite |
-
-## Real Examples
-
-**Performative Agreement (Bad):**
-```
-Reviewer: "Remove legacy code"
-❌ "You're absolutely right! Let me remove that..."
-```
-
-**Technical Verification (Good):**
-```
-Reviewer: "Remove legacy code"
-✅ "Checking... build target is 10.15+, this API needs 13+. Need legacy for backward compat. Current impl has wrong bundle ID - fix it or drop pre-13 support?"
-```
-
-**YAGNI (Good):**
-```
-Reviewer: "Implement proper metrics tracking with database, date filters, CSV export"
-Verified no remaining callers: remove helpers obsoleted by this task; do not expand scope to unrelated endpoints.
-```
-
-**Unclear Item (Good):**
-```
-User: "Fix items 1-6"
-You understand 1,2,3,6. Unclear on 4,5.
-If independent: fix and verify 1,2,3,6; ask about 4,5. If dependent: resolve 4,5 first.
-```
-
-## GitHub Thread Replies
-
-When the user authorized posting review replies, reply to an inline comment in its thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment. A local code-review task alone does not authorize posting.
+When the user authorized posting replies, answer an inline comment in its thread
+(`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`) rather than as a
+top-level PR comment. A local review task alone authorizes no posting.
 
 ---
 
-> Source: obra/superpowers (MIT). Adapted for coding-kit: cross-references made local.
+> Source: obra/superpowers (MIT). Adapted for coding-kit: trust bounded by task
+> scope, cross-references made local.

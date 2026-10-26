@@ -1,62 +1,27 @@
 # coding-kit
 
-**Reusable workflows and cross-session memory for coding agents.**
+**One operating contract, on-demand skills and cross-session memory for coding agents.**
 
-Give your agent a shared development method, searchable project knowledge,
-and tools to evaluate its behavior. The kit combines 37 skills, plain-text
-instructions, and a Python standard-library memory engine. It is not an
-agent runtime, a sandbox, or a guarantee of better answers.
+The kit gives an agent a short contract ([OPS.md](OPS.md): authority,
+completion, evidence, memory), 27 skills that load only when their domain
+question is open, and a Python standard-library memory engine with
+evaluation tools. It is not an agent runtime, a sandbox, or a guarantee of
+better answers.
 
 [![Kit gates](https://github.com/oleg494/coding-kit/actions/workflows/test.yml/badge.svg)](https://github.com/oleg494/coding-kit/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/oleg494/coding-kit)](https://github.com/oleg494/coding-kit/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[Get started](#get-started) · [Daily use](#daily-use) · [Evidence and limitations](#evidence-and-limitations) · [Contributing](CONTRIBUTING.md)
-
-## 5.1: optional semantic memory search
-
-5.1 adds `--mode vector|hybrid` to memory search on top of the unchanged
-lexical default; no memory migration is required. Semantic modes need a local
-model and index (see [Daily use](#daily-use)). Searches are now strictly
-read-only: an absent or desynced findings store is reported instead of being
-created or repaired on the read path; run `findings.py list` or the doctor to
-heal it.
-
-## 5.0 migration
-
-5.0 keeps the existing safety contract and memory format; it does not reset
-project history or require a memory migration. Planning and TDD helpers load
-for an unresolved execution or failure-check question, not every multi-step
-edit. Relevant local memory is retrieved proactively; useful durable task
-results are retained without repeated permission prompts. Read-only,
-"do not save" and stop override retention. Review fixes may share one
-relevant verification boundary.
-
-The breaking tooling change is `contract_drift.needs_contract_review(paths)`,
-replacing `needs_contract_update(paths)`. It identifies high-materiality paths
-for human/agent review even when a README is included. Valid CLI invocations
-exit zero: path names cannot prove documentation coverage or block a release.
-Update callers that used its old boolean or exit code as an approval gate.
-The CLI accepts one JSON array of path strings (or no argument for an empty
-diff). Invalid JSON, other JSON shapes, non-string entries and extra arguments
-exit 2 with a diagnostic on stderr; they never produce a review summary.
-
-Deployment preserves existing router/refreshed dates when only the calendar
-changed. Actual instruction or version changes still update managed content.
-Host-mandated skill loading takes precedence; this release does not silently
-change host settings. Global deployment, tags and publication remain separate
-authorized actions. Candidate checks do not establish a model-quality or
-token-efficiency improvement; see [Evidence and limitations](#evidence-and-limitations).
-
+[Get started](#get-started) · [Daily use](#daily-use) · [Skills](#skills-at-a-glance) · [Evidence and limitations](#evidence-and-limitations) · [Upgrading](#upgrading) · [Contributing](CONTRIBUTING.md)
 
 ## What you can use it for
 
 - **Carry decisions across sessions.** Save findings in your private memory
   store and search them from a fresh agent session instead of reconstructing
   project history from chat.
-- **Give coding work a repeatable method.** Skills cover planning,
-  reproducing bugs, implementation, review, and verification. YAGNI means
-  avoiding functionality and abstractions the task does not need.
+- **Give coding work a consistent method.** The contract defines acceptance,
+  verification and reporting; skills add domain detail for planning,
+  debugging, testing, review, security, money paths and UI.
 - **Evaluate behavior rather than trust promises.** Run policy scenarios,
   skill-routing checks, and small coding tasks with deterministic verifiers.
   These answer different questions; none alone proves overall coding quality.
@@ -121,7 +86,7 @@ Use an absolute path so the contract remains reachable from other projects.
 Load it once; [AGENTS.md](AGENTS.md) is only a repository router. Preserve
 existing instructions rather than replacing them wholesale.
 
-Copy or link only the 37 skills declared in [profile.yml](profile.yml) into
+Copy or link only the 27 skills declared in [profile.yml](profile.yml) into
 the agent's skill directory, preserving unrelated skills. Skill bodies load
 on demand; no full method chain or memory warmup is required at startup.
 These user-level changes can affect every project opened with that agent.
@@ -197,50 +162,68 @@ backups. `findings.py search` also accepts `--mode`, `--model-dir`, and
 `--index`; both CLIs expose `--state all|current|superseded` and
 `--verification all|verified|unverified` before result limits.
 
-The agent retrieves relevant local memory without waiting for a reminder and
-retains useful verified decisions, fixes, configurations and preferences from
-ordinary task work without asking again. Update an existing record rather
-than duplicating it; omit secrets, speculation and unnecessary personal data.
-A read-only/review-only/plan-only task or "do not save" suppresses retention;
-stop ends all actions. New remote stores, publication and destructive memory
-maintenance still require their own authority.
+How the agent retrieves and saves memory, and how it resumes "continue work
+on X", is defined once in [OPS.md](OPS.md) §§2 and 5: relevant memory is
+searched without a reminder, durable verified results are saved without a
+confirmation prompt, and read-only scope, "do not save" or stop switch saving
+off. These are instruction contracts, not runtime enforcement.
 
-On "continue work on X", the agent first recovers the project's mission,
-original user grants and next action from memory and available history.
-Current corrections override old scope; expired or revoked grants do not
-revive. Missing records require a focused question, not an invented mission.
-Verification closes once the current objective is evidenced: bounded tasks
-end with a report; active autonomous missions move to the next useful objective.
-These are instruction contracts, not runtime enforcement or measured speedups.
+## Skills at a glance
 
-Skill cross-references are pointers, not a cascading load order. Load a helper
-for its actual domain need; host-mandated loads still take precedence. Reuse
-verification tied to unchanged source, dependencies and environment; rerun
-when a relevant change or failure invalidates that evidence.
+Ordinary implementation needs no skill; the contract is the method. Each
+skill owns one kind of open question, and its description names the neighbor
+to use instead. Cross-references are pointers, not a load order.
 
-`profile.yml` declares the kit-owned skills. Third-party skills beside them
-(including Firecrawl) are not kit release assets and remain untouched by kit
-validation and synchronization. This boundary does not stop your agent from
-independently discovering or using those skills.
+| Open question | Skill |
+|---|---|
+| What to build: unclear idea, requirements, spec, design choice | `brainstorming` |
+| How to execute coupled or multi-slice work | `writing-plans` |
+| Independent slices to run in parallel | `dispatching-parallel-agents` |
+| Workspace isolation for concurrent work | `using-git-worktrees` |
+| Commits, branches, conflicts, releases, integrating a branch | `git-workflow-and-versioning` |
+| Test-first work, test design, reproducing a bug as a test | `testing-discipline` |
+| About to claim done, fixed or passing | `verification-before-completion` |
+| Unknown failure cause, hung or broken runtime | `systematic-debugging` |
+| Performing or requesting a code review | `code-review-and-quality` |
+| Handling review feedback received | `receiving-code-review` |
+| Blast radius of an N-file change or rename | `code-graph-review` |
+| Independent audit of someone's completion claim | `fable-judge` |
+| Speculative abstraction, new dependency, over-engineering | `ponytail` |
+| Module boundaries, god files, schema evolution | `architecture-simplicity` |
+| Consequential library, tool or platform choice | `production-first-decisions` |
+| Payments, balances, quotas, refunds | `money-path-safety` |
+| Untrusted input, auth, secrets, personal data | `security-and-hardening` |
+| Logging, metrics, tracing, alerts | `observability-and-instrumentation` |
+| Release, rollout, rollback | `shipping-and-launch` |
+| UI components, tokens, themes | `design-system` |
+| Dashboards and data visualization | `dashboard-design` |
+| Web research with primary sources | `web-research` |
+| Saving or retrieving cross-session knowledge | `dev-wiki` |
+| Windows encoding, CRLF/BOM, cmd/PowerShell quirks | `windows-encoding-fixes` |
+| Creating or editing a skill | `skill-authoring` |
+| `/fable-method`, or a non-code plan/audit/report | `fable-method` |
+| Explicitly granted open-ended mission | `autonomous-work` |
+
+`profile.yml` declares these kit-owned skills. Third-party skills beside them
+(for example Firecrawl) are not kit release assets; kit validation and
+synchronization leave them untouched.
 
 ### Ownership and lightweight navigation
 
 The kit owns its contract, declared skills, memory scripts and generated
 routers. Approval mode, sandboxing, model/provider routing, compaction and
-third-party tools such as Graphify or Firecrawl belong to the host/user setup;
-kit releases neither change those settings nor claim to repair host rules.
+third-party tools belong to the host/user setup; kit releases do not change
+those settings.
 
 Use targeted source search and LSP for ordinary code navigation. For an
 existing indexed project, `python memory/db-tools/repomap.py project --db
 <project.db> --tokens 1500` gives a bounded map without installing a graph
 stack. Confirm indexed relationships against current source; an index may be
-stale. This is not a replacement for Graphify's multimodal graph-building
-features, which ordinary coding tasks do not require.
+stale.
 
 Memory availability is an explicit check: `python
 memory/scripts/memory-warmup.py`; add `--full` only for diagnostic feeds and
-integrity inspection. No automatic global findings feed; useful local
-retention follows the ordinary task policy above.
+integrity inspection. Nothing runs automatically at session start.
 
 Your knowledge lives in `~/.memory/` (or `MEMORY_ROOT`), **outside the kit
 repository**. The clone contains methodology and tooling, not your personal
@@ -310,7 +293,8 @@ pier + mini-swe-agent in Docker, and a 10-task seed-0 subset:
 | Task-level differences | One kit win and one kit loss |
 
 This was a small historical sample using a 36-skill manifest, not a benchmark
-of the current release. Raw artifacts are retained outside this repository;
+of the current release. Version 6.0 cuts the inventory and the always-loaded
+contract partly because of this result; that cut has not been re-measured. Raw artifacts are retained outside this repository;
 the repo does not ship a reproduction script for these numbers. The results
 are descriptive, not a causal explanation or a general reliability claim.
 Prompt-token counts are not a measured monetary bill.
@@ -350,7 +334,7 @@ exit zero means the inputs are valid, not that the model passed.
 Report input validation, stated-next-action text probes, executed tool tasks
 and controlled comparisons separately. Record the resolved model and reasoning
 level when observed; otherwise label them unknown. A self-assessed text probe
-is not a tool-loop success rate, speedup, or Sol-versus-Astra comparison.
+is not a tool-loop success rate, a speedup, or a model comparison.
 
 Trap and trigger results carry `comparison_id`: a digest of executed prompts,
 expectations, selected cases, scorer code and execution settings. `trend.py`
@@ -379,8 +363,9 @@ Prompt evaluations require `docker:<image> <argv...>`; bare host commands
 are refused. The image must contain the executor. Only explicitly declared
 read-only mounts are visible alongside a disposable writable task directory;
 host credentials are not inherited. Network is off by default. `@net` enables
-unrestricted bridge networking, not endpoint allowlisting: live-model CK-03
-acceptance remains open until credential and network restrictions are verified.
+unrestricted bridge networking, not endpoint allowlisting; live-model
+acceptance of this isolation stays open until credential and network
+restrictions are verified.
 
 </details>
 
@@ -389,8 +374,8 @@ acceptance remains open until credential and network restrictions are verified.
 Requests such as “do useful work” or “keep going without asking” activate
 [autonomous-work](skills/autonomous-work/SKILL.md): evidence-backed work
 selection, verified progress, and immediate stop/revocation. Ordinary
-bounded requests do not become autonomous missions. Outward, destructive,
-spending, and memory-writing actions still need authorization.
+bounded requests do not become autonomous missions. Outward, destructive and
+spending actions still need authorization (OPS §1); memory follows OPS §5.
 
 An optional foreground Python [supervisor](scripts/tools/autonomous.py)
 supports continuation across process boundaries:
@@ -432,15 +417,57 @@ the configured independent verifier remains the completion gate. Neither tool
 executes commands embedded in a handoff, snapshots the whole repository, or
 replaces the host's permission and sandbox controls.
 
+## Upgrading
+
+### 6.0: one contract, fewer overlapping skills
+
+6.0 is a text release; the memory format and tools are unchanged. Skills
+whose triggers collided were merged, and three skills that restated the
+contract were folded into it:
+
+| Retired skill | Now lives in |
+|---|---|
+| `superpowers`, `reasoning-engine`, `engineering-persona` | `OPS.md` |
+| `yagni` | `ponytail` |
+| `spec-driven-development` | `brainstorming` |
+| `incremental-implementation` | `writing-plans` |
+| `test-driven-development` | `testing-discipline` |
+| `debug-incident-protocol` | `systematic-debugging` |
+| `requesting-code-review` | `code-review-and-quality` |
+| `finishing-a-development-branch` | `git-workflow-and-versioning` |
+
+Each rule now lives in one place, descriptions name their neighbor skill,
+emphatic wording was replaced by stated reasons, and universal checklists got
+applicability conditions. Motivation: context files raised agent cost about
+20% without raising solve rates ([arXiv:2602.11988](https://arxiv.org/abs/2602.11988));
+skill routing errors concentrate inside clusters of similar skills and
+overly general skills capture routing ([arXiv:2605.16508](https://arxiv.org/abs/2605.16508));
+focused skills beat exhaustive bundles ([arXiv:2602.12670](https://arxiv.org/abs/2602.12670)).
+Redeploying removes the retired skills from kit-managed skill directories;
+`scripts/tools/deploy.py` only deletes skills its manifest owns. Details:
+[CHANGELOG](docs/CHANGELOG.md).
+
+### 5.x
+
+- 5.1 added optional `--mode vector|hybrid` memory search on top of the
+  unchanged lexical default; semantic modes need a local model and index.
+  Searches are strictly read-only: an absent or desynced findings store is
+  reported, not repaired; run `findings.py list` or the doctor to heal it.
+- 5.0 replaced `contract_drift.needs_contract_update(paths)` with
+  `needs_contract_review(paths)`, which flags high-materiality paths for
+  review and exits zero for valid input; callers that used the old boolean or
+  exit code as an approval gate must change. The CLI accepts one JSON array
+  of path strings (or nothing for an empty diff); invalid input exits 2.
+
 ## Inside the repository
 
 | Component | Entry point |
 |---|---|
-| Agent instructions and routing | [AGENTS.md](AGENTS.md) |
 | Operating contract | [OPS.md](OPS.md) |
-| Context-size modes | [SKILL_RUNTIME.md](SKILL_RUNTIME.md) |
+| Repository router | [AGENTS.md](AGENTS.md) |
+| Host integration notes | [SKILL_RUNTIME.md](SKILL_RUNTIME.md) |
 | Paths and skill manifest | [profile.yml](profile.yml) |
-| Workflow and domain skills | [skills/](skills/) |
+| Skills | [skills/](skills/) |
 | Memory engine | [memory/db-tools/](memory/db-tools/) |
 | Evaluation tools | [eval/](eval/) |
 | Changes and contribution guide | [Changelog](docs/CHANGELOG.md) · [Contributing](CONTRIBUTING.md) |
@@ -450,10 +477,10 @@ is a junction on Windows and a symlink elsewhere.
 
 ## Credits and license
 
-[MIT](LICENSE). Phase-workflow skills are derived from
-[obra/superpowers](https://github.com/obra/superpowers) by Jesse Vincent,
-reworked and extended for coding-kit; see the
-[superpowers license](skills/superpowers/LICENSE).
+[MIT](LICENSE). Planning, debugging, verification and review skills are
+derived from [obra/superpowers](https://github.com/obra/superpowers) by Jesse
+Vincent, reworked for coding-kit; see the
+[superpowers license](docs/licenses/superpowers-LICENSE).
 The `ponytail` skill is adapted from
 [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail);
 see its [license](skills/ponytail/LICENSE).

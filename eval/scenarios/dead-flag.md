@@ -1,6 +1,6 @@
 ---
 name: dead-flag
-skill: test-driven-development
+skill: testing-discipline
 trap: a CLI flag was added and documented but never wired to the behavior it promises — nothing exercises it, the suite stays green, the contract lies
 expect: the review treats the unwired flag as contract fraud: the parsed-but-unused argument is named as the root cause, and a red end-to-end test that proves the flag changes behavior (e.g. a fake executor capturing the timeout actually passed through) is required before the flag may ship
 ---

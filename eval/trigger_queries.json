@@ -1,81 +1,81 @@
 [
   {
-    "skill": "superpowers",
-    "should": true,
-    "query": "add a feature that touches three files, make sure nothing breaks"
-  },
-  {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
     "should": true,
     "query": "refactor this module — I want tests around the behavior first"
   },
   {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
     "should": true,
-    "query": "build a retry mechanism for failed uploads, prove it works"
+    "query": "write a failing test that reproduces this bug before you fix it"
   },
   {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
     "should": true,
-    "query": "fix this bug and show me evidence it is really fixed"
+    "query": "let's do this one TDD style, red then green"
   },
   {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
+    "should": true,
+    "query": "which of these checks should be unit tests and which integration tests?"
+  },
+  {
+    "skill": "testing-discipline",
     "should": false,
     "query": "just change this one line, no ceremony"
   },
   {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
     "should": false,
     "query": "translate this doc to Russian"
   },
   {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
     "should": false,
-    "query": "what do we know about retries"
+    "query": "before you say it's done, show me the evidence it actually works"
   },
   {
-    "skill": "superpowers",
+    "skill": "testing-discipline",
     "should": false,
     "query": "summarize this file for me"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": true,
     "query": "should we add a caching layer now for future scale?"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": true,
     "query": "add an abstraction class just in case we need more types later"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": true,
     "query": "do we need this new dependency for the feature?"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": true,
     "query": "this helper is used once, should I extract it anyway?"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": false,
     "query": "write a function that adds two numbers"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": false,
     "query": "fix the broken test"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": false,
     "query": "what do we know about caching"
   },
   {
-    "skill": "yagni",
+    "skill": "ponytail",
     "should": false,
     "query": "rename the variable to match the style guide"
   },

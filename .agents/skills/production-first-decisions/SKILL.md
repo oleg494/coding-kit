@@ -1,53 +1,40 @@
 ---
 name: production-first-decisions
-description: 'Use for consequential choices of tools, libraries, standards or production mechanisms. Check existing project constraints first, research unresolved external facts in primary sources, and test unfamiliar mechanisms before integration. No web-search quota for local facts or established repository patterns.'
+description: 'Use before committing to a consequential tool, library, standard or production mechanism: "should we use X", "which library", "is X maintained", auth/crypto/queue/database choices, or replacing a working one. Check project constraints first, then primary-source evidence (docs, changelogs, maintenance signals, issue trackers, benchmarks, own probe) before integration. Not for module structure (architecture-simplicity) or minimalism-only requests (ponytail); ordinary implementation needs no skill.'
 license: MIT
 compatibility: any project
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# Production-first: decisions grounded in relevant evidence
+# Production-first: decisions grounded in evidence
+
+A choice that is expensive to reverse, or that everything else builds on, gets evidence before code; ordinary local choices get the existing pattern.
 
 ## Workflow
 
-1. Define the decision and acceptance criteria. Read the existing implementation,
-   project constraints and known decisions before inventing a second convention.
-2. If those sources settle an ordinary local choice, reuse the existing pattern.
-   Do not require web research for a local definition or a known stdlib operation.
-3. Research unresolved external facts through current primary documentation,
-   source code and relevant production experience. Cross-check disputed or
-   high-impact claims. No fixed source/query count or popularity gate.
-4. Choose by fit, correctness, maintenance and measured constraints. Widespread
-   adoption is evidence, not proof that an approach fits this project.
+1. State the decision, the constraint it must meet (scale, latency, licence, platform, team, budget) and the evidence that would settle it.
+2. Read the existing implementation, constraints and recorded decisions first; if they settle it, reuse the pattern — no research for a local definition or a known stdlib operation.
+3. Gather evidence for what the project cannot answer (below), cross-checking what is hard to reverse or contested; choose by fit, correctness, maintenance and measured constraints, since adoption is not proof it fits here.
+4. Probe the remaining risk, then record the decision where the project keeps such records — an ADR only if it uses them.
 
-## Test-before-integration
+## Acceptable evidence
 
-For an unfamiliar dependency or mechanism, run a task-sized sandbox probe of
-the uncertain behavior before integrating. Benchmark only when performance
-motivates the choice; compare a simpler existing option when material.
-Installation, paid calls and outward actions still follow OPS.md §1 authority.
-Record consequential decisions in the existing project record or authorized
-memory; an ADR is not a mandatory artifact for every implementation detail.
+Closest to actual behavior first:
+
+- **Official docs and changelog** for the exact version in use: migration notes, deprecations, support windows, licence terms.
+- **Source code or the shipped artifact** when docs and behavior disagree.
+- **Maintenance signals:** recent releases, issue-tracker response, open advisories, a support policy. "Popular in a blog post" is not one; years untouched with a long open-issue backlog is counter-evidence.
+- **Issue trackers** for known failure modes and version-specific bugs; read the resolution, not the title.
+- **Reproducible benchmarks** on a comparable workload with method and hardware stated; vendor benchmarks only start the search.
+- **Our own probe:** the smallest test that exercises the uncertain behavior in this stack.
+
+Say which you used and what stayed unverified; a claim with no evidence class is a guess.
+
+## Test before integration
+
+For an unfamiliar dependency or mechanism, probe first in a task-sized sandbox: one real call path, the edge case you doubt, the upgrade or the failure mode; benchmark only when performance drives the choice. Installation, paid calls and outward actions need authorization per OPS §1.
 
 ## Research depth
 
-- Narrow authoritative fact: read the owning source and stop when resolved.
-- Consequential or uncertain choice: compare relevant alternatives, seek
-  counterevidence and test the remaining risk. Broaden only when it could change the decision.
-
-## Three decision principles (filter before code)
-
-- **DRY** — one piece of logic and one piece of knowledge in one place. Duplication = two places that must change together.
-- **KISS** — the simpler option, if it closes the task. Complexity is justified when the simple one can't cope, not "for the future".
-- **YAGNI** — don't build what wasn't asked for. "Might come in handy" is an insufficient reason.
-
-A decision that violates at least one principle without a clear reason → reconsider.
-
-## Checklist before a decision
-
-- [ ] Existing project constraints and patterns considered
-- [ ] Material external uncertainty checked against appropriate primary sources
-- [ ] Unfamiliar behavior exercised before integration; performance claims measured
-- [ ] Chosen approach meets the full request without unnecessary machinery
-- [ ] Remaining uncertainty and consequential tradeoffs reported
+Stop once resolved: a narrow fact needs its owning source; a consequential choice needs alternatives, counterevidence and a probe of what remains. Ship the tradeoffs and remaining uncertainty with the decision.

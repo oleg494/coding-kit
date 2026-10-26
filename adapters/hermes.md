@@ -5,14 +5,14 @@
 ## Layout
 
 ```
-<HERMES_HOME>/kit-skills/coding-kit/<skill>/   # generated projection (37 skills)
+<HERMES_HOME>/kit-skills/coding-kit/<skill>/   # generated projection (every owned skill)
 <HERMES_HOME>/config.yaml                      # skills.external_dirs += <home>/kit-skills
 <HERMES_HOME>/SOUL.md                          # delimited kit routing block only
 ```
 
 Kit core (`AGENTS.md`, `OPS.md`, `skills/`, `memory/`) is never installed into Hermes; the projection under `kit-skills/` is generated, read-only by convention, and never hand-edited.
 
-Why external root instead of the old local `skills/coding-kit/` copy: the curator's `archive_skill` **really archives** local copies whose names appear in `.bundled_manifest` (verified: 3 kit names collide — `requesting-code-review`, `systematic-debugging`, `test-driven-development` — with `prune_builtins: true`), while external-dir skills are refused by two independent guards. External root also keeps full prompt-index visibility (37/37, category `coding-kit`).
+Why external root instead of the old local `skills/coding-kit/` copy: the curator's `archive_skill` **really archives** local copies whose names appear in `.bundled_manifest` (verified with the v4.x inventory: `requesting-code-review`, `systematic-debugging` and `test-driven-development` collided — with `prune_builtins: true`), while external-dir skills are refused by two independent guards. External root also keeps full prompt-index visibility (37/37 owned skills at verification, category `coding-kit`).
 
 ## Install / update
 

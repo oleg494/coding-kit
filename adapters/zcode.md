@@ -31,5 +31,7 @@ python ~/.memory/db-tools/build.py
 
 ### Step 4: Verify
 In ZCode chat or CLI:
-- Ask the agent to show its method (plan → TDD → implement → verify → report): superpowers, YAGNI, cross-chat memory via database.
-- Ask it to search memory for X — must route through a database search (`search_all.py`), not answer from conversation.
+- Ask the agent to describe how it will handle a small bug fix: it should
+  name acceptance, the check it will run and the report, per OPS.md.
+- Ask it to search memory for X: it must run a database search
+  (`search_all.py`), not answer from the conversation.

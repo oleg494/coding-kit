@@ -1,141 +1,87 @@
 ---
 name: verification-before-completion
-description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires applicable verification evidence (run when no valid evidence exists; valid prior evidence reusable for the unchanged state) before making any success claims; evidence before assertions always
+description: 'Use before claiming work is complete, fixed, passing or ready to merge, and before committing or opening a PR: matching the evidence to the type of claim. Not for writing or choosing the checks themselves (use testing-discipline), for diagnosing a failure (use systematic-debugging), or for judging another agent completed work (use fable-judge).'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# Verification Before Completion
+# verification-before-completion
 
-## Overview
+This skill is the gate between finished work and the sentence "it works". The check happens before the claim, not after someone challenges it.
 
-**Core principle:** Evidence before claims, always.
+Completion claims without applicable verification evidence do not get made. Applicable means the evidence covers this claim, this state and this scope — see OPS §3 for what keeps evidence valid.
 
-**Violating the letter of this rule is violating the spirit of this rule.**
+## The gate
 
-## The Iron Law
+1. **Name the claim precisely.** Which behavior, artifact or scope is claimed? "Tests pass" and "the suite passes on the merged tree" are different claims.
+2. **Name the evidence that can establish it.** Use the table below; the claim and its evidence must be the same kind of thing.
+3. **Check whether valid evidence already exists** for the current state. If it does, reuse it and cite its provenance rather than rerunning. If it does not, produce it.
+4. **Read the actual output or observation.** Exit code, failure count, rendered result, probe response — not the command's success in general.
+5. **Claim only what the evidence shows.** If it shows less than the claim, narrow the claim or report the gap. Both directions count: claiming a suite-wide green you did not run is dishonest, and rerunning an unchanged check with no new failure or concern is ceremony.
 
-```
-NO COMPLETION CLAIMS WITHOUT APPLICABLE VERIFICATION EVIDENCE
-```
+## Evidence by claim type
 
-"Applicable" means evidence valid for the current checked state:
-revision/snapshot, exact command, scope, environment, run timestamp.
-Reuse existing evidence until an invalidation condition occurs (code
-change, failure, or unresolved concern) and report that provenance instead
-of treating the chat turn as a clock; a fresh invocation is required only
-when no valid evidence for the checked state exists.
+Many checks do not end in an exit code.
 
-## The Gate Function
-
-```
-BEFORE claiming a verified result:
-
-1. IDENTIFY: What command proves this claim?
-2. RUN: Execute that command completely when no applicable evidence exists
-   for the current checked state — "complete" means no truncated or partial
-   run of the check that proves THIS claim, not every check the repo has
-3. READ: Full output, check exit code, count failures
-4. VERIFY: Does output confirm the claim?
-   - If NO: State actual status with evidence
-   - If YES: State claim WITH evidence
-5. ONLY THEN: Make the claim
-
-Skip any step = lying, not verifying. Reusing evidence that is still valid
-for the checked state (same revision, no invalidating change/failure/concern)
-is not skipping — but claiming without either is lying.
-```
-
-**Scope is part of honesty, in both directions.** Claiming a suite-wide
-green you did not run is a lie; re-running an unchanged check with no new
-changes, failures, or unresolved concerns is ceremony, not verification.
-Broaden when scope warrants: shared code touched, or a failure the targeted
-check exposed.
-
-## Common Failures
-
-| Claim | Requires | Not Sufficient |
+| Claim | Evidence | Not sufficient |
 |-------|----------|----------------|
-| Tests pass | Test command output: 0 failures on checked state | Unchecked assumption, "should pass" |
-| Linter clean | Linter output: 0 errors | Extrapolating to the claim's scope; a different check's output for that scope |
-| Build succeeds | Build command: exit 0 | Linter passing, logs look good |
-| Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
-| Regression test works | Before-fix failure evidence established, then the behavior re-exercised | Test passes once |
-| Agent completed | Inspect changed artifacts and exercise the claimed behavior | Agent reports "success" |
-| Requirements met | Line-by-line checklist | Tests passing |
+| Tests pass | Test run output with 0 failures on the current state | "should pass", a passing subset, a run from before the change |
+| Build/compile succeeds | Build command exit 0 | Lint passing, logs that look fine |
+| Lint or typecheck clean | That tool's output for the claimed scope | Another tool's clean result, extrapolation from one file |
+| Bug fixed | The original symptom re-exercised and now behaving correctly | Code changed, "the fix is obvious" |
+| Regression test works | Before-fix failure established, then the behavior re-exercised after | The test merely passing once |
+| UI/behavior correct | An observed rendered flow, screenshot, or interactive session | Reading the component code |
+| Deploy or service healthy | The consumer path probed, or an independent observer | "The command exited 0" |
+| Documentation change | Reading the changed document, or a review of its diff | A passing test suite |
+| Requirements met | A line-by-line pass over the request | Tests passing |
+| An agent or subagent finished | Inspecting the changed artifacts and exercising the claim | The agent's own success report |
 
-## Red Flags - Investigate Before Claiming Success
+Delete the claim's doubt by checking the smallest observation that can falsify it, not by adding unrelated checks.
 
-- Presenting "should", "probably" or "seems to" as proof, rather than explicitly labeled uncertainty
-- Expressing satisfaction before verification ("Great!", "Perfect!", "Done!", etc.)
-- About to commit/push/PR without applicable evidence
-- Trusting agent success reports
-- Extrapolating a partial check to the full claimed scope without narrowing the claim
-- Thinking "just this once"
-- Tired and wanting work over
-- **ANY success wording not backed by applicable evidence — a run for the
-  checked state, or reused evidence you can name with its provenance**
+## When the evidence cannot be obtained
 
-## Rationalization Prevention
+**Unavailable is not passed, and it is not a failed check either.** When the primary check cannot run — service down, environment missing, permission absent — report it as unavailable, name the prerequisite, and do not retry the same dead service in a loop.
+
+A substitute check counts only if it proves the same contract. If it proves less, narrow the claim to what it does prove and report the required check as unavailable. A narrowed claim is honest; a promoted substitute is not.
+
+## Rationalizations
 
 | Excuse | Reality |
 |--------|---------|
-| "Should work now" | RUN the verification |
-| "I'm confident" | Confidence ≠ evidence |
-| "Just this once" | No exceptions |
-| "Linter passed" | Linter ≠ compiler |
-| "Agent said success" | Verify independently |
-| "I'm tired" | Exhaustion ≠ excuse |
-| "Partial check is enough" | Partial proves only its own scope: narrow the claim to it, or run the full check |
-| "Different words so rule doesn't apply" | Spirit over letter |
+| "Should work now" | Run the check that proves it, or say it is unverified |
+| "I'm confident" | Confidence is not evidence |
+| "Just this once" | The exception is how false completion reports start |
+| "Linter passed" | A linter does not compile, and its scope is not the build's |
+| "Agent said success" | Verify independently; a report is claims, not evidence |
+| "I'm tired / want this over" | Exhaustion is not evidence either |
+| "Partial check is enough" | Then narrow the claim to that partial scope |
+| "Different words, so the rule doesn't apply" | A softer phrasing of "done" is still a completion claim |
+| "It passed earlier in this session" | Valid only if the state has not changed since; say which state it covered |
+| "CI will catch it" | A future check is not evidence for a present claim |
 
-## Key Patterns
+## Red flags
 
-**Tests:**
-```
-✅ [Run test command] [See: 34/34 pass] "All tests pass"
-❌ "Should pass now" / "Looks correct"
-```
+Pause before the claim when you notice:
 
-**Regression tests:**
-```
-PASS: Use applicable before-fix failure evidence, then exercise the same behavior after the fix. For a regression-test claim, establish that the test detects the defect, using an isolated pre-fix copy if needed; never revert the user's tree.
-If before-fix evidence is unavailable, report that limitation and the narrower after-fix observation. Do not claim a demonstrated red-green regression.
-```
+- "Should", "probably", "seems to" used as proof instead of a labeled uncertainty
+- satisfaction language ("Done", "Perfect", "Great") before any check
+- committing, pushing or opening a PR with no evidence for the final state
+- trusting someone else's success report, including a subagent's
+- extrapolating a partial result to the full claimed scope
+- rationalizing that this case is special
 
-**Build:**
-```
-✅ [Run build] [See: exit 0] "Build passes"
-❌ "Linter passed" (linter doesn't check compilation)
-```
+## Visible evidence patterns
 
-**Requirements:**
 ```
-✅ Re-read plan → Create checklist → Verify each → Report gaps or completion
-❌ "Tests pass, phase complete"
+Tests:      [run command] [0 failures] → "These tests pass on this revision"
+Build:      [run build] [exit 0]      → "The build succeeds"
+Bug fix:    [reproduce before] [recheck after] → "The reported symptom no longer reproduces"
+Requirements: re-read request → checklist → verify each → report gaps or completion
+Delegation: agent reports success → inspect artifacts → exercise behavior → report actual state
 ```
 
-**Agent delegation:**
-```
-PASS: Agent reports success -> inspect the changed artifacts -> verify the claimed behavior -> report actual state
-❌ Trust agent report
-```
-
-## When To Apply
-
-Apply before a completion or correctness claim, commit, PR or integration.
-Planning, delegation and a task transition do not themselves require running
-unrelated checks. Reuse evidence only while it covers the checked state;
-an independent judge may rerun it to establish independent observation.
-Calibrated uncertainty is valid reporting, never a substitute for proof.
-
-**Unavailable ≠ passed ≠ failed.** When the primary check cannot run
-(service down, environment missing), report it as unavailable. An
-alternative check substitutes only if it actually proves the same contract;
-if it proves less, explicitly narrow the claim to what it does prove and
-report the required check as unavailable — never report the original claim
-as verified. Do not retry the same dead service in a loop.
+State provenance when reusing evidence (which state, which command, which result) so a later reader can tell what was and was not observed. Calibrated uncertainty is a valid report; it is not a substitute for the check.
 
 ---
 

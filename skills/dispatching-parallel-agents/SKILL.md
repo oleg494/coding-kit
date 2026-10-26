@@ -1,9 +1,9 @@
 ---
 name: dispatching-parallel-agents
-description: Use when several work slices are worth delegating and can be completed independently, without shared state or sequential dependencies
+description: 'Use when several work slices can be handed to separate agents at once: unrelated failures with distinct root causes, independent subsystems, or parallel slices whose interfaces are already defined. Not for related failures or exploratory debugging (investigate inline), and not for deciding slice boundaries or workspace isolation (use writing-plans and using-git-worktrees).'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
 # Dispatching Parallel Agents
@@ -43,10 +43,11 @@ digraph when_to_use {
 - No shared state between investigations
 
 **Don't use when:**
-- Failures are related (fix one might fix others)
-- Need to understand full system state
-- Agents would interfere with each other
-- One slice is too small to be worth handing over
+- Failures are related (fix one might fix others) — investigate together first
+- Understanding requires seeing the full system state
+- Agents would interfere: same files, same service, same database, same port
+- You don't know what's broken yet (exploratory debugging is inherently sequential)
+- One slice is too small to justify the coordination cost
 - The host has no subagent tool — run the work inline; never fabricate a dispatch
 
 ## The Pattern
@@ -74,20 +75,29 @@ Each agent gets:
 ### 3. Dispatch with the Host's Delegation Mechanism
 
 Use the API the current host actually exposes — its task/subagent tool, its
-agent-role selector, or a worktree-isolated worker — not another platform's
+agent-role selector, or an isolated worker session — not another platform's
 example. When that tool supports concurrent dispatch, issue the independent
 slices as one batch; verify from its own documentation or a prior run whether
 they actually run concurrently rather than inferring it from call placement,
 since a host may serialize queued workers. Each worker keeps the isolated
 scope, constraints and interfaces from step 2.
 
-### 4. Review and Integrate
+**Workspace isolation is not this skill's call.** Whether the slices need
+separate worktrees, who creates them and who removes them on completion
+belongs to `using-git-worktrees`; native harness facilities own placement and
+cleanup, and a dispatcher that invents an extra `git worktree add` per worker
+leaves state the harness cannot see. Reuse whatever isolation the plan and the
+host already established.
 
-When agents return:
-- Read each summary
-- Verify fixes don't conflict
-- Run the tests appropriate to the integrated change
-- Integrate all changes
+### 4. Review and integrate
+
+- Read each summary and check the changed code, not only the claim.
+- Look for conflicting edits when two slices touch the same file or concept.
+- Run the checks the integrated change needs: the suites the touched code
+  belongs to, going suite-wide when slices shared code or a targeted run
+  fails. Scale this to the change, not to the number of workers.
+- Integrate all of it before reporting; a returned summary is not a finished
+  slice.
 
 ## Agent Prompt Structure
 
@@ -119,60 +129,31 @@ Return: Summary of what you found and what you fixed.
 
 ## Common Mistakes
 
-**❌ Too broad:** "Fix all the tests" - agent gets lost
-**✅ Specific:** "Fix agent-tool-abort.test.ts" - focused scope
+- **Too broad** — "Fix all the tests": the agent wanders. Name one file or one
+  subsystem.
+- **No context** — "Fix the race condition": the agent doesn't know where.
+  Paste the error messages and the failing test names.
+- **No constraints** — the agent refactors the world. Say "do not change
+  production code" or "fix tests only".
+- **Vague output** — "Fix it" leaves you guessing what changed. Ask for the
+  root cause and the changes made.
+- **No interfaces** — sibling tasks invent each other's names. State the names
+  and signatures that cross a real sibling boundary.
+- **Improvised isolation** — each agent runs its own `git worktree add`.
+  Set up isolation once with `using-git-worktrees`, then dispatch.
 
-**❌ No context:** "Fix the race condition" - agent doesn't know where
-**✅ Context:** Paste the error messages and test names
+## Real example
 
-**❌ No constraints:** Agent might refactor everything
-**✅ Constraints:** "Do NOT change production code" or "Fix tests only"
+Six test failures across three files after a refactoring:
 
-**❌ Vague output:** "Fix it" - you don't know what changed
-**✅ Specific:** "Return summary of root cause and changes"
+- `agent-tool-abort.test.ts` — 3 failures (timing)
+- `batch-completion-behavior.test.ts` — 2 failures (tools not executing)
+- `tool-approval-race-conditions.test.ts` — 1 failure (execution count = 0)
 
-**❌ No interfaces:** Sibling tasks guess each other's names
-**✅ Interfaces:** State names and signatures that cross a real sibling boundary
-
-## When NOT to Use
-
-**Related failures:** Fixing one might fix others - investigate together first
-**Need full context:** Understanding requires seeing entire system
-**Exploratory debugging:** You don't know what's broken yet
-**Shared state:** Agents would interfere (editing same files, using same resources)
-**No subagent tool:** Execute inline in the current session instead
-
-## Real Example from Session
-
-**Scenario:** 6 test failures across 3 files after major refactoring
-
-**Failures:**
-- agent-tool-abort.test.ts: 3 failures (timing issues)
-- batch-completion-behavior.test.ts: 2 failures (tools not executing)
-- tool-approval-race-conditions.test.ts: 1 failure (execution count = 0)
-
-**Decision:** Independent domains - abort logic separate from batch completion separate from race conditions
-
-**Dispatch:**
-```
-Agent 1 → Fix agent-tool-abort.test.ts
-Agent 2 → Fix batch-completion-behavior.test.ts
-Agent 3 → Fix tool-approval-race-conditions.test.ts
-```
-
-**Results:** three independent fixes, no conflicts; that session ran the
-full suite because all three agents touched shared async-wait code —
-scope followed the change, as the Verification section below requires.
-
-## Verification
-
-After agents return:
-1. **Review each summary** - Understand what changed
-2. **Check for conflicts** - Did agents edit same code?
-3. **Run the tests appropriate to the integrated change** - the suites the
-   touched code belongs to; go suite-wide when the agents touched shared
-   code or a targeted run fails
-4. **Spot check** - Agents can make systematic errors
+Abort logic, batch completion and race conditions are separate domains, so
+three workers each took one file. Result: three fixes, no conflicts. The
+session still ran the full suite, because all three touched shared async-wait
+code — the scope of verification follows the change, not the worker count.
 
 ---
 

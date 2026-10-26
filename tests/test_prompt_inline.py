@@ -104,7 +104,7 @@ def test_cli_inline_skills_dry_run_no_crash(tmp_path):
     out = tmp_path / "r.json"
     r = subprocess.run(
         [sys.executable, str(ROOT / "eval" / "runner.py"),
-         "--inline-skills", "--disable-skill", "yagni",
+         "--inline-skills", "--disable-skill", "ponytail",
          "--json", str(out)],
         capture_output=True, text=True, encoding="utf-8")
     assert r.returncode == 0, r.stdout + r.stderr

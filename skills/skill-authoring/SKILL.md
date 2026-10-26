@@ -1,100 +1,108 @@
 ---
 name: skill-authoring
-description: 'Use when creating or editing any skill: frontmatter rules (name/description), folder structure, script bundling, quality checklist — including converting the current session/procedure/URL into a new reusable skill ("learn", "/learn", "turn this session into a skill", "make a skill from this workflow", "сделай скилл из этой процедуры", "навык из"). Per the Agent Skills specification (Hermes-compatible).'
+description: 'Use when creating or editing a skill, or turning a session, procedure or URL into a reusable one ("learn", "/learn", "turn this session into a skill", "make a skill from this workflow", "сделай скилл из этой процедуры", "навык из"): name and description rules, folder layout, script bundling, promotion and retirement evidence. Not for saving conclusions in memory (dev-wiki) or for ordinary code changes.'
 license: MIT
 compatibility: applies to skills/ in this set, ~/.hermes/skills, .claude/skills
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# How to author skills correctly
+# Authoring skills
 
-A set of rules based on the Agent Skills specification + practice. Verified against real skills.
-
-## 1. Frontmatter (required fields)
-
-```markdown
----
-name: my-skill
-description: Use when [triggers/symptoms/contexts]. [what it does + when to apply]
----
-```
+## 1. Frontmatter
 
 | Field | Rule |
 |---|---|
-| `name` | REQUIRED. 1–64 characters, `a-z0-9` + hyphens; must not start or end with a hyphen, no consecutive hyphens. **Must match the skill's folder name** |
-| `description` | REQUIRED. 1–1024 characters. «What it does + when to use»; include the keywords the agent searches by. NOT a workflow summary |
-| `metadata` | optional, `str → str` map (kit convention: `version`); keep values plain strings |
-| `license` | optional |
-| `compatibility` | 1–500 characters, only if there are environment requirements |
+| `name` | Required. 1–64 chars, `a-z0-9` and hyphens, no leading/trailing or doubled hyphen, must equal the folder name |
+| `description` | Required. 1–1024 chars. Triggers + boundary, keyword-rich, no workflow summary: `Use when [triggers]. Not for [neighbor] (use [other-skill]).` |
+| `metadata` | Optional `str → str` map; kit convention `version` as a plain string, unbumped on a text edit |
+| `license`, `compatibility` | Optional; `compatibility` 1–500 chars, only for real environment requirements |
 
-## 2. Directory structure
+The description is the only text a future session sees before deciding: triggers
+(the words users type, in their language, including "сделай скилл" and symptoms)
+plus one clause naming the neighbor it is confused with. A trigger miss is fixed with
+the phrasing the user used.
 
-```
-skill-name/
-├── SKILL.md            # required
-├── scripts/            # optional: executable scripts
-├── references/         # optional: details, «read when X»
-├── assets/             # optional
-└── any other files/folders — allowed
-```
+## 2. Layout and scripts
 
-- Reference files one level deep from the skill root; avoid chained references that force multi-hop loads. Run bundled scripts through `--help` before reading their source — black-box first, context pollution second.
+`SKILL.md` required; `scripts/` helpers; `references/` detail behind a "read when"
+pointer; `evals/evals.json` expected; `assets/` optional. References one level deep —
+chained ones force multi-hop loads.
 
-## 3. Script bundling (scripts/)
+A bundled script prefers an existing tool (`npx`, `uvx`, `pipx`, `bunx`), documents
+dependencies in SKILL.md or `compatibility`, and is agent-safe: no interactive
+prompts and arguments only, since an agent waits on a TTY forever; `--help` and
+errors saying what to do next; stdout result, stderr diagnostics, exit code carrying
+success; idempotent with `--dry-run` for destructive steps; output bounded to
+10–30K characters, where agents truncate. Run it via `--help`, not its source.
 
-1. **First check for an existing tool**: `npx`, `uvx`, `pipx`, `bunx` — take an existing one, write your own only when none exists.
-2. If you bundle a script, it must be **self-contained**: document dependencies in SKILL.md or `compatibility`.
-3. **Agent-safe design:**
-   - NO interactive prompts — the agent will hang on a TTY. Input only via arguments.
-   - `--help` with usage; clear error messages.
-   - Structured output: result to stdout, diagnostics to stderr.
-   - Idempotency; `--dry-run` for destructive operations.
-   - Predictable output size (agents truncate ~10–30K characters).
+## 3. Body: size and tone
 
-## 4. Best practices and antipatterns
+- **Small.** The body loads on every read, and cost without solve rate is a loss:
+  context-file studies show ~+20% cost for no accuracy gain; the kit's A/B held
+  solve rate at +21% steps and +41% tokens. Stay well under 500 lines; past ~350,
+  move detail into `references/<topic>.md`.
+- **Each rule lives once**: restating OPS or a neighbor skill dilutes what is unique
+  here. "Use X when Y, because Z" beats "critical, you must"; MUST/NEVER is for
+  safety, authority and fabrication lines.
+- **Keep compliance tables**: rationalization and red-flag tables are load-bearing
+  where a skill defends a discipline — upstream experiments lost compliance when
+  test-first rebuttals were removed; trim duplicates, not tables.
+- **Write what the agent doesn't know**: gotchas, exact commands, fields,
+  thresholds. Positive recipes beat prohibitions for output shape.
 
-**Do:**
-- Small, composable, like a function: one coherent task.
-- Description in the imperative: «Use when …», list the triggers. Agents under-trigger.
-- Add what the agent does not know; drop what it already can do.
-- `Gotchas` sections — the most valuable content; checklists for multi-step processes; output templates.
-- Defaults, not menus; procedures, not declarations; explain «why».
-- Calibrate detail to fragility: for fragile operations — prescriptively.
+## 4. Merge before you add
 
-**Do not:**
-- Do not stuff code into SKILL.md — move it to `scripts/`.
-- Do not describe the workflow in `description`.
-- Do not give many equal options without a default.
-- Do not generate generic content without subject knowledge.
+Overlapping triggers split routing and weaken both: extend the owner with a headed
+section, bulk to its `references/`. Merging X into Y folds X's body and its
+`evals/evals.json` cases in with their `should_trigger` semantics, adds a near-miss
+negative owned by a neighbor, then deletes X. A new skill needs a distinct job:
+another artifact, workflow moment or trigger phrase.
 
-## 5. New skill template
+## 5. Turning a session into a skill
 
-```markdown
----
-name: my-skill
-description: Use when [symptoms/contexts]. [what it does + when to apply, 1–1024 chars.]
-license: MIT               # optional
-compatibility: Requires X  # optional
----
-# What it does (1–2 sentences)
+Raw material: this chat, or a named directory, procedure or URL — not a conclusion
+to remember (dev-wiki).
 
-## When to use / when NOT to use
-## Workflow (numbered, imperative)
+1. **Isolate the repeatable procedure**: what a fresh session would rediscover, in
+   order, with the why behind non-obvious decisions.
+2. **Trigger test before writing**; no plausible trigger, stop. Cases in
+   `skills/<name>/evals/evals.json`: `{"skill_name": "<name>", "evals": [...]}` of
+   `id`, `prompt`, `should_trigger` — one natural request true, one neighbor's near
+   miss false.
+3. **Draft the body** by §3.
+4. **Location**: portable → kit `skills/<slug>/` under the English, file-size and
+   review checks; machine-specific → the harness's own user skills dir, which does
+   not travel. Publishing it is an OPS §1 action.
+5. **Ship it as a candidate** until §6's evidence exists.
+
+## 6. Promotion and retirement evidence
+
+Run the tools, don't argue from impressions; without `--executor` they only validate
+inputs (dry run).
+
+- `python eval/trigger_eval.py --queries auto --only <slug>` — trigger and false
+  rate; `auto` reads the skill's `evals/evals.json`, else `eval/trigger_queries.json`;
+  `--executor "docker:<image> <argv>"`/`--model` run it live.
+- `python eval/runner.py --scenario <name> --repeat <n>` — behavior on the
+  originating scenario; `eval/scenarios`; `--executor`/`--judge` grade it,
+  `--release-grade` when it counts.
+- `python eval/ablate.py --executor "docker:<image> <argv>"` — pass-rate change per
+  skill removed, on its scenarios.
+- `python scripts/tools/usage_audit.py --retirement-report` — no observed read
+  requests in the window (default 14 days), proposal only.
+
+Promotion: the originating case passes, a nearby negative does not fire, a held-out
+case passes; routing needs trigger rate ≥ ~0.5 with false rate ≤ ~0.3 on the skill's
+own cases.
+
+Retirement: no reads across the audit window *and* no ablation contribution —
+opportunity plus effect, not read counts. Reads without effect → rewrite or merge;
+neither → retire, folding unique content into the survivor.
+
 ## Gotchas
-## Available scripts (relative paths from the skill root)
-## References (pointers «read when X»)
-```
 
-## 6. Turning a session into a skill (the former /learn flow)
-
-The raw material is what happened in this chat (or a named directory/procedure/URL) — not a skill-format question, and not a conclusion to remember (that is dev-wiki/findings).
-
-1. **Isolate the repeatable procedure.** What did you actually do that a fresh session would have to rediscover? Steps in order, with the "why" behind non-obvious decisions. One-off facts are NOT skills → memory instead; general knowledge the agent already has is NOT a skill (YAGNI).
-2. **Trigger test before writing.** In a fresh session, would the description fire for the natural phrase a user would say? No plausible trigger → stop, don't write it. The description is the only thing a future session sees.
-3. **Draft SKILL.md** by the rules above: numbered imperative procedure, defaults (not menus), gotchas — the most valuable section.
-4. **Choose the location.** Portable (any machine/project) → kit `skills/<slug>/`, subject to English, file-size and review checks. Machine/user-specific → the harness's user skills dir (e.g. `~/.claude/skills/`), which does not propagate. Creating a skill does not itself authorize a commit or deployment to installed harnesses; apply OPS.md §1 action authorization.
-5. **Verify and candidate state before broad promotion.** Frontmatter delimiters, `name` == folder, description within limits; trigger test against the natural phrase. A newly distilled procedure starts as a candidate:
-   - **Promotion criteria:** promotion to default or mandatory policy requires replaying the originating case, at least one nearby negative case (where the procedure must NOT fire or alter behavior), and at least one held-out case.
-   - **Retirement criteria:** skills are evaluated and retired by post-install opportunity/use and measurable contribution to correct outcomes, not raw read counts.
-Gotchas: don't over-generalize — encode the procedure that exists, not the class of procedures; Russian belongs only in trigger words; scripts stay in `scripts/`, never inline; a skill that was wrong once is fixed like code — edit + verify against the same case.
+- Over-generalizing: encode the procedure that exists, not the class it resembles.
+- Russian only in trigger words inside the description; bodies stay English.
+- Scripts live in `scripts/`, never inline in the body; a skill that was wrong once
+  is fixed like code — edit it, re-run the case that caught it.

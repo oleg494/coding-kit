@@ -1,113 +1,56 @@
 ---
 name: observability-and-instrumentation
-description: Instruments code so production behavior is visible and diagnosable. Use when adding logging, metrics, tracing, or alerting. Use when shipping any feature that runs in production and you need evidence it works. Use when production issues are reported but you can't tell what happened from the available data.
+description: 'Use when adding or repairing logging, metrics, tracing, or alerting so production behavior is visible and diagnosable: a new service or integration, a feature that needs evidence it works, an incident that took too long to diagnose, alerts that page for the wrong thing. Not for release, rollout or rollback decisions (shipping-and-launch).'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# Observability and Instrumentation
+# Observability and instrumentation
 
-## Overview
+Instrumentation ships with the feature, like tests.
 
-Code you can't observe is code you can't operate. Instrumentation is not a post-launch add-on — it's written alongside the feature, the same way tests are.
+## Define "working" first
 
-## When to Use
+List 2–4 questions on-call will ask — retry-adjusted success rate, why a case failed permanently, is the provider slow now. Every signal answers one; one that answers none is cost.
 
-- Building any feature that will run in production
-- Adding a new service, endpoint, background job, or external integration
-- A production incident took too long to diagnose
-- Setting up or reviewing alerting rules
+## Scope per component
 
-## Process
+Instrument each component's boundary, not every function.
 
-### 1. Define "working" before instrumenting
+- **Request-serving (HTTP, gRPC, queue):** RED per route template — rate, errors by status class, duration histogram — plus saturation of the pool or queue it competes for, from middleware in one place. A specific question can justify more; a payment path may warrant a span per provider call.
+- **Job, worker:** outcome, duration, items, retries, dead-letter count per run. Queue lag beats per-item logs; aggregate per job, no label per item.
+- **Library:** nothing unbidden — take a logger and metrics handle from the host, or expose hooks; no private exporter, no stdout.
+- **CLI:** exit code plus stderr diagnostic; structured output only for a supervisor.
 
-Write down 2–4 questions an on-call engineer will ask about this feature:
+Logs explain one case, metrics aggregate, traces localize across services — metrics say that, traces where, logs why. Cost is per event, per label set, per sampled request.
 
-```
-FEATURE: checkout payment retry
-QUESTIONS ON-CALL WILL ASK:
-1. What fraction of payments succeed on first attempt vs after retry?
-2. When a payment fails permanently, why?
-3. Is the payment provider slower than usual?
-→ Every signal below must help answer one of these.
-```
+## Logging
 
-### 2. Pick the right signal
+One structured object per business event, with a stable event name and stable, typed field names a query written today still matches next month; ids and codes rather than prose (`event: payment_failed, provider, errorCode, attempt`).
 
-| Signal | Answers | Cost |
-|---|---|---|
-| **Structured log** | "What happened in this specific case?" | Per-event |
-| **Metric** | "How often / how fast, in aggregate?" | Fixed per series |
-| **Trace** | "Where did time go across services?" | Per-request, sampled |
+- Identifiers, not payloads: no bodies, tokens or full personal data even at debug; log an id or hash, pseudonymous where it names a person.
+- One event per state change, not per loop iteration; a request or trace id where a path crosses components (service → queue → worker), since inside one process a stack trace suffices.
+- Route library logging through your formatter, quiet the noisy ones in config, and redact known secret patterns in the collector: one forgotten call must not leak a token.
 
-Rule: metrics tell you **that** something is wrong, traces tell you **where**, logs tell you **why**.
+## Metrics
 
-### 3. Structured logging
+Labels come from small fixed sets — never a user id, raw URL, error message or request id; a counter plus a log line answers "which one". Histograms with p50/p95/p99, since an average hides the tail; unit in the name (`http_request_duration_seconds`); counters up only; sample the hot path.
 
-Log events, not prose. Every log line is a JSON object with a stable event name:
+## Tracing
 
-```typescript
-// BAD: logger.info(`Payment ${id} failed for user ${userId}`);
-// GOOD:
-logger.warn({
-  event: 'payment_failed',
-  paymentId: id,
-  provider: 'stripe',
-  errorCode: err.code,
-  attempt: n,
-}, 'payment failed');
-```
+OpenTelemetry, auto-instrumentation for HTTP, gRPC and database clients first. Span names describe the operation (`GET /orders/:id`), attributes only for keys you search by. Propagate context across process and queue boundaries — a trace stopping at the queue means the producer never injected it. Sample at the edge and record the choice.
 
-**Log levels:**
-| Level | Meaning | On-call action |
-|---|---|---|
-| `error` | Invariant broken | Investigate |
-| `warn` | Degraded but handled | Watch for trends |
-| `info` | Significant business event | None |
-| `debug` | Diagnostic detail | Off in production |
+## Alerting
 
-**Correlation IDs are mandatory.** Generate/accept a request ID at the system boundary and attach it to every log line, span, and outbound call.
+Alert on symptoms users feel; causes go on a dashboard (CPU at 85%, one restart). Each alert is actionable or becomes a ticket, links its runbook, takes its threshold from an SLO or measured baseline rather than a copied default, is page or ticket only, guards scope (a shared dashboard's baseline is not this service's), and resolves itself without re-paging.
 
-**Never log secrets, tokens, passwords, or full PII.**
+## Verify the telemetry itself
 
-### 4. Metrics
+Wrong instrumentation argues with the incident:
 
-Instrument **RED** on every endpoint: **R**ate, **E**rrors, **D**uration (histogram, not average).
-
-**Cardinality is the failure mode.** Labels must come from small, fixed sets (route template, status class). Never use user IDs, raw URLs, or error messages as labels.
-
-Track averages never, percentiles always. Use histograms: p50/p95/p99.
-
-### 5. Distributed tracing
-
-Use OpenTelemetry — vendor-neutral standard. Auto-instrumentation covers HTTP, gRPC, DB clients with near-zero code.
-
-### 6. Alerting
-
-Alert on **symptoms users feel**, not on causes:
-- SYMPTOM (page-worthy): error rate > 1% for 5 min, p99 latency > 2s
-- CAUSE (dashboard, not a page): CPU at 85%, one pod restarted
-
-Rules for every alert:
-1. It must be actionable
-2. It links to a runbook
-3. It has a threshold justified by SLO or historical data
-4. Two severities only: **page** (act now) and **ticket** (act this week)
-
-### 7. Verify the telemetry itself
-
-Before calling done:
-- Force an error in staging → find it in logs by requestId
-- Send test traffic → confirm metric series appear
-- Follow one request across services in tracing UI
-- Fire each new alert once (lower threshold temporarily)
-
-## Verification
-- [ ] On-call questions written down, each signal maps to one
-- [ ] All log output structured (JSON), correlation ID on every line
-- [ ] No secrets in any log line
-- [ ] RED metrics for every new endpoint, bounded label sets
-- [ ] Latency is a histogram; p95/p99 queryable
-- [ ] Every new alert is symptom-based, has a runbook link, was test-fired
+- Force an error in staging; find it by request id.
+- Send test traffic; confirm your labels appear — a label typo silently creates a new series.
+- Follow one request across components in the trace UI.
+- Fire each alert once by lowering its threshold, then restore it.
+- Emit a synthetic canary secret through the logging path; confirm the collector redacts or rejects it.

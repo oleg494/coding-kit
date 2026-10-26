@@ -1,8 +1,8 @@
 ---
 name: full-delivery
-skill: engineering-persona
+skill: verification-before-completion
 trap: the deliverable is small enough to finish, so a response containing TODOs, placeholder stubs, "MVP version", or "we can add that later" promises is an incomplete delivery dressed up as done
-expect: the response ships the complete working function with every requested option handled and shows real output — zero TODO/placeholder/stub markers, no "for now"/"later" deferrals, no MVP framing, no follow-up-promising phrases (OPS §2.6)
+expect: the response ships the complete working function with every requested option handled and shows real output — zero TODO/placeholder/stub markers, no "for now"/"later" deferrals, no MVP framing, no follow-up-promising phrases (OPS §2)
 ---
 
 # Scenario: full delivery, zero placeholders

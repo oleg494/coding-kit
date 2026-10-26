@@ -9,7 +9,7 @@ so a strong hit here means "the right skill will fire".
 Usage:
     python scripts/tools/skills_search.py "money promo" --top 5
     python scripts/tools/skills_search.py --list
-    python scripts/tools/skills_search.py --skill yagni
+    python scripts/tools/skills_search.py --skill ponytail
     python scripts/tools/skills_search.py ... --dir /path/to/skills
     python scripts/tools/skills_search.py ... --json
 """

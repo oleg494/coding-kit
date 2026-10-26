@@ -101,8 +101,8 @@ class InventoryHelperTest(unittest.TestCase):
 
     def test_real_kit_inventory(self):
         names = self.inv.load_owned_skills(KIT)
-        self.assertIn("superpowers", names)
-        self.assertIn("yagni", names)
+        self.assertIn("ponytail", names)
+        self.assertIn("testing-discipline", names)
 
 
 class DeployForeignPreservationTest(unittest.TestCase):

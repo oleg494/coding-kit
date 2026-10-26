@@ -1,11 +1,10 @@
 # profile.yml — Coding Agent Kit manifest (v2)
 # Single source of truth: paths, skills, adapters.
-# Superpowers: plan → TDD → implement → verify → report.
-# YAGNI: delete weightless code.
+# Core method lives in OPS.md; skills load on demand for one open question.
 
-version: "5.1.0"
+version: "6.0.0"
 name: coding-agent-kit
-description: Coding Agent OS — superpowers, YAGNI, TDD, cross-chat memory, trap-suite evals.
+description: Coding Agent OS — one operating contract, 27 on-demand skills, cross-chat memory, trap-suite evals.
 
 core:
   ops:           OPS.md
@@ -39,45 +38,34 @@ skills:
   # Core principles live in OPS.md; skill bodies load only when needed.
   always_on: []
   domain:
-    - superpowers
-    - yagni
-    - engineering-persona
     - fable-method
     - dev-wiki
-    - code-review-and-quality
-    - test-driven-development
-    - incremental-implementation
+    - code-review-and-quality       # performs and requests reviews
     - architecture-simplicity
     - production-first-decisions
     - security-and-hardening
     - observability-and-instrumentation
     - shipping-and-launch
-    - spec-driven-development
-    - git-workflow-and-versioning
+    - git-workflow-and-versioning   # includes integrating a finished branch
     - code-graph-review
     - money-path-safety
     - web-research
-    - skill-authoring            # + session → SKILL.md (former /learn flow, §6)
-    - reasoning-engine
-    - testing-discipline
-    - debug-incident-protocol
+    - skill-authoring               # includes turning a session into a skill
+    - testing-discipline            # includes test-driven development
     - fable-judge
     - windows-encoding-fixes
-    # obra/superpowers (MIT) — phase granularity
-    - brainstorming
-    - writing-plans
+    # derived from obra/superpowers (MIT; docs/licenses/superpowers-LICENSE)
+    - brainstorming                 # includes spec-driven development
+    - writing-plans                 # includes incremental implementation
     - dispatching-parallel-agents
     - verification-before-completion
-    - requesting-code-review
     - receiving-code-review
-    - systematic-debugging
+    - systematic-debugging          # includes runtime incident protocol
     - using-git-worktrees
-    - finishing-a-development-branch
-    - ponytail                   # lazy senior-dev mode (MIT; adapted from DietrichGebert/ponytail)
-    # dashboard & ux design suite (2026-08-31: merged ui-review + data-viz into dashboard-design; agent-ux killed — 0 real uses)
-    - dashboard-design           # dashboard design + honest data-viz + rendered UI review
-    - design-system              # compact design tokens & shared components
-    - autonomous-work            # opt-in autonomous work selection + supervisor
+    - ponytail                      # minimal change + YAGNI (MIT; adapted from DietrichGebert/ponytail)
+    - dashboard-design              # dashboard design + honest data-viz + rendered UI review
+    - design-system                 # compact design tokens & shared components
+    - autonomous-work               # opt-in autonomous work selection + supervisor
 
 adapters:
   - platform: antigravity

@@ -1,297 +1,132 @@
 ---
 name: systematic-debugging
-description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+description: 'Use when something fails or behaves unexpectedly: a bug, a failing test or build, a hung or stale process, a service that broke after an update or restart, a zero metric on a feature that looks fine, or "it used to work". Covers root-cause investigation before fixes, boundary evidence and runtime incidents. Not for writing the regression test (use testing-discipline) or the closing claim (use verification-before-completion).'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# Systematic Debugging
+# systematic-debugging
 
-## Overview
+Find the cause before changing behavior. A fix that only silences the symptom comes back, usually with a sibling.
 
-**Core principle:** ALWAYS find root cause before attempting fixes. Symptom fixes are failure.
+## When this applies
 
-**Violating the letter of this process is violating the spirit of debugging.**
+Code-level failures — bugs, test failures, build failures, unexpected values, performance regressions, integration breaks — and runtime incidents: a hung or stale process, a zero metric on a feature users call working, a regression after an update or restart, a service that was fine yesterday.
 
-## The Iron Law
+It applies most when a fix looks obvious, when you are in a hurry, when an earlier fix did not stick, or when you still do not understand the issue. "Simple" bugs have root causes too, and guessing costs more than reading.
 
-```
-NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
-```
+Do not change code to see what happens. Investigate until a cause is named, then change it.
 
-If you haven't completed Phase 1, you cannot propose fixes.
+## Proportionality
 
-## When to Use
+Match depth to the failure. A typo, a renamed symbol, or a failure whose stack trace names the exact argument needs a look at the cited location and a recheck, not the full sequence below. A failure with unknown cause, an intermittent or data-affecting symptom, a money path, or a second failed attempt earns the full investigation. When you take the short path, say what you ruled in and how you checked it.
 
-Use for ANY technical issue:
-- Test failures
-- Bugs in production
-- Unexpected behavior
-- Performance problems
-- Build failures
-- Integration issues
+## Phase 1: root cause investigation
 
-**Use this ESPECIALLY when:**
-- Under time pressure (emergencies make guessing tempting)
-- "Just one quick fix" seems obvious
-- You've already tried multiple fixes
-- Previous fix didn't work
-- You don't fully understand the issue
+- **Read the error completely.** Stack traces, line numbers, paths, error codes, the wording of warnings. They frequently contain the answer that makes guessing unnecessary.
+- **Reproduce consistently.** What are the exact steps, how often, under what conditions? A user-reported failure is ground truth for the symptom; reproduce locally when diagnosis needs it, when building a regression check, or when the report alone cannot localize the fault. Not reproducible with the evidence at hand → gather more data and name what is unavailable instead of assuming the report is wrong.
+- **Check recent changes.** `git diff`, recent commits, new dependencies, config edits, environment differences — the cause usually sits in what changed.
+- **In multi-component systems, observe the boundaries.** When the path crosses layers (CI → build → signing, API → service → database), log what enters and exits each boundary and what environment each layer sees, run once to learn *where* the break is, then investigate that component. Example: separately probe whether the secret is visible in the workflow, whether the build script's environment has it, and what the signing tool reports — the first layer that loses a value is the one to inspect.
+- **Trace data flow backward.** When the failure is deep, walk up the call chain: where did the bad value originate, what passed it on, and from where. Fix at the source, not where the bad value surfaced.
 
-**Don't skip when:**
-- Issue seems simple (simple bugs have root causes too)
-- You're in a hurry (rushing guarantees rework)
-- Manager wants it fixed NOW (systematic is faster than thrashing)
+## Phase 2: pattern analysis
 
-## The Four Phases
+- Find a similar place that works in the same codebase and compare them.
+- When applying an existing pattern, read the reference implementation completely rather than adapting from a skim; partial understanding reproduces the bug you are fixing.
+- List every difference between working and broken, including ones that "cannot matter".
+- List the dependencies the code needs: settings, config, environment, assumptions about callers.
 
-You MUST complete each phase before proceeding to the next.
+## Phase 3: hypothesis and testing
 
-### Phase 1: Root Cause Investigation
+- State one specific hypothesis: "X is the cause because Y". Write it down; vague ideas cannot be refuted.
+- Test it minimally — one variable, the smallest change that distinguishes the hypothesis from its alternative, with a bounded run.
+- Verify before continuing. Confirmed → Phase 4. Not confirmed → form a new hypothesis; do not stack another fix on the unconfirmed one.
+- When you do not know, say so and gather the missing evidence. Ask the user only for what tools cannot obtain: access, intent, business rules, or a decision.
 
-**BEFORE attempting ANY fix:**
+## Phase 4: implementation
 
-1. **Read Error Messages Carefully**
-   - Don't skip past errors or warnings
-   - They often contain the exact solution
-   - Read stack traces completely
-   - Note line numbers, file paths, error codes
+- **Establish failure evidence** — an existing check, an isolated probe, or the user's report; see testing-discipline for designing the regression test and OPS §3 for reuse. State what before-fix evidence is unavailable.
+- **One fix for the named cause.** No "while I'm here" improvements, no bundled refactoring.
+- **Verify the fix and its neighborhood.** The original symptom is gone, adjacent behavior still works, applicable checks pass.
+- **Sweep for the same pattern.** Once the cause is understood, search for the same faulty shape elsewhere — the same parser, the same missing timeout, the same swallowed exception. Fix what plausibly recurs; mention the rest.
+- **If the fix fails**, return to investigation with the new evidence. Repeated failures change the hypothesis or the scope, not the retry count.
+- **If evidence points at architecture** — shared-state coupling, a repair that needs broad refactoring, a new symptom at every boundary — investigate that before adding another patch; several failed patches alone do not prove it. Ask only if the repair needs authority beyond the task or carries an unresolved product tradeoff.
 
-2. **Reproduce Consistently**
-   - Can you trigger it reliably?
-   - What are the exact steps?
-   - Does it happen every time?
-   - A user-reported failure is ground truth for the symptom; reproduce locally when diagnosis needs it, when building a regression check, or when the report alone is insufficient to localize.
-   - Not reproducible with available evidence → gather more data, don't guess; say what is unavailable rather than assuming the report wrong.
+## Runtime and process incidents
 
-3. **Check Recent Changes**
-   - What changed that could cause this?
-   - Git diff, recent commits
-   - New dependencies, config changes
-   - Environmental differences
+Incidents usually provide plenty of facts and little interpretation. Collect facts first, then form one theory.
 
-4. **Gather Evidence in Multi-Component Systems**
+- **Order evidence by directness.** For a data-driven service the cheap facts are the config flags, the database row, the log lines — and only then a code hypothesis. That order is an example, not a ritual: start where the fault most likely lives, and prefer reading the actual state over reasoning about it.
+- **Symptom ≠ cause.** "Minutes are not deducted" is a symptom; a silently swallowed exception plus a wrong parser is the cause. Trace the call path to the side effect and fix the cause once.
+- **Zero metric on a "working" feature is a silent failure.** UX success plus a flat metric means the write path never happened: look for an `except` or an early return on the metric path.
+- **One consumer per exclusive stream.** Long-poll, queue, or lock file: duplicates split or steal events. Health is exactly one process for the stream; stop duplicates only when this task started them or the user named them.
+- **Restart ritual after any fix.** Code on disk is not code in memory. Stop every instance this task owns (or the user named), start one, and read the fresh log lines. A cheap check is process creation time against the edit time; an older process is running the old code.
+- **Serving versus caching.** "Still broken" often means the server never served the fixed bytes. Fetch the served output and look for the fix marker before hunting the bug again, and rule out a foreign process on the port — an old test instance there looks exactly like a broken build.
+- **Console encoding is not product encoding.** Mojibake on the terminal does not mean stored data is corrupted; check the encoding of the real artifact.
 
-   **WHEN system has multiple components (CI → build → signing, API → service → database):**
+### Localizing a hang
 
-   **BEFORE proposing fixes, add diagnostic instrumentation:**
-   ```
-   For EACH component boundary:
-     - Log what data enters component
-     - Log what data exits component
-     - Verify environment/config propagation
-     - Check state at each layer
+- "It cannot hang" is not an argument. A network call without a timeout, an interactive prompt, and an infinite loop all hang.
+- Mark each stage at its start and write progress to a file, not down a pipe that can stall or truncate the tail. The hang is inside the last stage whose marker appeared.
+- Isolate the suspect stage with a short timeout (tens of seconds) instead of rerunning the whole sequence at a long one.
+- Split `A && B && C`: a chain hides which stage stalled.
+- Suspect infrastructure before logic — setup hooks, module loading, network, interactivity fail more often than the "instant" step.
+- Compare against the last successful run; the culprit is usually in the diff since then.
 
-   Run once to gather evidence showing WHERE it breaks
-   THEN analyze evidence to identify failing component
-   THEN investigate that specific component
-   ```
+### Scope discipline
 
-   **Example (multi-layer system):**
-   ```bash
-   # Layer 1: Workflow
-   echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: $([ -n "${IDENTITY:-}" ] && echo SET || echo UNSET)"
+Read-only or review-only work means diagnose and report. Read logs, configs, process state and served bytes, but do not add instrumentation, caches or log files to the tree; describe the instrumentation you would add instead. A local implementation task may add temporary probes, and should remove them before finishing.
 
-   # Layer 2: Build script
-   echo "=== Env vars in build script: ==="
-   printenv IDENTITY >/dev/null 2>&1 && echo "IDENTITY in environment" || echo "IDENTITY not in environment"
+Stop, restart or kill only processes this task started or that the user explicitly named. Another instance's process is user data: report what you see and ask.
 
-   # Layer 3: Signing script
-   echo "=== Keychain state: ==="
-   security list-keychains
-   security find-identity -v
+## Red flags
 
-   # Layer 4: Actual signing
-   codesign --sign "$IDENTITY" --verbose=4 "$APP"
-   ```
+You are guessing rather than debugging when you catch yourself:
 
-   **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
+- proposing a fix before tracing how the bad value got there
+- "quick fix now, investigate later", or "just try changing X and see"
+- changing several things at once, so no result can be attributed
+- assuming "it is probably X" without evidence that distinguishes X from Y
+- adapting a reference pattern without reading it
+- listing fixes instead of causes
+- repeating a fix that already failed, with nothing new learned
+- watching each fix expose a new problem somewhere else
 
-5. **Trace Data Flow**
+Any of these means return to Phase 1.
 
-   **WHEN error is deep in call stack:**
-
-   Trace the call chain backward from the failure: what called this, with what value, from where.
-
-   **Quick version:**
-   - Where does bad value originate?
-   - What called this with bad value?
-   - Keep tracing up until you find the source
-   - Fix at source, not at symptom
-
-### Phase 2: Pattern Analysis
-
-**Find the pattern before fixing:**
-
-1. **Find Working Examples**
-   - Locate similar working code in same codebase
-   - What works that's similar to what's broken?
-
-2. **Compare Against References**
-   - If implementing pattern, read reference implementation COMPLETELY
-   - Don't skim - read every line
-   - Understand the pattern fully before applying
-
-3. **Identify Differences**
-   - What's different between working and broken?
-   - List every difference, however small
-   - Don't assume "that can't matter"
-
-4. **Understand Dependencies**
-   - What other components does this need?
-   - What settings, config, environment?
-   - What assumptions does it make?
-
-### Phase 3: Hypothesis and Testing
-
-**Scientific method:**
-
-1. **Form Single Hypothesis**
-   - State clearly: "I think X is the root cause because Y"
-   - Write it down
-   - Be specific, not vague
-
-2. **Test Minimally**
-   - Make the SMALLEST possible change to test hypothesis
-   - One variable at a time
-   - Don't fix multiple things at once
-
-3. **Verify Before Continuing**
-   - Did it work? Yes → Phase 4
-   - Didn't work? Form NEW hypothesis
-   - DON'T add more fixes on top
-
-4. **When You Don't Know**
-   - Say "I don't understand X"
-   - Don't pretend to know
-   - Ask for help
-   - Research more
-
-### Phase 4: Implementation
-
-**Fix the root cause, not the symptom:**
-
-1. **Establish Failure Evidence**
-   - Accept applicable user-reported or prior failure evidence.
-   - Reproduce when needed to distinguish causes or defend a regression.
-   - Use an existing check or isolated probe; state unavailable evidence.
-   - Load `test-driven-development` only if test design remains unresolved.
-
-2. **Implement Single Fix**
-   - Address the root cause identified
-   - ONE change at a time
-   - No "while I'm here" improvements
-   - No bundled refactoring
-
-3. **Verify Fix**
-   - Test passes now?
-   - No other tests broken?
-   - Issue actually resolved?
-   - Use the `verification-before-completion` skill before claiming success
-
-4. **If the Fix Fails**
-   - Stop speculative editing; inspect the new failure and return to root-cause investigation.
-   - Repeated failures call for a different hypothesis or better evidence, not an automatic hand-back at a fixed retry count.
-   - Continue an evidence-backed, authorized repair when its scope and intended behavior remain clear.
-
-5. **When Evidence Points to Architecture**
-   - Look for shared-state coupling, fixes that require broad refactoring, or new symptoms at each boundary.
-   - Investigate those causes before adding another patch. Several failed attempts alone do not prove the architecture is wrong.
-   - Ask only if the repair introduces an unresolved product tradeoff or needs authority beyond the task. Otherwise finish the reachable repair and verify it.
-
-## Red Flags - STOP and Follow Process
-
-If you catch yourself thinking:
-- "Quick fix for now, investigate later"
-- "Just try changing X and see if it works"
-- "Add multiple changes, run tests"
-- "Skip the test, I'll manually verify"
-- "It's probably X, let me fix that"
-- "I don't fully understand but this might work"
-- "Pattern says X but I'll adapt it differently"
-- "Here are the main problems: [lists fixes without investigation]"
-- Proposing solutions before tracing data flow
-- **Repeating a failed fix without new evidence**
-- **Each fix reveals new problem in different place**
-
-**ALL of these mean: STOP. Return to Phase 1.**
-
-**Repeated failures:** reconsider the hypothesis and scope using evidence (see Phase 4.5); do not stop merely because a counter reached three.
-
-## your human partner's Signals You're Doing It Wrong
-
-**Watch for these redirections:**
-- "Is that not happening?" - You assumed without verifying
-- "Will it show us...?" - You should have added evidence gathering
-- "Stop guessing" - You're proposing fixes without understanding
-- "Ultra-think this" - Question fundamentals, not just symptoms
-- "We're stuck?" (frustrated) - Your approach isn't working
-
-**When you see these:** STOP. Return to Phase 1.
-
-## Common Rationalizations
+## Rationalizations
 
 | Excuse | Reality |
 |--------|---------|
-| "Issue is simple, don't need process" | Simple issues have root causes too. Process is fast for simple bugs. |
-| "Emergency, no time for process" | Systematic debugging is FASTER than guess-and-check thrashing. |
-| "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
-| "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
-| "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
-| "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
-| "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
-| "One more fix attempt" without new evidence | Return to investigation. A new trace can justify another bounded fix; a retry count cannot prove an architectural defect. |
+| "Issue is simple, no process needed" | Simple issues have causes too, and the process is fast for them |
+| "Emergency, no time for process" | Reading the error costs less than a round of failed patches |
+| "Just try this first, then investigate" | The first guess sets the pattern; start with evidence |
+| "I'll write the test after confirming the fix" | Untested fixes do not stick; the failing check is how the fix is confirmed |
+| "Multiple fixes at once saves time" | Nothing can be attributed, and new bugs hide among them |
+| "Reference is long, I'll adapt it" | Partial understanding reproduces the bug; read it completely |
+| "I see the problem, let me fix it" | Seeing the symptom is not knowing the cause |
+| "One more attempt" with no new evidence | A new trace or probe justifies a bounded retry; a retry count does not |
+| "It worked before the update, so the update broke it" | A stale process or a cache explains it just as often; verify what is running and served |
+| "The metric is just delayed" | A working UX with a flat metric is usually a swallowed error; check the write path |
+| "A restart will clear it" | A restart without a cause hides the leak and it returns; use it to test a hypothesis, not to close one |
 
-## Quick Reference
+## Triage shortcuts
 
-| Phase | Key Activities | Success Criteria |
-|-------|---------------|------------------|
-| **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
-| **2. Pattern** | Find working examples, compare | Identify differences |
-| **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+**Test failure after a code change** — did you touch code it covers? Then decide whether test or code is wrong. Touched unrelated code? Look at shared state, imports, globals, order dependence. Already flaky? Check timing and isolation.
 
-## Quick Triage Trees
+**Build failure** — type error: read the cited location and its types. Import error: module exists, exports match, paths correct. Config error: the build config files. Dependency error: the manifest, then install. Environment error: tool version, OS.
 
-### Test Failure Triage
-```
-Test fails after code change:
-├── Did you change code the test covers? → Check if test or code is wrong
-├── Did you change unrelated code? → Check shared state, imports, globals
-└── Test was already flaky? → Check timing issues, order dependence
-```
+**Runtime incident** — fresh or stale process? Served bytes current? One consumer? Then symptom → metric/log path → call chain.
 
-### Build Failure Triage
-```
-Build fails:
-├── Type error → Read error, check types at cited location
-├── Import error → Check module exists, exports match, paths correct
-├── Config error → Check build config files
-├── Dependency error → Check package.json, run install
-└── Environment error → Check version, OS compatibility
-```
+## When the cause is genuinely external
 
-## When Process Reveals "No Root Cause"
+If investigation shows the trigger is environmental, timing-dependent, or outside the repository, the investigation is complete: document what you checked and which hypotheses were ruled out, then handle it (retry with a bound, timeout, clearer error) and add the logging or monitoring that makes the next occurrence diagnosable. Before concluding "no root cause", name the hypotheses you tested and the evidence still unavailable — missing evidence is not proof of absence.
 
-If systematic investigation reveals issue is truly environmental, timing-dependent, or external:
+## Supporting techniques
 
-1. You've completed the process
-2. Document what you investigated
-3. Implement appropriate handling (retry, timeout, error message)
-4. Add monitoring/logging for future investigation
-
-Before concluding "no root cause," identify which hypotheses were tested and
-which evidence remains unavailable; missing evidence is not proof of absence.
-
-## Supporting Techniques
-
-Inline patterns that extend systematic debugging:
-
-- **Root-cause tracing** (step 5 of Phase 1 above) - trace bugs backward through the call stack to find the original trigger
-- **Defense in depth** - add boundary validation only where the demonstrated failure can still enter; do not harden unrelated layers
-- **Condition-based waiting** - wait for an observable condition with a bounded timeout; prefer native events over arbitrary sleeps or unbounded polling
+- **Condition-based waiting** — wait for an observable condition with a bounded timeout; prefer native events over arbitrary sleeps or unbounded polling.
+- **Defense in depth** — add boundary validation only where the demonstrated failure can still enter; do not harden unrelated layers.
 
 ---
 

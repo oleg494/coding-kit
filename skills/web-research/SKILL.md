@@ -1,60 +1,74 @@
 ---
 name: web-research
-description: 'Use when you need a fact from the outside world: "find out", "look up", "what do they say about", "how it works", "compare", "find information". Protocol: web search → primary sources → cross-check → answer with sources. Do not use for searching the knowledge base (business-wiki) or for facts already in the Wiki.'
+description: 'Use when a fact from outside the project is needed: "find out", "look up", "what do they say about", "how it works", "compare", "find information", "is this still true". Identify or read the primary source first — open a known URL directly, search only when the owner of the fact is unknown — then cross-check material claims, date them, and answer with links. Not for the local knowledge base or recorded project facts (use dev-wiki) or consequential tool/library decisions (use production-first-decisions).'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
 # Web Research — facts from the outside world
 
 ## Workflow
 
-1. **Define the missing external fact.** Local code and established project facts do not need web corroboration.
-2. **Read known primary URLs directly; search when the source is unknown.** Use a browser only for interactive or dynamically rendered content.
-3. **Primary sources, not retellings.** Official docs, original research or source code; check the actual version and applicability.
-4. **Cross-check where material.** One authoritative source can establish a narrow fact; seek independent evidence for disputed, indirect or high-impact claims.
-5. **Dating.** Include the relevant version/date for time-sensitive facts.
-6. **Answer with sources.** Link external claims and identify remaining uncertainty. Do not invent facts when a source is unavailable.
+1. **Define the missing external fact.** Local code, project docs and recorded
+   decisions do not need web corroboration; a fact already in the Wiki is
+   retrieved from there.
+2. **Identify or read the primary source.** If you know who owns the fact
+   (vendor docs, a repo, a spec, a law), open that URL directly with the
+   reader. Search only when the owner is unknown, then navigate from the
+   result to the original. Use a browser only for interactive or
+   dynamically rendered content.
+3. **Prefer primary over retelling.** Official documentation, original
+   research, source code, the standard text; check the actual version and
+   whether the answer applies to it.
+4. **Cross-check where material.** One authoritative source settles a narrow
+   fact; disputed, indirect or high-impact claims need independent evidence.
+5. **Date the claim.** State the version or date for anything time-sensitive;
+   say what may have changed since.
+6. **Answer with sources.** Link every external claim and name what stayed
+   unverified. Never fill a gap with invented facts: an unavailable source is
+   a reported limitation, not a licence to guess.
 
-## Source hierarchy & fallback (403/429/captcha)
+## When access fails (403/429/captcha/paywall)
 
-1. **Official docs / GitHub repo / source code** — the primary source.
-2. **Issue trackers, ADRs, engineering blogs** — industry practice.
-3. **Direct HTTP fetch of the page** (`read` on the URL) — when search engines
-   block you.
-
-On 403/429/captcha, try another legitimate source or access method without
-bypassing access controls. If sources remain unreachable, name the unresolved
-fact and what was tried; finish the parts that available evidence supports.
+Try another legitimate source or access path — the project's own mirror, the
+repo, a cached or archived copy, a different official page — without bypassing
+access controls, signing up, or paying automatically. If the fact stays
+unreachable, name it, list what you tried, and finish the parts the available
+evidence supports.
 
 ## Research depth
 
-Use enough evidence to resolve the question, not a fixed number of queries or
-pages. A definition can need one source; a technology comparison may require
-multiple alternatives, benchmarks and counterexamples. Stop when further
-search cannot materially change the answer.
+Use enough evidence to resolve the question, not a fixed count of queries or
+pages. A definition can need one source; a comparison needs the alternatives,
+their versions and any benchmark that speaks to the decision. Stop when more
+search cannot change the answer.
 
-## What to look for
+## Where the fact usually lives
 
-| Type of information | Where to look |
-|---------------|-----------|
-| API / library | Official documentation, GitHub README, source code |
-| Industry practice | GitHub issues, ADRs, engineering blogs, Thoughtworks Tech Radar |
-| Bug / error | GitHub issues, Stack Overflow, official bug tracker |
-| Tool comparison | Benchmarks, practitioner articles, Hacker News discussions |
-| Regulations / laws | Official sources (.gov, legal databases) |
+| Kind of fact | Owner to start from |
+|---|---|
+| API, library, CLI behavior | Official docs, README, changelog, source code |
+| Industry practice, adoption | Engineering blogs, ADRs, issue threads, tech radars |
+| Bug, error message | Project issue tracker, release notes, Q&A with an accepted answer |
+| Tool or approach comparison | Reproducible benchmarks, practitioner reports with method |
+| Regulation, standard, licence | The issuing body's own text (.gov, ISO/IEC, licence file) |
 
 ## Answer
 
-- **Result first line.** What was found, briefly.
-- **Details with sources.** Every fact with a link.
-- **Caveats.** What wasn't verified, what's in question.
-- **Memory.** Retain useful durable findings in configured local memory under OPS §1 without repeated confirmation. Skip duplicates and speculation; honor read-only, "do not save" and stop.
+- **Result first line.** What was found, in one sentence.
+- **Details with links.** Each fact carries its source.
+- **Caveats.** Unverified parts, version sensitivity, conflicting sources.
+- **Memory.** Durable findings go through dev-wiki routing; a research run
+  does not create its own memory policy.
 
 ## Gotchas
 
-- The first link in search results isn't always the primary source. Check who the author is and where the data comes from.
-- SEO articles (Medium, Dev.to) often retell documentation with errors. Go to the original.
-- Publication date: a 2023 article about a technology may be outdated.
-- Don't use web search for facts already in the Wiki — first `db-tools/search.py`.
+- The first search hit is often a retelling. Check who authored it and where
+  the numbers come from.
+- SEO farms and AI-generated posts reproduce docs with errors. Go to the
+  original.
+- Publication date is not the version date: a 2024 article may describe a
+  behavior removed in 2026.
+- An unanswered issue thread is evidence of a problem, not of its fix;
+  read the resolution state.

@@ -13,6 +13,8 @@
     {"id": "autonomous-work-9", "prompt": "You've made 30 tool calls on this objective — wrap it up now regardless of state.", "should_trigger": true},
     {"id": "autonomous-work-10", "prompt": "The mission's first objective is verified and recorded; move on to the next one without rechecking it.", "should_trigger": true},
     {"id": "autonomous-work-11", "prompt": "Write down the verified objective as a compact command/state/result/invalidation record in the handoff.", "should_trigger": true},
-    {"id": "autonomous-work-12", "prompt": "Stop after this single small fix even though the autonomous mission has more in-scope objectives.", "should_trigger": false}
+    {"id": "autonomous-work-12", "prompt": "Stop after this single small fix even though the autonomous mission has more in-scope objectives.", "should_trigger": false},
+    {"id": "autonomous-work-13", "prompt": "Do useful work on the parser, local only, don't ask - that is the whole boundary. Start now.", "should_trigger": true},
+    {"id": "autonomous-work-14", "prompt": "The mission's acceptance criteria are all evidenced and nothing in scope is queued - close it out and tell me how it ended.", "should_trigger": true}
   ]
 }

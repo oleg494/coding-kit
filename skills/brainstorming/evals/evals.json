@@ -60,6 +60,41 @@
    "id": "brainstorming-11",
    "prompt": "I keep wishing there was a better way to visualize our deploy pipeline, can you help me figure out what that would look like",
    "should_trigger": true
+  },
+  {
+   "id": "brainstorming-12",
+   "prompt": "We're starting a new internal inventory service and there is no spec yet - capture what it must do before anyone writes code",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-13",
+   "prompt": "The requirement says 'users should be notified' and nothing else is written down. I need something concrete we can build against.",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-14",
+   "prompt": "This one feature request really bundles accounts, billing and email notifications - map the capabilities and their order before we start",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-15",
+   "prompt": "Before we commit, write down the constraints, tech stack, commands and success criteria for the new CLI project",
+   "should_trigger": true
+  },
+  {
+   "id": "brainstorming-16",
+   "prompt": "The spec is approved. Now split it into slices with checks and tell me the order to land them in",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-17",
+   "prompt": "Design is settled - just implement it the way the spec says and verify it",
+   "should_trigger": false
+  },
+  {
+   "id": "brainstorming-18",
+   "prompt": "/fable-method plan our market-entry memo - what evidence would we need before recommending the segment",
+   "should_trigger": false
   }
  ]
 }

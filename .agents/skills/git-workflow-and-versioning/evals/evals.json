@@ -8,7 +8,47 @@
   },
   {
    "id": "git-workflow-and-versioning-1",
+   "prompt": "merge this branch into main now that it is green",
+   "should_trigger": true
+  },
+  {
+   "id": "git-workflow-and-versioning-2",
+   "prompt": "open a PR for this branch and give me the URL",
+   "should_trigger": true
+  },
+  {
+   "id": "git-workflow-and-versioning-3",
+   "prompt": "the merge conflicted in utils.ts, help me resolve it",
+   "should_trigger": true
+  },
+  {
+   "id": "git-workflow-and-versioning-4",
+   "prompt": "what version bump for dropping the public `legacy` option?",
+   "should_trigger": true
+  },
+  {
+   "id": "git-workflow-and-versioning-5",
+   "prompt": "write the changelog entry for this release",
+   "should_trigger": true
+  },
+  {
+   "id": "git-workflow-and-versioning-6",
    "prompt": "optimize this sql query plan",
+   "should_trigger": false
+  },
+  {
+   "id": "git-workflow-and-versioning-7",
+   "prompt": "set up an isolated worktree so two agents can work at once",
+   "should_trigger": false
+  },
+  {
+   "id": "git-workflow-and-versioning-8",
+   "prompt": "remove the feature worktree now that it is merged",
+   "should_trigger": false
+  },
+  {
+   "id": "git-workflow-and-versioning-9",
+   "prompt": "review this diff for correctness before it lands",
    "should_trigger": false
   }
  ]

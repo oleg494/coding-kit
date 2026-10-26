@@ -16,7 +16,7 @@ Preserve existing instructions. Load the contract once; do not copy the
 repository router with a relative link into an unrelated directory.
 
 ### Step 2: Skills
-Copy or link only the 37 owned skills declared in `profile.yml` into
+Copy or link only the owned skills declared in `profile.yml` into
 `~/.agents/skills/`, preserving unrelated skills. A full-directory wildcard
 would also copy third-party sources and is not the kit ownership contract.
 
@@ -28,13 +28,13 @@ python ~/.memory/db-tools/build.py -r <project-root> -o ~/.memory/db/<name>.db
 ```
 
 ### Step 4: Verify
-In the IDE ask the agent to show its method (plan → TDD → implement → verify → report) and to search memory for X: it must route through `python ~/.memory/db-tools/search_all.py "X"`, not answer from conversation. Behavior over identity.
+In the IDE ask the agent how it will handle a small bug fix (it should name acceptance, the check it will run and the report, per OPS.md) and to search memory for X: it must run `python ~/.memory/db-tools/search_all.py "X"`, not answer from the conversation.
 
 ## 3. What the agent does after install
 
 ```
 STARTUP   read the canonical OPS.md once; no automatic memory feed
-QUESTION  known → search_all.py "X" → answer with file link
-TASK      superpowers: plan → TDD → implement → verify → report
+QUESTION  known → search_all.py "X" → answer with the source
+TASK      OPS.md: acceptance → change → check → report; one skill per open question
 "write"   hierarchy: portable → ~/.memory/Wiki/; project → WORK/<proj>/docs/
 ```

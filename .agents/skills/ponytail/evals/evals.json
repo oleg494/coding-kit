@@ -1,0 +1,55 @@
+{
+  "skill_name": "ponytail",
+  "evals": [
+    {
+      "id": "ponytail-0",
+      "prompt": "should we add a caching layer now for future scale?",
+      "should_trigger": true
+    },
+    {
+      "id": "ponytail-1",
+      "prompt": "add an abstraction class just in case we need more types later",
+      "should_trigger": true
+    },
+    {
+      "id": "ponytail-2",
+      "prompt": "do we need this new dependency for the feature?",
+      "should_trigger": true
+    },
+    {
+      "id": "ponytail-3",
+      "prompt": "this helper is used once, should I extract it anyway?",
+      "should_trigger": true
+    },
+    {
+      "id": "ponytail-4",
+      "prompt": "write a function that adds two numbers",
+      "should_trigger": false
+    },
+    {
+      "id": "ponytail-5",
+      "prompt": "fix the broken test",
+      "should_trigger": false
+    },
+    {
+      "id": "ponytail-6",
+      "prompt": "what do we know about caching",
+      "should_trigger": false
+    },
+    {
+      "id": "ponytail-7",
+      "prompt": "rename the variable to match the style guide",
+      "should_trigger": false
+    },
+    {
+      "id": "ponytail-8",
+      "prompt": "how should we split this 4000-line module into services and where does the core end?",
+      "should_trigger": false
+    },
+    {
+      "id": "ponytail-9",
+      "prompt": "how do we migrate the production schema to the new order model without downtime?",
+      "should_trigger": false
+    }
+  ]
+}

@@ -40,6 +40,41 @@
    "id": "systematic-debugging-7",
    "prompt": "why does this function return None instead of the value",
    "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-8",
+   "prompt": "\u043f\u043e\u0441\u043b\u0435 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u0440\u043e\u0446\u0435\u0441\u0441 \u0437\u0430\u0432\u0438\u0441, \u0432 \u043b\u043e\u0433\u0430\u0445 \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435\u0442",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-9",
+   "prompt": "the payment counter is zero but users say payments go through",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-10",
+   "prompt": "it still behaves like the old build \u2014 did the service actually restart with my fix?",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-11",
+   "prompt": "the crawler hangs halfway through the batch every night",
+   "should_trigger": true
+  },
+  {
+   "id": "systematic-debugging-12",
+   "prompt": "turn this bug report into a failing test first",
+   "should_trigger": false
+  },
+  {
+   "id": "systematic-debugging-13",
+   "prompt": "add timeouts to every network call in this module",
+   "should_trigger": false
+  },
+  {
+   "id": "systematic-debugging-14",
+   "prompt": "set up log rotation for the worker service",
+   "should_trigger": false
   }
  ]
 }

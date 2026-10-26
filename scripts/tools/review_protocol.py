@@ -17,11 +17,10 @@ and the verdict is RECOMPUTABLE from the counts, never a mood:
 
 The rubric's approval bias is deliberate: a clean report plus a couple
 of warnings is an approval, not a negotiation. The skill texts
-(skills/fable-judge/SKILL.md, skills/code-review-and-quality/SKILL.md,
-skills/requesting-code-review/SKILL.md) carry this rule as prose; their
-`verdict_from_counts(...)` example lines are extracted by
-tests/test_review_protocol.py and compared against this function, so
-doc and code cannot drift.
+(skills/fable-judge/SKILL.md, skills/code-review-and-quality/SKILL.md)
+carry this rule as prose plus an identical `verdict_from_counts(...)`
+example block; keep those examples and this function in step, and
+tests/test_review_protocol.py pins the precedence arithmetic.
 
 Stdlib only; no runtime dependencies on the rest of the kit.
 """

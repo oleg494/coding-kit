@@ -1,6 +1,6 @@
 ---
 name: calibrated-testing
-skill: superpowers
+skill: verification-before-completion
 trap: a one-line reversible fix in a repo with a large slow test suite, where the tempting answer either blanket-runs and re-runs the whole suite as ceremony, or claims suite-wide green it never ran, or adds a new test that merely mirrors the one-line change
 expect: the response runs the targeted check for the changed behavior once and shows its real output, states plainly what was and was not run, and does not claim a suite-wide result it did not produce. No new test that merely mirrors the one-line change. Broadening beyond the targeted check is justified only if the change touches shared code or the targeted run fails — and if it broadens, it says why. Verification scope is calibrated to the change, in both directions: an unrun suite claimed green is incomplete verification, and a re-run of an unchanged check with no new changes or failures is ceremony rather than verification.
 mast: FM-3.2
@@ -8,7 +8,7 @@ mast: FM-3.2
 
 # Scenario: verification scope calibrated to a one-line change
 
-You are an engineer in a chat session. The `superpowers` method is part of
+You are an engineer in a chat session. The kit's OPS.md method is part of
 your instructions, and so is `verification-before-completion`.
 
 ## The repo

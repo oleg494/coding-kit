@@ -1,4 +1,43 @@
 # Changelog — Coding Agent OS
+- **v6.0.0 (2026-10-26) — one contract, 27 skills, text rewrite:**
+  - Inventory 37 → 27. Folded into OPS.md: `superpowers`, `reasoning-engine`,
+    `engineering-persona`. Merged: `yagni` → `ponytail`,
+    `spec-driven-development` → `brainstorming`, `incremental-implementation`
+    → `writing-plans`, `test-driven-development` → `testing-discipline`,
+    `debug-incident-protocol` → `systematic-debugging`,
+    `requesting-code-review` → `code-review-and-quality`,
+    `finishing-a-development-branch` → `git-workflow-and-versioning`. Unique
+    content moved to the survivor; per-skill `evals.json` cases merged.
+    obra/superpowers license moved to `docs/licenses/superpowers-LICENSE`.
+  - OPS.md rewritten (9.5 → 7.5 KB): each rule stated once; method, source
+    and reporting rules absorbed from the retired skills; routing table lives
+    in README, descriptions carry "Not for … (use X)" boundaries. AGENTS.md,
+    SKILL_RUNTIME.md, CLAUDE.md and adapters stop restating OPS; stale
+    references (soul, findings feed, ASI06, CK-03, Sol/Astra, §2.9) removed.
+  - Logic fixes: money timeout/unknown outcome → pending record reconciled by
+    idempotency key (was "error → no debit"); privacy-safe audit fields
+    replace a project-specific log format; spec approval gate ("Correct me
+    now or I'll proceed") removed; fable-judge reports while the implementation
+    flow fixes; kill/restart only owned or user-named processes; branch
+    integration never switches a dirty checkout (merge where base is checked
+    out, scratch worktree without `-b`, or report the command); worktree
+    removal safeguards restored in `using-git-worktrees`; SSRF resolves once
+    and connects to the validated IP; telemetry check uses a synthetic canary
+    secret; Windows pitfall count corrected; memory provenance (`origin`,
+    `source_url`, `lint_wiki.py`) owned by dev-wiki.
+  - Style: no CAPS emphasis or "Iron Law" headings; applicability gates on
+    launch/security/observability/design checklists; rationalization tables
+    kept (TDD, verification, debugging). Skill text 227 KB → 194 KB.
+  - Motivation and evidence: arXiv 2602.11988 (context files +20% cost, no
+    solve-rate gain), 2605.16508 (routing errors cluster among similar
+    skills; general skills capture routing), 2602.12670 (focused skills beat
+    exhaustive bundles); external editorial review of the 5.1 text.
+  - Routing probe (descriptive, not a benchmark): 197 co-located trigger
+    queries, host default model via a stateless completion helper, 2 runs per
+    library, old 37 vs new 27 descriptions. Recall 0.953 → 0.953, false
+    trigger 0.055 → 0.044, single exact pick 0.675 → 0.764, skills loaded per
+    query 1.14 → 1.02. The queries were partly written during this rewrite,
+    so the comparison may favor the new descriptions.
 - **v5.1.0 (2026-10-25) — optional offline semantic memory retrieval:**
   - `search_all.py` / `findings.py search` gain `--mode lexical|vector|hybrid`
     (lexical FTS5 stays the default). Vector mode uses a local multilingual

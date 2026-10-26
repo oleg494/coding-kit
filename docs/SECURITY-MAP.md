@@ -42,7 +42,7 @@ Control planes (verified 2026-09-01):
 | AST01 | Malicious Skills              | Skills are first-party (no registry installs). doctor control: integrity manifest hash-pins every file in each profile-declared owned skill directory — SKILL.md and the whole payload, references included (Task 2); AST01 cryptographic signing explicitly deferred (roadmap "Deferred": no key infrastructure for one user). |
 | AST02 | Supply Chain Compromise       | doctor `check_skill_supply_chain` — WARN on inconsistent optional `license:` frontmatter across skills (hygiene seed; ok=True, soft-gate semantics). First-party-only distribution is the primary control. |
 | AST03 | Over-Privileged Skills        | harness-owned, N/A — skills carry no permission manifests; every side-effecting call flows through harness permission gates. Kit keeps skills instruction-only (no bundled executables). |
-| AST04 | Insecure Metadata | doctor validates owned-skill frontmatter; `profile.yml` declares 37 owned skills, with foreign directories excluded. |
+| AST04 | Insecure Metadata | doctor validates owned-skill frontmatter; `profile.yml` declares 27 owned skills, with foreign directories excluded. |
 | AST05 | Untrusted External Instructions | OPS §5 and `security-and-hardening` separate retrieved data from instructions; `compaction-continuity` checks preservation of the user's corrections. |
 | AST06 | Weak Isolation | Sandbox/approval enforcement belongs to the host. OPS §1 defines authority but cannot enforce filesystem or network isolation. |
 | AST07 | Update Drift                  | integrity manifest (Task 2): `--update`-regenerated SHA-256 pins; doctor `check_integrity` FAILs on any drifted/added/removed control-plane file; deploy refuses to copy drifted trees (exit 3). |

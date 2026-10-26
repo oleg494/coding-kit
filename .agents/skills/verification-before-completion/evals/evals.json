@@ -3,12 +3,12 @@
  "evals": [
   {
    "id": "verification-before-completion-0",
-   "prompt": "I think it works now — can you confirm it's done before we merge?",
+   "prompt": "I think it works now \u2014 can you confirm it's done before we merge?",
    "should_trigger": true
   },
   {
    "id": "verification-before-completion-1",
-   "prompt": "We changed deps.py since the last green run — is the suite still green?",
+   "prompt": "We changed deps.py since the last green run \u2014 is the suite still green?",
    "should_trigger": true
   },
   {
@@ -39,6 +39,26 @@
   {
    "id": "verification-before-completion-7",
    "prompt": "pick a color scheme for the dashboard",
+   "should_trigger": false
+  },
+  {
+   "id": "verification-before-completion-8",
+   "prompt": "the settings page renders fine locally \u2014 are we good to say the feature is finished?",
+   "should_trigger": true
+  },
+  {
+   "id": "verification-before-completion-9",
+   "prompt": "only the smoke probe ran; can we tell the user the migration is complete?",
+   "should_trigger": true
+  },
+  {
+   "id": "verification-before-completion-10",
+   "prompt": "turn this bug report into a failing test first",
+   "should_trigger": false
+  },
+  {
+   "id": "verification-before-completion-11",
+   "prompt": "the subagent says it fixed the parser \u2014 check independently what it actually changed",
    "should_trigger": false
   }
  ]

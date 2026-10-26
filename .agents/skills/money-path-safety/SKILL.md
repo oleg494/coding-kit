@@ -1,62 +1,52 @@
 ---
 name: money-path-safety
-description: 'Use when the user wants to: pay/buy/subscribe, receive or spend a bonus/promo code/referral, check a balance or limit, get a refund, or when any logic for deducting/crediting/quotas changes — even if the request does not name money explicitly («give me more minutes», «why was I charged twice», «enter a promo code»). Checks: idempotency, atomicity, mutation logging, separate buckets, hard gate before expensive work, charge after success, soft delete, compound PK, structured failure. Do not use for pure CRUD without value semantics and for debugging incidents (that is debug-incident-protocol).'
+description: 'Use when touching money or quota logic: pay/buy/subscribe, promo or referral codes, balance or limit checks, refunds, or any code that deducts, credits, grants, or expires value — even when the request does not name money ("give me more minutes", "why was I charged twice"). Covers idempotency, three payment outcomes, atomic updates, audit records. Not for plain CRUD without value semantics or live incident diagnosis (systematic-debugging).'
 license: MIT
 compatibility: any languages/stacks with balances, quotas, promo codes, limits
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# Money path safety: money and value — a special class of code
+# Money path safety
 
-Distilled from live billing sessions. Apply to ANY path where you deduct/credit/pay/limit.
+Applies to any path that deducts, credits, grants, expires or limits value: payments, balances, quotas, promo codes, referrals, subscriptions. A bug here is silent, permanent and spends real money.
 
-## 1. Money: iron rules
+## Rules
 
-1. **MONEY PATH IS SACRED** — lock/transaction + idempotency + a log for every event + a test for double-submit. Check: pressed «pay» twice → balance +X, not +2X.
-2. **IDEMPOTENCY BY DEFAULT** — operation key (invoice_id, event_id) + credited flag + early return. Check: run the handler 2 times — second is a no-op.
-3. **SEPARATE BUCKETS** — trial/promo/purchase/subscription = different entities, not one `balance` field. Explicit deduction order: free → bonus → paid.
-4. **HARD GATE BEFORE EXPENSIVE WORK** — check entitlement/limit/money BEFORE the external call (CPU/API/LLM). With a zero balance the API is not called.
-5. **CHARGE AFTER SUCCESS** — success → debit; error → no debit (+ log). Inject a provider error → balance unchanged.
-6. **LOG EVERY MUTATION** — one line per credit/debit/grant/refund: `charge uid=%s seconds=%.3f from_free=%.3f from_bonus=%.3f from_paid=%.3f`. grep by user_id reconstructs the history.
-7. **NO SILENT EXCEPT ON SIDE EFFECTS** — except: pass is acceptable on cleanup, NOT acceptable on money/auth/data-loss. Money path: log + fallback or fail loud.
-8. **READ-MODIFY-WRITE UNDER LOCK** — «read→compute→write» without locking = lost update. Mutex/transaction over the whole RMW.
-9. **ONE SOURCE OF TRUTH** — UI/cache/log are derivatives. Truth is the storage. An incident starts with reading storage, not with a theory.
+1. **Lock, idempotency, audit record, double-submit test.** Pressing "pay" twice leaves balance +X, not +2X.
+2. **Idempotency by default:** operation key (invoice id, event id, request id) + recorded outcome + early return. Run the handler twice — the second run is a no-op.
+3. **Three outcomes, not two.** For every payment or value-provider call, classify what came back:
+   - confirmed success → debit exactly once;
+   - confirmed failure → no debit, record the rejection;
+   - unknown — timeout, reset connection, 5xx, process death between the call and your write → neither debit nor refund yet.
+   An unknown outcome may exist on the provider side: write a pending record under the idempotency key, then reconcile with the provider (query by key, webhook, statement) before debiting or refunding. Never charge twice, never drop the case silently. A timeout is not a failure.
+4. **Separate buckets.** Trial, promo, purchase and subscription are distinct entities, not one `balance`; the deduction order (free → bonus → paid) lives in one function.
+5. **Gate before expensive work.** Check entitlement, limit and money before the external call (CPU, API, LLM); at zero balance it never happens.
+6. **Audit record per mutation** — one per credit, debit, grant, refund or expiry, with subject (or pseudonymous) id, amount, currency or unit, operation, idempotency key, outcome. Grep by subject reconstructs the history. Identifiers only: no secrets, tokens, card numbers or free-form personal data; the trail is access-controlled, and application logs are not a substitute.
+7. **No silent except on side effects.** Swallowing an exception is fine in cleanup, never on money, auth or data loss: log and fall back, or fail loudly.
+8. **Read-modify-write under one lock or transaction**; reading, computing and writing without it is a lost update.
+9. **One source of truth.** UI, cache and logs are derivatives; read incidents from the store.
 
-## 2. Atomicity in SQL (without races)
+## Atomicity in the store
 
-- **Atomic check-and-increment**: `UPDATE ... SET used = used + 1 WHERE used < max` — one query, rowcount 0 = limit exhausted. NOT SELECT → IF → UPDATE.
-- **Compound PK as idempotency**: `PRIMARY KEY (code, user_id)` — a repeat is blocked at the DB level, without SELECT before INSERT.
-- **SQLite**: `connect(timeout=30.0)` + `PRAGMA busy_timeout=30000` + `journal_mode=WAL` — three settings together.
-- **Metric upsert**: `INSERT ... ON CONFLICT DO UPDATE SET value=value+excluded.value` — without SELECT+UPDATE race.
+- **Atomic check-and-increment:** `UPDATE ... SET used = used + 1 WHERE used < max`; rowcount 0 means exhausted — never SELECT → IF → UPDATE.
+- **Compound primary key as idempotency:** `PRIMARY KEY (code, user_id)` blocks a repeat at the store, without a read first.
+- **Counter upsert:** `INSERT ... ON CONFLICT DO UPDATE SET value = value + excluded.value`.
+- **SQLite:** `connect(timeout=30.0)`, `PRAGMA busy_timeout=30000` and `journal_mode=WAL` together; any one alone still surfaces "database is locked" under concurrent writers.
+- **Non-relational store:** conditional write with a version or compare-and-set, unique key on the idempotency pair, atomic counter increment. Where none exists, serialize mutations per subject through a single owner (a queue partitioned by subject id).
 
-## 3. Promo codes and value operations
+## Promo codes and value operations
 
-- **SOFT DELETE**: never DELETE business rows — `UPDATE status='finished'`. Audit and FK survive.
-- **INPUT NORMALIZATION AT BOUNDARY**: canonical form once at the input (upper/strip/charset); downstream trusts it.
-- **STRUCTURED FAILURE**: return `(ok, reason_code, value)` — "not_found", "already_used", "exhausted"; UI maps the code to a human message. NOT just False.
-- **CREATOR-SCOPED ADMIN QUERIES**: `WHERE created_by=?` in all admin queries; mutations check ownership.
-- **SINGLE CONSTANT DRIVES ALL SURFACES**: REFERRAL_BONUS=30 — in the DB, UI text, share message, tests. Grep for the number finds only the definition.
-- **PRE-CAP SIDE-EFFECT GUARD**: check cap BEFORE `_ensure()`/INSERT — otherwise rejected users leave garbage in the DB. Refusal → return without mutations.
+- **Soft delete** where history or foreign keys point at the row: `UPDATE status='finished'`, not DELETE; in an append-only store, write a compensating event.
+- **Normalize once at the boundary** (case, whitespace, charset); downstream trusts the canonical form.
+- **Structured failure:** `(ok, reason_code, value)` with codes such as `not_found`, `already_used`, `exhausted`; the UI maps the code to a message. A bare `False` loses the reason.
+- **Creator-scoped admin queries:** `created_by = ?` on every query, ownership checked on every mutation.
+- **One constant drives every surface:** `REFERRAL_BONUS = 30` in store, UI text, share message and tests, so grep finds only the definition.
+- **Pre-cap guard:** check the cap before creating rows, so a refusal returns without side effects; state "unlimited" explicitly rather than cap 0.
 
-## Workflow (order of application)
+## Workflow
 
-1. **Find the money paths.** Grep the handlers/functions: charge, debit, credit, grant, refund, invoice, balance, promo, referral, quota, limit. Mark each deduction/credit path.
-2. **Check idempotency.** Does each mutator have an operation key + credited flag + early return? No → add it. Test: run twice → second is a no-op.
-3. **Check atomicity.** RMW under lock/transaction? Limit increments with a single SQL with a WHERE constraint? SQLite — timeout + busy_timeout + WAL?
-4. **Check order and gates.** Deduction in one function (free→bonus→paid)? Hard gate BEFORE the expensive call? Charge after success, not on error?
-5. **Check logging.** Is each mutation logged in one line with the subject id and amount? Does grep by user_id reconstruct the history? No silent except on the money path?
-6. **Check boundaries and refusals.** Does a rejected operation create no records? Structured reasons (ok, reason_code, value)? Cap=0 = unlimited explicitly?
-7. **Check promo/referrals.** Soft delete? Compound PK on repeats? no-self-deal? bonus only for new accounts?
-8. **Write/update tests.** double-submit, error-no-debit, reject-no-side-effects, cap edge, abuse case. Names = spec.
-
-## Money-code review checklist
-
-- [ ] double-submit → balance not changed twice (test)
-- [ ] provider error → no debit (test)
-- [ ] every mutation logged with subject id and amount
-- [ ] no except: pass on the money path
-- [ ] RMW under lock/transaction
-- [ ] deduction order — one algorithm in one place (free→bonus→paid)
-- [ ] rejected operation created no rows in the DB (test)
-- [ ] every limit has a warning log when reached
+1. **Find the paths.** Grep handlers for charge, debit, credit, grant, refund, invoice, balance, promo, referral, quota, limit, expire; mark every deduction and credit.
+2. **Check each mutator** against rules 2–8, and classify every provider call into the three outcomes; a missing unknown branch needs the pending record and reconciliation.
+3. **Check refusals and promos:** no rows on refusal, a reason code, "unlimited" stated explicitly; promos soft-deleted, keyed against repeats, no self-referral, bonus only for new accounts.
+4. **Write the tests, names as the spec:** double-submit; confirmed failure; timeout/unknown → pending, reconciled; refusal without side effects; cap edge; abuse case; warning at a limit.

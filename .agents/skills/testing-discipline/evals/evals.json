@@ -10,6 +10,86 @@
    "id": "testing-discipline-1",
    "prompt": "design the landing page hero section",
    "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-2",
+   "prompt": "this bug report says the promo code can be reused — reproduce it as a failing test before you touch the code",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-3",
+   "prompt": "we need TDD on the new billing idempotency rule",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-4",
+   "prompt": "write a boundary test for the outbound payload size before we deploy",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-5",
+   "prompt": "the new expiry banner has a dismiss flow — add a test that the rendered UI actually hides it",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-6",
+   "prompt": "why does this endpoint return 500 for one account but not the others?",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-7",
+   "prompt": "the targeted test is green — can we call it done and merge?",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-8",
+   "prompt": "the job hangs after the overnight update, nothing in the logs",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-9",
+   "prompt": "iterate over this list and rename each variable to snake_case",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-10",
+   "prompt": "refactor this module — I want tests around the behavior first",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-11",
+   "prompt": "write a failing test that reproduces this bug before you fix it",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-12",
+   "prompt": "let's do this one TDD style, red then green",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-13",
+   "prompt": "which of these checks should be unit tests and which integration tests?",
+   "should_trigger": true
+  },
+  {
+   "id": "testing-discipline-14",
+   "prompt": "just change this one line, no ceremony",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-15",
+   "prompt": "translate this doc to Russian",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-16",
+   "prompt": "before you say it's done, show me the evidence it actually works",
+   "should_trigger": false
+  },
+  {
+   "id": "testing-discipline-17",
+   "prompt": "summarize this file for me",
+   "should_trigger": false
   }
  ]
 }

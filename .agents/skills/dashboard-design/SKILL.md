@@ -1,78 +1,123 @@
 ---
 name: dashboard-design
-description: 'Use when designing, redesigning, or reviewing marketplace, seller, operations, finance, logistics, or analytics dashboards: information hierarchy, KPIs, filters, charts, tables, honest data visualization, design tokens, responsive behavior, loading/empty/error states, and post-change UI verification in the running app. Not for posters, presentations, or static illustrations.'
+description: 'Use when designing, redesigning or reviewing marketplace, seller, operations, finance, logistics or analytics dashboards: information hierarchy, KPI and metric semantics, filters, chart and table choice, honest data visualization, dense layouts, and verifying dashboard states in the running app. Not for product UI, themes, tokens or landing pages (design-system), nor posters or static illustrations.'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
 # Dashboard Design
 
-Design dashboards as decision tools, not collections of cards. Make data easier to decide from, not merely decorative. A dashboard is not ready until its important states and interaction paths are verified in the browser, not only in source.
+A dashboard is a decision tool, not a collection of cards. Make data easier to
+decide from, and verify the states that matter in the running app before
+calling it done.
 
 ## Use when
 
-- Redesigning a marketplace or back-office dashboard
-- Reworking KPI cards, charts, filters, tables, navigation, or detail panels
-- Choosing chart/table forms for KPIs, trends, rankings, funnels
-- Verifying a changed dashboard UI in the running app before calling it done
-- Improving visual hierarchy, density, responsive behavior, or empty states
-
-## Do not use when
-
-- The task is only backend, data modeling, or query optimization
-- The user asks for a poster, presentation, logo, or static illustration
+- Redesigning a marketplace, seller or back-office dashboard
+- Reworking KPI cards, charts, filters, tables, navigation or detail panels
+- Choosing a chart or table form for KPIs, trends, rankings or funnels
+- Verifying a changed dashboard in the running app before calling it done
 
 ## Workflow
 
-1. **Inspect before proposing.** Read the existing routes, components, tokens, data shape, and current UI. For every metric find the source definition, unit, aggregation, scope, time zone, freshness, and comparison period — never infer business meaning from a label or fabricate sample values.
-2. **Name the primary decision.** State who uses the dashboard, what they need to decide, and the three to five questions the screen must answer. If a visual supports no decision or comparison, prefer a clear value, status, or table over a chart. Remove elements that do not support those questions.
-3. **Set information hierarchy.** Put the primary status and action first, then KPI context, trend or comparison, details, and secondary actions. Keep filters and the active period visible. Use a table when exact values or row-level actions matter.
-4. **Choose the least complex visual form.** KPI for a current value, delta for comparison, line for time series, bars for category comparison/ranking, table for exact values or row actions, funnel only when stages and denominators are defined. Maps, pies, gauges, and dual axes only when the data genuinely requires them. Keep title, units, time range, scope, comparison basis, and freshness attached — no hover-only essential values.
-5. **Use honest scales and accessible encoding.** Zero baseline for bars unless a documented exception is clearer; no distorted axes, unexplained smoothing, false precision, or truncated labels. Never communicate important differences through color alone — add labels, patterns, or direct annotations; provide a text/table alternative for meaningful charts.
-6. **Define a compact visual system.** Reuse project tokens and components, keeping color meaning stable. When visual direction or shared styling needs work, use design-system for token decisions and conditional reference research; its source guide is the shared catalog, not a second dashboard-specific list. Research an unresolved interaction through user-flow examples, not decorative landing pages. Do not load galleries when existing project patterns answer the question.
-7. **Design every meaningful state.** Cover loading, no data, insufficient data, error, stale/partial data, disabled/permission-limited actions, long labels or numbers, and values outside the expected range. Explain the next useful action and keep the layout stable.
-8. **Handle responsive behavior intentionally.** Check desktop, tablet, and mobile layouts. Stack or reprioritize content before shrinking it; recheck long category names and large numbers. Allow horizontal scrolling only for genuinely wide data tables; never let the whole page overflow. Keep keyboard focus visible and respect reduced-motion preferences.
-9. **Critique before implementation.** Remove decoration, redundant labels, cards, charts, or animation only where they do not improve comprehension or actionability. Do not impose a removal quota on an already clear interface.
-10. **Verify in the running app.** A rendered check is part of the work, not optional follow-up: launch the real app (project run instructions, browser/DevTools or Playwright — never a source-only inspection). On dynamic pages, wait for observable readiness, not network silence or fixed sleeps: with a bounded condition wait, wait for the specific route or data marker, the target role/content to be visible, or the loading indicator to disappear, then assert the expected content is visible before reading the DOM, and check the browser console and network panel for failed requests. Inspect representative viewports (1440/1024/768/375px or closest supported), exercise navigation, period controls, filters, tabs, sorting, pagination, row actions, and dialogs, and check the state matrix from step 7 plus the browser console for errors. Fix confirmed issues and rerun the affected check; claim completion only after the rerun is clean. Record evidence: surface, viewport, path/state, observed result, pass|defect, location.
+1. **Inspect before proposing.** Read the existing routes, components, tokens,
+   data shape and current UI. For every metric find its source definition, unit,
+   aggregation, scope, time zone, freshness and comparison period. Never infer
+   business meaning from a label or fabricate sample values.
+2. **Name the primary decision.** State who uses the dashboard, what they must
+   decide, and the three to five questions the screen answers. If a visual
+   supports no decision or comparison, a clear value, status or table beats a
+   chart. Remove what serves none of those questions.
+3. **Set information hierarchy.** Primary status and action first, then KPI
+   context, trend or comparison, details, secondary actions. Keep filters and
+   the active period visible. Use a table when exact values or row-level actions
+   matter.
+4. **Choose the least complex visual form.** Value for a current KPI, delta for
+   comparison, line for a time series, bars for category comparison or ranking,
+   table for exact values or row actions, funnel only when stages and
+   denominators are defined. Maps, pies, gauges and dual axes only when the data
+   genuinely requires them. Keep title, units, time range, scope, comparison
+   basis and freshness attached; never hide an essential value behind hover.
+5. **Use honest scales and accessible encoding.** Zero baseline for bars unless a
+   documented exception is clearer; no distorted axes, unexplained smoothing,
+   false precision or truncated labels. Never carry an important difference in
+   color alone — add labels, patterns or direct annotations, and give a
+   text or table alternative for meaningful charts.
+6. **Reuse the project's visual system.** Color meaning stays stable and the
+   existing chart library and theme are the default; a new visualization
+   dependency needs the case production-first-decisions asks for. Token
+   decisions, component states, responsive breakpoints and accessibility
+   baseline are design-system's; this skill supplies the dashboard-specific
+   questions (metric semantics, density, data states) to answer with it.
+7. **Design the data states.** Cover loading, no data, insufficient data, error,
+   stale or partial data, permission-limited or disabled actions, long labels
+   and numbers, and values outside the expected range. Each explains the next
+   useful action and keeps the layout stable. Component-level state styling is
+   design-system's.
+8. **Reprioritize for small screens.** Stack or reorder content before shrinking
+   it; check the primary status and action still come first, long category names
+   and large numbers still fit. Horizontal scrolling is acceptable for genuinely
+   wide data tables, never for the whole page.
+9. **Critique before implementing.** Remove decoration, redundant labels, cards,
+   charts or animation where they do not improve comprehension or actionability.
+   No removal quota on an interface that is already clear.
+10. **Verify in the running app, proportional to the change.** Launch the real
+    app (project run instructions; browser/DevTools or Playwright — never a
+    source-only inspection). On dynamic pages wait for observable readiness, not
+    network silence or fixed sleeps: a bounded condition wait on the route or
+    data marker, on the target role/content being visible, or on the loading
+    indicator disappearing, then assert the expected content before reading the
+    DOM, and watch the console and network panel for failed requests. Sample by
+    blast radius: a changed card gets that card's states at the widths it
+    appears in; a changed filter, period control or navigation affects every
+    view it feeds, so check each distinct view it feeds rather than every tab in
+    the product. Exercise the states from step 7 that the change can reach.
+    Record surface, viewport, path/state, observed result and pass|defect, fix
+    confirmed issues and rerun the affected check.
 
 ## Dashboard defaults
 
-- Start with three to six primary KPIs only when each supports a real decision.
-- Keep number formats, units, decimal precision, and positive/negative conventions consistent; make negative/positive meaning explicit.
-- Make status meaning explicit with text, iconography, and color where appropriate.
-- Prefer sentence-case labels and action verbs such as `Export`, `Filter`, `View details`, and `Resolve`.
-- Do not use gradients, glass effects, excessive pills, emoji icons, or uniform rounded cards as decoration.
-- Do not turn every metric into a chart; a clear number, comparison, or table may be better.
-- Prefer one clear comparison over many competing series; use direct labels when the number of series is small; keep raw values available when decisions depend on exact amounts.
-- Reuse the existing chart library and theme; do not add a new visualization dependency for one chart.
-- Preserve existing product patterns unless there is a documented reason to change them.
+- Three to six primary KPIs, and only when each supports a real decision.
+- Keep number formats, units, decimal precision and positive/negative
+  conventions consistent; make a negative value's meaning explicit.
+- Status meaning explicit through text and icon, not color alone.
+- Sentence-case labels and action verbs: `Export`, `Filter`, `View details`,
+  `Resolve`.
+- No gradients, glass effects, excessive pills, emoji icons or uniform rounded
+  cards as decoration.
+- Do not turn every metric into a chart; a number, comparison or table may be
+  the better answer.
+- One clear comparison over many competing series; direct labels when the series
+  count is small; raw values available when decisions depend on exact amounts.
+- Preserve existing product patterns unless there is a documented reason to
+  change them.
 
 ## Output before coding
 
-Write a short design decision list:
-
-- primary user and decision;
-- retained, moved, and removed content;
-- layout hierarchy and chosen visual forms (with the question each answers);
-- token or component changes;
-- state and responsive behavior;
-- one risk to verify in the running UI.
-
-Then implement only that plan. For a new or ambiguous flow, use a separate discovery/brainstorming skill before changing code.
+Write a short decision list: primary user and decision; retained, moved and
+removed content; hierarchy and chosen visual forms with the question each
+answers; token or component changes (or "none, reuse existing"); data states and
+narrow-width behavior; one risk to check in the running UI. Then implement only
+that plan. A new or ambiguous flow goes through brainstorming first.
 
 ## Review checklist
 
-- What question does this visual answer? Are numerator, denominator, unit, period, and scope clear?
-- Can a user identify the primary status and next action without hunting?
-- Are active filters, date range, units, comparison period, and data freshness clear?
-- Does every important chart have labels and a non-color-only interpretation, and does the text/table fallback preserve the meaning?
-- Can users compare values without guessing the scale? Does the visual work in grayscale, zoom, keyboard navigation, and mobile width?
-- Does the screen remain usable with keyboard, zoom, reduced motion, and narrow widths? (WCAG 2.2 baseline: landmarks, heading order, accessible names, table headers, focus management, contrast.)
-- Are error and empty states actionable rather than vague?
-- Is the page calmer and clearer after the redesign, or merely more decorated?
+- [ ] each visual answers a named question, with numerator, denominator, unit,
+      period and scope clear where present
+- [ ] primary status and next action are visible without hunting
+- [ ] active filters, date range, units, comparison period and data freshness
+      are visible whenever such controls exist
+- [ ] every meaningful chart has labels plus a non-color-only reading, and its
+      text or table fallback preserves the meaning
+- [ ] values are comparable without guessing the scale; the view survives
+      grayscale, zoom and keyboard navigation
+- [ ] narrow width keeps the hierarchy and does not overflow the page
+- [ ] error and empty states offer a concrete next action
+- [ ] the screen is calmer and clearer than before, not merely decorated
 
 ## References
 
 - WCAG 2.2: https://www.w3.org/TR/WCAG22/
-- Chrome accessibility tooling: https://developer.chrome.com/docs/devtools/accessibility/reference
+- Chrome accessibility tooling:
+  https://developer.chrome.com/docs/devtools/accessibility/reference

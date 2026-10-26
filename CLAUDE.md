@@ -2,49 +2,51 @@
 
 @AGENTS.md
 
-The soul above is the full contract. What follows only adapts it to a run on a
-GitHub-hosted runner, where the machine-local parts of it cannot apply.
+AGENTS.md points to OPS.md, the full contract. This file only adapts it to a
+run on a GitHub-hosted runner, where the machine-local parts cannot apply.
 
 ## Runner context
 
 You run from `.github/workflows/claude.yml` on `ubuntu-latest`, triggered by an
 `@claude` mention in an issue or pull request comment.
 
-- `~/.memory`, `findings.py`, `build.py`, and the memory-warmup script do **not**
-  exist on the runner. Skip every memory step the soul asks for: do not search
-  the base, do not record findings. Say so in one line rather than failing the
-  step.
+- The memory store (`~/.memory`, its search and findings tools, the warmup
+  script) does not exist on the runner. Skip memory search and saving (OPS §5)
+  and say so in one line instead of failing the step.
 - There is no `.override.md` here, so the default contract applies.
-- Report observed model/tool limitations when they affect verification; do not conceal failures or attribute unmeasured behavior to a provider.
+- Report model or tool limitations that affect verification; do not attribute
+  unmeasured behavior to a provider.
 
 ## Verifying a change
 
 Run checks matching the affected contract. `python -m pytest tests -q` is the
-repository-wide check when shared policy/runtime changes warrant it; focused
-checks suffice for isolated changes. `scripts/doctor.py` diagnoses installation
-health, not model behavior or every feature's correctness.
+repository-wide check when shared policy or runtime changes warrant it;
+focused checks suffice for isolated changes. `scripts/doctor.py` diagnoses
+installation health, not model behavior.
 
-For an installation/bootstrap task on a disposable runner, install prerequisites,
-run `scripts/install.py`, then doctor. Do not bootstrap or mutate a real user
-memory root merely to verify an unrelated edit. Report environmental failures
+For an installation task on a disposable runner, install prerequisites, run
+`scripts/install.py`, then the doctor. Do not bootstrap or mutate a real user
+memory root to verify an unrelated edit. Report environmental failures
 separately from failures caused by the change.
 
-Before pushing anything, respect these repo rules:
+Repository gates to respect before proposing a push:
 
-- **File-size gate.** Code soft 500 / hard 1000 lines, docs soft 300 / hard 500.
-  Split rather than grow; never edit `scripts/tools/file_size_baseline.json` to
-  make a check pass.
-- **Integrity manifest.** `integrity-manifest.json` hash-pins the control plane.
-  If you change a file in its scope, regenerate it with
-  `python scripts/tools/integrity_manifest.py --update` — but only for your own
-  change, and never to paper over someone else's drift.
-- **Encoding discipline.** Never a bare `text=True` on `subprocess.*`; always
-  pass `encoding="utf-8"` alongside. The gate is AST-based and will fail you.
+- **File size.** Code soft 500 / hard 1000 lines, docs soft 300 / hard 500.
+  Split rather than grow; never edit `scripts/tools/file_size_baseline.json`
+  to make the check pass.
+- **Integrity manifest.** `integrity-manifest.json` hash-pins the control
+  plane. After changing a file in its scope, regenerate it with
+  `python scripts/tools/integrity_manifest.py --update` for your own change
+  only, never to hide someone else's drift.
+- **Encoding.** Every `subprocess.*` call with `text=True` also passes
+  `encoding="utf-8"`; an AST-based gate fails the build otherwise.
 
-## Manners
+## Conventions
 
-- The repo's language is English for code, comments, and commit messages.
-- Conventional commits, matching the existing log: `fix(policy): ...`,
-  `docs: ...`, `test: ...`.
-- Local implementation does not authorize a commit, push or pull request; follow AGENTS.md. If publication is authorized, use a branch/PR rather than pushing to `master`.
-- Report exact commands, checked state and coverage. Reuse still-valid evidence; never claim broader coverage than was exercised.
+- English for code, comments and commit messages.
+- Conventional commits matching the log: `fix(policy): ...`, `docs: ...`,
+  `test: ...`.
+- Commits, pushes and pull requests follow OPS §1. When publication is
+  authorized, use a branch and PR rather than pushing to `master`.
+- Report exact commands, checked state and coverage; never claim broader
+  coverage than was exercised.

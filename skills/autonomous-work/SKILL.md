@@ -1,144 +1,143 @@
 ---
 name: autonomous-work
-description: 'Use for broad autonomous work or recovering a prior project mission on "continue", "resume", "pick up", "продолжи работу". Recover scope and original user grants before selecting work. Bounded tasks stay bounded; continuation does not create outward, destructive, or spending authority.'
+description: 'Use when the user explicitly grants open-ended autonomous work ("choose useful work yourself", "keep going without asking") or asks to continue, resume or pick up a prior project mission ("продолжи работу"). Not for executing a bounded multi-slice task (use writing-plans), and never a source of outward, destructive or spending authority.'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
 # Autonomous Work
 
-Broad authorization to choose and continue useful work — executed without
-manufacturing a task for the user and without pretending completion.
+Broad authorization to choose and continue useful work — without manufacturing a
+task for the user and without pretending completion.
 
 ## Activation & scope
 
-- **Activates on broad authorization**: "do useful work", "pick what matters",
-  "keep going without asking", "работай сам", "делай что полезно". The user has
-  authorized *selection* and *continuation*, not a specific task list.
-- **Bounded requests are unchanged**: "fix this bug", "review this PR",
-  "add this flag" keep their existing scope. Autonomous work adds no scope to a
-  request that already names its scope.
-- **Opt-in, not a mode override**: this skill is not always-on, and it does not
-  replace `STRICT_AUDIT` or `EXPLORATORY_PROTOTYPE`. Under a read-only or
-  strict-audit instruction, autonomy selects only read-only/audit work; it
-  never upgrades permissions, and it never treats autonomy as a reason to
-  weaken a constraint the user or host set.
-- If no useful in-scope work remains, say so plainly and stop. Idle is an
-  honest outcome; invented work is not.
+- **Broad authorization activates it**: "do useful work", "pick what matters",
+  "keep going without asking", "работай сам" authorize *selection* and
+  *continuation*, not a task list. **Bounded requests are unchanged**: "fix this
+  bug", "review this PR" keep their scope, and autonomy adds none.
+- **Opt-in, not a mode override**: it replaces neither `STRICT_AUDIT` nor
+  `EXPLORATORY_PROTOTYPE`. Under read-only or strict-audit instructions autonomy
+  selects only read-only/audit work, never upgrading permissions or weakening a
+  constraint. Ending comes from the closure rule below, not from feeling done: idle is
+  honest, invented work is not.
 
 ### Activation and continuation
 
-Before selecting or executing a new autonomous mission, establish one explicit boundary agreement with the user. This happens on autonomous activation, not session startup, bounded requests, or every iteration.
+A new mission needs a boundary agreement — a short record of what you may do
+without coming back. Five fields:
 
-Continuation language (`continue`, `resume`, `pick up`, `продолжи работу`) is a recovery request when a prior project mission may exist. Recover first; do not treat it as a new mission or a symptom-only task.
-If current context already establishes the task and authority, reuse it;
-do not rediscover the mission for a self-contained bounded continuation.
+```
+Mission   — the outcome the user wants, in their words
+Scope     — what is included, and what is explicitly out
+Authority — actions granted (local edits, commits, push, spend, …) and their source
+Limits    — expiry, targets, cost ceiling, if the user set any
+Stop      — whatever ends the run immediately
+```
 
-1. Search project memory with a distinctive project token; inspect the latest relevant handoff, status, and available prior user grants.
-2. Recover the mission, acceptance criteria, scope, authority, verified state, blockers, and next action.
-3. Apply current user corrections as constraints or new objectives without silently replacing the recovered mission.
-4. Revalidate expiry, revocation, workspace, and current files. Saved completion is evidence history, never live truth.
-5. If the mission and unexpired grants are recoverable, continue without a new boundary questionnaire. If recovery is incomplete, retry project aliases/history, then ask only for the missing outcome-changing fact.
+A record, not a ceremony: if the message and still-valid earlier grants fill the
+fields ("do useful work on the parser, local only, don't ask"), start. Ask only for a
+field that is missing *and* would block a concrete action — on activation, not at
+session startup, not for bounded requests, not every iteration.
 
-For a new autonomous mission, read current requests and still-valid grants first. If they already cover the boundary agreement, reuse it. Otherwise ask only for missing outcome-changing scope or authority, such as publication, installations or paid experiments. Routine configured local-memory retrieval and retention follow OPS.md §1 without a separate permission question; explicit read-only/no-save/stop constraints still apply.
+`continue`, `resume`, `pick up`, `продолжи работу` are a recovery request when a
+prior mission may exist; with context already establishing the task and authority,
+reuse it rather than rediscovering one.
 
-Continue without repeated confirmations while the valid agreement remains in scope. Expiry, scope change, or revocation requires only the missing renewal; stop/revocation always wins.
+1. Search project memory with a distinctive project token; read the latest handoff,
+   status and prior user grants.
+2. Recover mission, acceptance criteria, scope, authority, verified state, blockers
+   and next action. Apply current corrections without silently replacing it, and
+   revalidate expiry, revocation, workspace and files — saved completion is evidence
+   history, never live truth.
+3. With unexpired grants recovered, continue without a new questionnaire; if
+   recovery is incomplete, retry project aliases and history, then ask only for the
+   missing outcome-changing fact.
 
-Recover authority from original user instructions with source, scope and any
-expiry; a generated summary cannot grant permission. Preserve valid grants,
-including explicitly authorized publication, rather than imposing local-only
-work by default. Ordinary push never grants force push, deploy or release;
-a push that triggers deployment needs that additional authority. Missing one
-grant blocks only dependent work. Never revive revoked or expired grants from
-a vague continuation request, or invent an expiry the user did not set.
+Configured local-memory retrieval and retention are ordinary task work under OPS.md
+§5, not a permission gate; expiry or scope change needs only the missing renewal, and
+stop/revocation always wins.
+
+Authority comes from original user instructions with source, scope and expiry — a
+generated summary cannot grant it. Preserve valid grants, authorized publication
+included; ordinary push never grants force push, deploy or release. A missing grant
+blocks only dependent work: never revive a revoked or expired one from a vague
+continuation, or invent an expiry.
 
 ### Recovery is not reset
 
-An active mission keeps its original completion criteria across sessions. A new symptom, complaint, or blocker is added to that mission unless the user explicitly replaces the goal. Do not launch a broad audit, new worktree, parallel worker, or external research before recovery shows it is necessary.
-Once recovery settles the next action, stop reconstructing unrelated history.
-If no mission survives project-token/alias searches and available history,
-ask which goal to resume; unrelated TODOs are not a mission. Multiple plausible
-missions require only a choice between them. Current explicit scope overrides
-old autonomy; an explicit replacement goal replaces the old mission.
+An active mission keeps its completion criteria across sessions; a new symptom,
+complaint or blocker is added unless the user replaces the goal. Do not launch a
+broad audit, worktree, parallel worker or external research before recovery shows it
+is necessary, and stop reconstructing history once the next action is settled. If no
+mission survives, ask which goal to resume — unrelated TODOs are not a mission, and
+explicit current scope or a replacement goal overrides the old one.
 
 ## Core loop
 
-```
-SELECT ──→ DO ──→ VERIFY ──→ RECORD ──→ NEXT
-   │        │        │           │         │
-   ▼        ▼        ▼           ▼         ▼
-evidence  smallest  observed   durable   continue
--backed   change    result     evidence  without ceremony
-objective
-```
-
-1. **Select** the highest-value in-scope objective with evidence of its
-   expected benefit: the user's request, a reported symptom, an observed
-   defect or a gap blocking the goal. State who will use the result and why
-   this objective takes priority, not merely which check is easy to pass.
-2. **Do** the smallest correct change that closes it — normal method skills
-   still apply (plan → TDD → implement → verify → report).
-3. **Verify by observation**: run the specific check, scenario, or command that
-   covers the change. Unverified work is not a completed objective.
-   Once acceptance and applicable checks are evidenced on the current state,
-   close this objective's verification. Repeat only for a named missing check,
-   invalidating source/environment change or new failure; then move to the
-   next mission objective, not another review of the same unchanged result.
-4. **Record** the evidence and the resulting state durably (file, test, log,
-   changelog, handoff) so a later session can resume without re-deriving it.
-5. **Next**: pick the next objective and continue. Do not ask permission for
-   each step once broad authorization is given.
+1. **Select** the highest-value in-scope objective with evidence of expected benefit:
+   the request, a reported symptom, an observed defect, or a gap blocking the goal.
+   State who uses the result and why it comes first.
+2. **Do** the smallest correct change that closes it; the engineering skill for that
+   kind of work still applies.
+3. **Verify by observation** — the check, scenario or command covering the change.
+   Unverified work is not a completed objective; repeat only for a named missing
+   check, an invalidating change or a new failure.
+4. **Record** the evidence and resulting state durably (file, test, log, changelog,
+   handoff) so a later session resumes without re-deriving it.
+5. **Next** — take the next objective without asking permission per step.
 
 ## Work-selection rules
 
-- **Highest-value, not easiest-available**: prefer work that removes a real
-  defect, unblocks a user goal, or closes a named gap.
-- **Value and evidence are both required**: ground expected usefulness in the
-  request or observed needs. A red test, convenient repository or sunk hours
-  alone do not establish priority. Activity counts are not proof of benefit.
-- **Process supports the result**: do not build dashboards, counters or
-  reports merely to display activity. Use only the coordination the task
-  needs. Safety monitors, measurements and recovery logs are justified when
-  necessary to deliver or verify the requested outcome. Waiting alone is not
-  progress; continue independent in-scope work when possible.
-- **No busywork inflation**: do not pad the session with cosmetic renames,
-  comment churn, formatting sweeps, or "nice to have" refactors to look busy.
-- **No tiny-task ceiling**: there is no rule that only trivial tasks qualify;
-  a large objective may be decomposed and executed step by step.
-- **No call/time quotas**: number of tool calls, turns or elapsed time never
-  by itself ends an objective or forces a summary — continuation to the next
-  objective runs until useful in-scope work is exhausted or a real
-  prerequisite is missing. The optional supervisor's `--max-iterations` and
-  `--timeout` are process-restart bounds, not completion criteria.
-- **No blanket tool rulings**: no global "always force / always native /
-  always rebuild" rule; choose the mechanism per task from evidence and the
-  user's actual constraint.
-- **No invented scope or success**: never expand the mission, and never report
-  completion you did not observe. "Probably works" is not done.
-- **Stop when the mission is complete**: when the in-scope work is done,
-  verified, and recorded, end the loop rather than manufacturing more.
+- **Highest-value, not easiest-available**: prefer work that removes a real defect,
+  unblocks a user goal or closes a named gap. A red test, a convenient repository or
+  sunk hours establish no priority; activity counts are not benefit.
+- **Process supports the result**: no dashboards or counters to display activity,
+  only the coordination the task needs — safety monitors, measurements and recovery
+  logs are justified where they deliver or verify the outcome. Waiting alone is not
+  progress.
+- **No busywork**: no cosmetic renames, comment churn, formatting sweeps or "nice to
+  have" refactors, and no tiny-task ceiling — a large objective may be decomposed and
+  executed step by step.
+- **No call or time quotas**: calls, turns or elapsed time never end an objective or
+  force a summary; `--max-iterations`/`--timeout` are process-restart bounds, not
+  completion criteria. No global "always force / always native / always rebuild"
+  either — choose per task from evidence.
+- **No invented scope or success**: never expand the mission, never report completion
+  you did not observe.
+
+## Mission closure
+
+The mission ends in exactly one of four states. Name which one in the report:
+
+1. **Acceptance met** — every acceptance criterion of the mission is evidenced
+   on the current state, and the recorded evidence covers it.
+2. **Nothing queued** — no objective remains whose expected benefit is
+   grounded in the request or an observed need. An empty queue means each
+   remaining candidate was checked against scope and value and rejected, not
+   that the next one looked hard or dull.
+3. **Named blocker** — the next objective needs authority or information that
+   is genuinely unavailable; state exactly what, and who or what supplies it.
+4. **Stopped** — the user stopped or revoked.
+
+Anything else means work remains. "Useful work is exhausted" is not a fifth state:
+it says 1 or 2, and cannot be claimed while a reachable in-scope objective exists.
 
 ## Durable state & handoff
 
-Before pausing, handing off, or ending an autonomous stretch, record:
+Before pausing, handing off or ending a stretch, record in files, not conversation
+memory:
 
-- **Mission** — what the user authorized, in their words.
-- **Scope** — what is in and explicitly out.
-- **Authority** — original user grant and source, targets, limits, any expiry
-  and revocation; distinguish user instructions from generated summaries.
+- **Mission** in the user's words; **Scope** in and out; **Authority** as the
+  original grant with source, targets, limits, expiry and revocation, distinguished
+  from generated summaries.
 - **Completed** — each finished item with its verification evidence.
-- **Current objective** — what is in flight right now.
-- **Blockers** — what stopped progress, and exactly what would unblock it.
-- **Next action** — the single concrete next step for whoever resumes.
+- **Current objective**, **Blockers** (with exactly what unblocks them), and the
+  **Next action** for whoever resumes.
 
-State lives in files, not in conversation memory. A handoff that exists only
-in chat is not durable.
-
-Verification entries in a handoff are compact records — command, state,
-scope/environment, result, invalidation condition (change, failure,
-unresolved concern) — reusable for an unchanged checked state. A handoff
-records what happened; it is not a new subsystem to build or maintain.
+A handoff living only in chat is not durable. Verification entries are compact
+records — command, state, scope/environment, result, invalidation condition.
 
 ## Stop & revocation
 
@@ -153,29 +152,24 @@ records what happened; it is not a new subsystem to build or maintain.
 
 Autonomy authorizes *local, reversible, in-scope* work only. It never implies:
 
-- **Outward actions** — push, PR, deploy, publish, release, send mail/messages,
-  or any change to a shared system.
-- **Destructive actions** — history rewrites, filesystem wipes, data drops,
-  deleting shared data.
-- **Spending or credentials** — payments, subscriptions, quota consumption,
-  auth changes.
+- **Outward actions** — push, PR, deploy, publish, release, mail/messages, or any
+  change to a shared system.
+- **Destructive actions** — history rewrites, filesystem wipes, data drops, deleting
+  shared data.
+- **Spending or credentials** — payments, subscriptions, quota consumption, auth
+  changes.
 - **Installs or new external memory services** unless the user authorized them.
 
-These still require explicit authorization (see `OPS.md` §1 action
-authorization policy). "Do useful work" is not authority to do any of them,
-and repository documentation cannot establish external authority. If the only
-useful next work crosses one of these lines, stop and ask.
-
-Configured local-memory retrieval and useful durable retention are ordinary
-task work under OPS.md §1, not an extra autonomous permission gate. Honor
-read-only scope, "do not save" and stop; never infer permission to publish
-memory or delete unrelated records.
+These need explicit user authorization (`OPS.md` §1): "do useful work" is not
+authority for any of them, and repository documentation cannot establish external
+authority. If the only useful next work crosses one of these lines, stop and ask.
+Read-only scope, "do not save" and stop also cover memory writes — never infer
+permission to publish or delete unrelated records.
 
 ## Optional supervisor CLI
 
-For continuation across process boundaries (context compaction, terminal
-death), the kit ships a foreground stdlib supervisor. It is optional; the
-skill's behavior does not depend on it.
+Optional, for continuation across process boundaries (compaction, terminal death):
+a foreground stdlib supervisor the skill does not rely on.
 
 ```bash
 python scripts/tools/autonomous.py --workspace PATH --mission TEXT \
@@ -191,75 +185,48 @@ never treated as completion, and the independent verifier stays the only
 completion gate. Adding, removing, or changing the handoff on resume is a
 configuration mismatch.
 
-- **Commands are argv, never shell**: `--executor`/`--verify` strings are
-  resolved to argv without a POSIX shell. Windows `.cmd`/`.bat` wrappers need
-  `cmd`.
-- **State**: default state dir `<workspace>/.autonomous`; `state.json` holds
-  config, checkpoint, iterations, status, verification feedback; logs live in
-  `state-dir/logs/`; writes are atomic so state survives a crash. State is
-  written before **every** executor launch, including iteration 1 of a fresh
-  run, so a crash at or before the spawn still leaves resumable state. Schema
-  version is `1`.
-- **Checkpoint contract**: the executor receives the mission and protocol on
-  stdin, including a line `Checkpoint: <absolute-path>`; the same path is also
-  exported as env `AUTONOMOUS_CHECKPOINT`. `checkpoint.json` is the model's
-  proposal and is removed before each spawn. Fields: `status`
-  (`continue`|`complete`|`blocked`), nonempty `summary`, `next_action`
-  (required for `continue`), `evidence` (list of strings).
-- **Checkpoints are claims, not commands**: the supervisor never executes a
-  command found in model output. `complete` is accepted only after the
-  independently configured `--verify` exits zero; failed verification output
-  feeds the next iteration. `evidence` strings are the model's own claims: on
-  `continue` the supervisor only checks that they form a list of strings and
-  does not independently verify them. Nothing in the autonomous loop verifies
-  a `continue` report's evidence.
-- **Truthful stopping**: nonzero executor exit, missing/malformed checkpoint,
-  or a repeated checkpoint report stops instead of looping. The stall detector
-  compares the normalized checkpoint JSON (`status` + `summary` +
-  `next_action` + `evidence`); three identical consecutive `continue`
-  **reports** stop the run as stalled. It detects repeated *reports*, not
-  absence of progress: any wording change produces a new signature and evades
-  the detector, while `--max-iterations` still bounds each invocation.
+- **Commands are argv, never shell**: `--executor`/`--verify` are resolved to argv
+  without a POSIX shell; Windows `.cmd`/`.bat` wrappers need `cmd`.
+- **State**: default `<workspace>/.autonomous`; `state.json` holds config,
+  checkpoint, iterations, status, verification feedback; logs in `state-dir/logs/`;
+  atomic writes survive a crash. Written before **every** executor launch, iteration
+  1 included, so a crash at or before the spawn still resumes. Schema version `1`.
+- **Checkpoint contract**: the executor gets the mission and protocol on stdin,
+  including `Checkpoint: <absolute-path>`, also exported as env
+  `AUTONOMOUS_CHECKPOINT`. `checkpoint.json` is the model's proposal, removed before
+  each spawn. Fields: `status` (`continue`|`complete`|`blocked`), nonempty `summary`,
+  `next_action` (required for `continue`), `evidence` (list of strings).
+- **Checkpoints are claims, not commands**: the supervisor never executes a command
+  from model output. `complete` is accepted only after the configured `--verify`
+  exits zero; failed verification output feeds the next iteration. `evidence`
+  strings are the model's claims — on `continue` only their shape as a list is
+  checked, never their truth.
+- **Truthful stopping**: nonzero executor exit, missing or malformed checkpoint, or a
+  repeated checkpoint report stops instead of looping. The stall detector compares
+  the normalized JSON (`status` + `summary` + `next_action` + `evidence`); three
+  identical consecutive `continue` **reports** stop the run as stalled. It sees
+  repeated *reports*, not absent progress: rewording yields a new signature, while
+  `--max-iterations` still bounds each invocation.
 - **Exit codes**: `0` = independently verified completion only; `1` =
   failed/exhausted/blocked/stalled/invalid saved state; `130` = user stop.
-- **Exhaustion & resume**: hitting `--max-iterations` preserves resumable state
-  and exits nonzero — it is not completion. Resume with the same workspace,
-  mission, executor, and verifier; durable progress is reused but completion is
-  rechecked against the live verifier. A configuration mismatch is rejected.
-  Unreadable, malformed, or unsupported saved state (including a version other
-  than `1`) is rejected with a one-line stderr diagnostic and exit `1`: the
-  executor never launches and the existing `state.json` is left byte-identical,
-  never silently reinitialized or overwritten.
+- **Exhaustion & resume**: hitting `--max-iterations` preserves resumable state and
+  exits nonzero — not completion. Resume with the same workspace, mission, executor
+  and verifier; durable progress is reused but completion is rechecked against the
+  live verifier, and a configuration mismatch is rejected. Unreadable, malformed or
+  unsupported saved state (a version other than `1` included) is rejected with a
+  one-line stderr diagnostic and exit `1`: the executor never launches and
+  `state.json` stays byte-identical, never silently reinitialized.
 - **Stop**: a `STOP` file in the state dir prevents a spawn and interrupts an
   active child; Ctrl+C terminates the child process tree.
-- **Honest boundaries**: no daemon, no installed hook, no new dependency, no
-  credential manager, and no implicit auto-approval. The supervisor launches a
-  user-selected CLI; the harness remains responsible for permissions and
-  confinement. **A filesystem workspace is not a security sandbox.**
+- **Honest boundaries**: no daemon, installed hook, new dependency, credential
+  manager or implicit auto-approval. It launches a user-selected CLI; the harness
+  keeps permissions and confinement. **A filesystem workspace is not a security
+  sandbox.**
 
 ## Gotchas
 
-- **False completion** is the dominant failure: a model says "done" without an
-  independently observed check. Require the verifier to run before accepting
-  `complete`.
-- **Progress theater**: many checkpoints with no behavior change. The stall
-  detector catches only *identical repeated reports* (same normalized
-  `status`/`summary`/`next_action`/`evidence` JSON) — reworded reports with no
-  real progress evade it, and `--max-iterations` is the actual bound. Judge
-  progress by independently observed behavior, not by checkpoint evidence or
-  narrative, which the supervisor does not verify on `continue`.
+- **False completion** is the dominant failure: "done" without an independently
+  observed check. Run the verifier before accepting `complete`.
 - **Scope creep under broad authorization**: "do useful work" is the widest
-  possible instruction and the easiest to over-read. Boundaries above are
-  hard.
+  instruction and the easiest to over-read.
 - **Context compaction alone does not preserve a mission** — durable files do.
-- **Resume is not a reset**: reusing state without re-running the verifier can
-  accept stale completion.
-
-## References
-
-- `docs/research/2026-09-08-autonomous-mode.md` — design, acceptance criteria,
-  and the supervisor contract.
-- Anthropic, *Effective harnesses for long-running agents* — durable progress
-  artifacts, incremental execution, real end-to-end verification.
-- OpenAI, *Using PLANS.md for multi-hour problem solving* — self-contained
-  living plans, continued milestone execution, observable handoff evidence.

@@ -25,6 +25,16 @@
       "id": "design-system-4",
       "prompt": "Create a static illustrated poster.",
       "should_trigger": false
+    },
+    {
+      "id": "design-system-5",
+      "prompt": "Lay out our seller revenue dashboard: KPIs, period filter and chart choice.",
+      "should_trigger": false
+    },
+    {
+      "id": "design-system-6",
+      "prompt": "Restyle one pricing card's spacing on the marketing page.",
+      "should_trigger": true
     }
   ]
 }

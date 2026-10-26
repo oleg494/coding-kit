@@ -1,0 +1,65 @@
+{
+ "skill_name": "writing-plans",
+ "evals": [
+  {
+   "id": "writing-plans-0",
+   "prompt": "Ship the report builder in slices - parse, then aggregate, then render. All local, nothing merged. Don't stop for small stuff, just get it done.",
+   "should_trigger": true
+  },
+  {
+   "id": "writing-plans-1",
+   "prompt": "This change touches fourteen files across the API and the CLI - give me a plan where each step is separately verifiable",
+   "should_trigger": true
+  },
+  {
+   "id": "writing-plans-2",
+   "prompt": "Three agents could build this in parallel if you define the shared interfaces and ownership first",
+   "should_trigger": true
+  },
+  {
+   "id": "writing-plans-3",
+   "prompt": "The plan names buildRows but slice 1 already shipped buildRowSet with a passing test - decide and keep going",
+   "should_trigger": true
+  },
+  {
+   "id": "writing-plans-4",
+   "prompt": "We have the spec already. Break it into pieces I can land one at a time without leaving the app broken",
+   "should_trigger": true
+  },
+  {
+   "id": "writing-plans-5",
+   "prompt": "plan out the migration in order, including when the old endpoint can be deleted",
+   "should_trigger": true
+  },
+  {
+   "id": "writing-plans-6",
+   "prompt": "What should the export feature actually do - CSV, JSON, or both? I haven't decided what I need.",
+   "should_trigger": false
+  },
+  {
+   "id": "writing-plans-7",
+   "prompt": "Write the spec for the notification system before any code exists",
+   "should_trigger": false
+  },
+  {
+   "id": "writing-plans-8",
+   "prompt": "rename get_usr to get_user everywhere",
+   "should_trigger": false
+  },
+  {
+   "id": "writing-plans-9",
+   "prompt": "fix the null check on line 88",
+   "should_trigger": false
+  },
+  {
+   "id": "writing-plans-10",
+   "prompt": "/fable-method audit the launch memo and tell me which claims lack a source",
+   "should_trigger": false
+  },
+  {
+   "id": "writing-plans-11",
+   "prompt": "Should this module become two services? Weigh the tradeoffs before we touch anything.",
+   "should_trigger": false
+  }
+ ]
+}

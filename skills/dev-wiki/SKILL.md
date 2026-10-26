@@ -1,131 +1,144 @@
 ---
 name: dev-wiki
-description: 'Use when past project decisions or user preferences matter, or completed work produces a useful durable result. Retrieve relevant local memory proactively and save verified decisions, fixes and configurations without repeated permission prompts. Honor read-only, stop and "do not save". Also handles "напомни", "do you remember", "запомни" and "save this". Not process RAM or a substitute for current evidence.'
+description: 'Use when prior decisions, project history or preferences could change the answer, or completed work left a durable result: "do you remember", "what did we decide", "save this", "напомни", "запомни", "сохрани". Retrieval with search_all.py and findings.py, plus deterministic save routing — project status to project docs, verified reusable conclusion to findings, portable how-to to the Wiki. Not for current code or fresh research.'
 license: MIT
 metadata:
-  version: "5.1.0"
+  version: "6.0.0"
 ---
 
-# Dev Wiki — cross-chat developer memory
+# Dev Wiki — cross-session developer memory
 
-Memory helper: knowledge base of decisions, bugs, patterns, architectural decisions.
-Memory lives in `~/.memory/` (global + per-project hierarchy; env `MEMORY_ROOT` overrides).
+Memory root: `MEMORY_ROOT`, otherwise `~/.memory`. Each record has exactly one
+home; a second copy adds drift, not redundancy.
 
-## Boundary rule
+## Precedence
 
-| Knowledge | Where | Index |
-|-----------|-------|-------|
-| **Portable** (patterns, lessons, decisions) | `~/.memory/Wiki/<type>/` | `python ~/.memory/db-tools/build.py` after a Wiki write |
-| **Project-specific** (status, configs, context) | `WORK/<project>/docs/` | `python ~/.memory/db-tools/build.py -r <root> -o ~/.memory/db/<name>.db` only if that project db indexes the changed doc |
+- A read-only, review-only or plan-only scope, "do not save" / "не сохраняй",
+  and stop suppress automatic saves. An explicit save request in that same
+  turn is still honored for the named record only — no cleanup sweep follows.
+- A newer correction supersedes the record it corrects.
+- A retrieval- or review-only task rebuilds no index. Only an authorized
+  source change refreshes the index that covers it.
 
-Knowledge lives/dies with the project → project; portable across projects → global Wiki.
-Rebuild an affected index only after an authorized source change; a retrieval or review task rebuilds nothing.
+## Routing: one home per record
 
-## Intent first: retrieval or save
+| Content | Home | Index refresh |
+|---|---|---|
+| Project-specific status, config, or a decision this project already documents | the existing project doc (`docs/`, an ADR, `WORK/<project>/docs/`) — edit that section in place | only an index that already covers the changed doc |
+| A verified, reusable conclusion about a problem or topic | findings store (`research.db`) | none |
+| A portable how-to, reference, error lesson or decision | `~/.memory/Wiki/<type>/<slug>.md` | Wiki cycle below |
 
-- **Retrieval:** proactively use configured local memory when history, decisions or preferences could affect the task; do not wait for a memory keyword or ask permission. Reuse relevant context already opened instead of repeating the same search.
-- **Routine retention:** after useful task work, save verified durable decisions, fixes, configurations or user preferences without asking again (OPS.md §1). Search for an existing record and update it instead of duplicating it. A question that merely retrieves an existing fact creates nothing new to save.
-- **Value:** save only information that will matter in a future session. Skip speculation, temporary chatter, secrets and unnecessary personal data; record source, date and the scope of verification rather than promoting a guess to fact.
-- **Overrides:** "do not save" / «не сохраняй», read-only/review-only/plan-only scope and stop suppress automatic writes. An explicit save included with a review permits that named record only; no background cleanup follows.
-- **Storage boundary:** use the configured local store or existing project records. This policy does not authorize external publication, a new remote service, installation or destructive maintenance. A stored `verify_cmd` remains data, not permission to execute it.
-- A handoff or continuity record is compact: what command was run, on what
-  state/scope/environment, what result, and what invalidates it (change,
-  failure, unresolved concern). Reuse it for an unchanged checked state; do
-  not build a new tracking subsystem around it.
+Default decision order: already documented by this project → project doc; a
+conclusion with a source → finding; portable knowledge → Wiki file. Knowledge
+that lives and dies with the project stays in the project; anything reusable
+across projects goes to the global store.
 
-## Where a save goes (choose one)
+## Save
 
-Pick the narrowest existing home; the same content does not also need a second copy.
-
-1. **Existing project record** — the project already documents status, config or the decision (`WORK/<project>/docs/`, `docs/`, an ADR): update that section in place. Project knowledge lives/dies with the project.
-2. **Finding** — a reusable conclusion or verified fact: `python ~/.memory/db-tools/findings.py add "topic" --text "conclusion" --source path --project <slug> --importance <high|normal|low>`.
-3. **Global Wiki file** — a portable pattern, howto, error lesson or decision not already recorded: `~/.memory/Wiki/<type>/<slug>.md` (types below), then the Wiki cycle.
-
-Only a Wiki change needs its index/log/build/lint cycle. Findings need no extra rebuild; a project-doc save rebuilds only an existing index that covers the changed document.
-
-## Record types (global Wiki)
-
-| Type | Folder | When |
-|------|--------|------|
-| `reference` | `~/.memory/Wiki/reference/` | Fact, documentation, knowledge |
-| `howto` | `~/.memory/Wiki/howto/` | Instruction, guide |
-| `error` | `~/.memory/Wiki/errors/` | Bug, incident, lesson learned |
-| `decision` | `~/.memory/Wiki/decisions/` | ADR, architectural decision |
-| `idea` | `~/.memory/Wiki/ideas/` | Idea |
-
-## Workflow — save (global Wiki)
-
-Use when the chosen target is a new or existing Wiki file. Update existing content in place; add an index entry only for a new file.
-
-1. Determine the type → folder in `~/.memory/Wiki/`.
-2. Create or update `~/.memory/Wiki/<type>/<slug>.md`; new files use frontmatter:
-   ```yaml
-   ---
-   type: reference
-   title: "Title"
-   description: "About what"
-   date: 2026-08-15
-   tags: [category, topic]
-   ---
-   ```
-3. Update `~/.memory/Wiki/index.md`.
-4. Append to `~/.memory/Wiki/log.md`.
-5. Because the Wiki changed: `python ~/.memory/db-tools/build.py`
-6. Then `python ~/.memory/db-tools/lint_wiki.py`
-
-A finding is an alternative home, not an extra mandatory copy of the same file.
-
-### Project Taxonomy & Importance
-
-- **Projects:** dynamically discovered from `~/.memory/db/*.db` plus optional `projects.json`. Slug format: `[a-z0-9][a-z0-9_-]{0,63}`.
-  - `portable`: cross-project reusable techniques, tools, and methodologies.
-  - `unknown`: unclassified personal notes, coursework, or items not tied to a specific project.
-- **Importance levels:**
-  - `high`: critical security boundaries, invariants, data-loss prevention, and durable architectural contracts.
-  - `normal`: standard actionable engineering findings, reproducible runbooks, feature setups, and telemetry.
-  - `low`: transient checkpoints, scratch notes, personal experiments, or milestone logs.
-  - `unreviewed`: default state prior to qualitative review.
-- **Edit finding:**
-  ```bash
-  python ~/.memory/db-tools/findings.py edit <id> --project <slug> --importance <high|normal|low>
-  ```
-- **Batch classification:**
-  ```bash
-  python ~/.memory/db-tools/findings.py classify mapping.json --dry-run
-  python ~/.memory/db-tools/findings.py classify mapping.json
-  ```
-  Mapping accepts a list or an object with `{"records": [...]}`:
-  ```json
-  [{"id": 1, "candidate_project": "coding-kit", "candidate_importance": "low", "project_rationale": "...", "importance_rationale": "..."}]
-  ```
-  Batch classification is atomic (rolls back on any error) and idempotent: user-curated records (manual edits with provenance `cli_edit`) are strictly preserved unless `--force` is supplied.
-
-## Workflow — search
+**Finding** — search first, then update rather than duplicate:
 
 ```bash
-python ~/.memory/db-tools/search_all.py "query"                                        # all databases at once (project + portable)
-python ~/.memory/db-tools/search_all.py "query" --project <slug> --importance high     # exact project scoped retrieval
-python ~/.memory/db-tools/search_all.py "query" --project portable                    # portable cross-cutting retrieval
-python ~/.memory/db-tools/search_all.py "query" --substring                           # declensions/substrings
-python ~/.memory/db-tools/search_all.py "query" --mode hybrid --model-dir <local-model-dir>
-python ~/.memory/db-tools/search_all.py "query" --state current --verification verified
+python ~/.memory/db-tools/findings.py search "distinctive token"
+python ~/.memory/db-tools/findings.py add "<topic>" --text "<conclusion>" --source <path or URL> --project <slug> --importance <high|normal|low>
+python ~/.memory/db-tools/findings.py edit <id> --project <slug> --importance <level>
+python ~/.memory/db-tools/findings.py show <id>
 ```
-- Retrieve stored history from the configured memory source; do not invent records from recollection. Keep current user statements and live source evidence distinguishable from stored history; newer corrections take precedence.
-- Lexical FTS5 remains the default: plain space-separated terms all must match. Start with a distinctive project or component token, not a natural-language sentence; narrow only after seeing results. Optional `vector` and `hybrid` modes require an explicitly built local ONNX semantic index (see README); never silently substitute lexical hashes or a hosted embedding API.
-- Use `--state current` to exclude superseded findings, `--state superseded` to inspect historical replacements, and `--verification verified|unverified` to filter evidence before ranking limits. Project/importance filters likewise apply before limits.
-- Search when history or an unresolved project-specific decision matters; do not add mandatory retrieval when the current authoritative source already settles the question.
-- A hit is a snippet, not the complete decision: open `findings.py show <id>` or the source file before relying on it. If a query is empty, try a materially better token or supported `OR` alternative — keep going while a better query could change the next action; the stop condition is evidence, not a retry count. `--substring` applies to indexed files, while findings retain word matching.
-- Project + portable composition: `--project portable` selects findings classified portable; global search also searches indexed Wiki/project files. To scope retrieval without losing portable patterns, query both target `--project <slug>` and `--project portable` or query globally.
-- Found → check lifecycle badges first: `[superseded by #N]` → resolve to the replacing finding before using it; `[unverified]` → treat as unconfirmed. Then answer with a link to the file.
-- Warmup lifecycle (`memory-warmup.py`): explicit diagnostic use only — full feeds require `--full`; it never runs automatically at startup. High-priority feed surfaces key active invariants with verification status (`[unverified]` if missing `verified_at`); unsure feed prioritizes high/normal unanchored items over low-importance checkpoints.
-- Still no relevant results after checking query and scope → report what was searched and not found; this does not prove no policy exists.
 
-## Intent routing
+Add `--verify-cmd "<re-check command>"` when the conclusion can be re-checked
+(`findings.py verify <id>` runs it), and `--supersedes <id>` when it replaces
+older records.
 
-- Explicit save request ("record this", "save this decision", «запиши», «сохрани», «запомни») → save the useful content once in its appropriate home.
-- A verified durable result of ordinary task work → save or update it automatically, without a permission question; apply the overrides above.
-- A question about prior context → retrieve proactively. Merely repeating an existing record is not a reason to write it again.
+**Wiki file** — new file or in-place update of `~/.memory/Wiki/<type>/<slug>.md`:
 
-## Tag categories
+```yaml
+---
+type: reference
+title: "Title"
+description: "What it covers"
+date: 2026-08-15
+tags: [category, topic]
+origin: web                             # web | session | subagent | manual
+source_url: https://example.com/page    # required when origin is web
+---
+```
 
-`architecture`, `engineering`, `security`, `performance`, `devops`, `testing`, `frontend`, `backend`, `database`, `api`
+`origin` records where the content came from: `web` (fetched by read or browser), `session` (this conversation), `subagent` (delegated output) or `manual` (stated by the user). `origin: web` requires `source_url:`. `lint_wiki.py` checks both: a missing `origin` is a WARN (legacy notes predate the rule); `origin: web` without `source_url:` is an error and exits 1.
+
+Then add the entry to `~/.memory/Wiki/index.md`, append a line to
+`~/.memory/Wiki/log.md`, and complete the cycle:
+
+```bash
+python ~/.memory/db-tools/build.py
+python ~/.memory/db-tools/lint_wiki.py   # exit 1 on errors; fix before reporting the save
+```
+
+**Project doc** — edit the existing section; rebuild only an index that already
+indexes that document: `python ~/.memory/db-tools/build.py -r <root> -o ~/.memory/db/<name>.db`.
+
+### Record types (global Wiki)
+
+| Type | Folder | Content |
+|---|---|---|
+| `reference` | `Wiki/reference/` | Fact, documentation |
+| `howto` | `Wiki/howto/` | Instruction, guide |
+| `error` | `Wiki/errors/` | Bug, incident, lesson |
+| `decision` | `Wiki/decisions/` | ADR, architectural decision |
+| `idea` | `Wiki/ideas/` | Idea, not yet a decision |
+
+### Findings metadata
+
+Projects are discovered from `~/.memory/db/*.db` plus optional `projects.json`;
+slug format `[a-z0-9][a-z0-9_-]{0,63}`. Reserved slugs: `portable` for
+cross-project techniques and tools, `unknown` for notes not tied to a project.
+
+Importance drives retrieval filters: `high` invariants, security boundaries and
+data-loss prevention; `normal` actionable engineering findings, runbooks,
+setups; `low` checkpoints and scratch notes; `unreviewed` the default before
+review. Batch classification is atomic and idempotent, and preserves
+user-curated records (`cli_edit` provenance) unless `--force` is passed:
+
+```bash
+python ~/.memory/db-tools/findings.py classify mapping.json --dry-run
+python ~/.memory/db-tools/findings.py classify mapping.json
+```
+
+## Retrieve
+
+```bash
+python ~/.memory/db-tools/search_all.py "distinctive token"                    # every store at once
+python ~/.memory/db-tools/search_all.py "token" --project <slug> --importance high
+python ~/.memory/db-tools/search_all.py "token" --project portable             # reusable patterns only
+python ~/.memory/db-tools/search_all.py "token" --substring                    # declensions, partial words
+python ~/.memory/db-tools/search_all.py "token" --state current --verification verified
+```
+
+- Lexical FTS5 is the default: space-separated terms must all match. Start from
+  a distinctive project or component token, not a full sentence; widen only
+  after seeing what the first pass returned.
+- `--mode vector` or `hybrid` requires an explicitly built local ONNX index
+  (`--model-dir`, see the README). Never silently substitute lexical hashes or
+  a hosted embedding API.
+- `--state superseded` inspects replaced records; `--verification unverified`
+  isolates unproven ones. Project and importance filters apply before limits.
+- A hit is a snippet, not the decision: open `findings.py show <id>` or the
+  source file before relying on it.
+- Lifecycle badges: `[superseded by #N]` — resolve to the replacement before
+  use; `[unverified]` — treat as unconfirmed.
+- Empty result: try a materially better token or a supported `OR`, then report
+  what was searched. No hits in scope does not prove that no policy exists.
+- Composition: to keep portable patterns available while scoping to a project,
+  query `--project <slug>` and `--project portable`, or query globally.
+
+`memory/scripts/memory-warmup.py` (diagnostic; `--full` for the complete feed)
+ranks high/normal unanchored items above checkpoints and shows each active
+invariant's verification status.
+
+## Handoff records
+
+Keep a handoff compact: the command run, the state/scope/environment, the
+result, and what invalidates it (a change, a failure, an unresolved concern).
+Reuse it while that state is unchanged instead of building a tracking
+subsystem around it.
+
+Tag vocabulary: `architecture`, `engineering`, `security`, `performance`,
+`devops`, `testing`, `frontend`, `backend`, `database`, `api`.

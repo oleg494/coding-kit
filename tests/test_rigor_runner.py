@@ -41,9 +41,9 @@ def _write_policy_bundle(root: Path) -> None:
     for name in runner.POLICY_FILES:
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(f"# {name}\n", encoding="utf-8")
-    skill = root / "skills" / "superpowers" / "SKILL.md"
+    skill = root / "skills" / "alpha" / "SKILL.md"
     skill.parent.mkdir(parents=True, exist_ok=True)
-    skill.write_text("# Superpowers\n", encoding="utf-8")
+    skill.write_text("# Alpha\n", encoding="utf-8")
 
 
 def test_evaluate_route_passes_multiline_prompt_on_stdin(monkeypatch, tmp_path):
