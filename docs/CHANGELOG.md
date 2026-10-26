@@ -38,6 +38,14 @@
     trigger 0.055 → 0.044, single exact pick 0.675 → 0.764, skills loaded per
     query 1.14 → 1.02. The queries were partly written during this rewrite,
     so the comparison may favor the new descriptions.
+  - Release gates (Windows/Python 3.12): full suite 1006 passed, 22 skipped,
+    602 subtests; doctor 14/14 green after live deploy; integrity 209 files;
+    size gate hard 0; dry-run validations (runner 50 scenarios, task_runner 6
+    tasks, trigger_eval auto 197 queries) exit 0; live deploy VERDICT ALL OK,
+    retired skills removed from `~/.agents/skills` and `~/.claude/skills`,
+    repeat `--dry-run` reports no pending skill changes. Two independent
+    read-only reviews (safety regression, routing quality); their findings
+    were fixed before release. Not pushed; CI unobserved.
 - **v5.1.0 (2026-10-25) — optional offline semantic memory retrieval:**
   - `search_all.py` / `findings.py search` gain `--mode lexical|vector|hybrid`
     (lexical FTS5 stays the default). Vector mode uses a local multilingual
