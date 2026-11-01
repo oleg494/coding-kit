@@ -53,15 +53,19 @@ Plan/design-only requests stop at their requested deliverable.
 1. **Inspect context.** Read the relevant implementation, configuration and
    existing decisions. Reuse project conventions rather than adding a parallel
    design. Do not ask the user for repository-provided information.
-2. **Define done.** Capture required behaviors, compatibility, constraints,
-   excluded work and observable acceptance. Reframe a vague goal as checks
-   before designing anything:
+2. **Define done.** Establish the intended use from the request and available
+   context, then choose an observable check of that outcome. Preserve required
+   behavior, compatibility and scope; do not substitute a convenient metric
+   for the user's problem. Ask only if missing context changes the decision.
 
    ```
    REQUEST: "Make the dashboard faster"
-   DONE WHEN: LCP < 2.5s on a throttled 4G profile
-              initial data load < 500ms
-              CLS < 0.1 during load
+   OBSERVED CONTEXT: Operators wait 8 seconds after changing the date range;
+                     initial load is already fast.
+   OUTCOME: Operators can compare periods without waiting for stale totals.
+   CHECK: Measure date-change to correct, usable totals on representative data.
+          Choose the target from the workflow; retain correctness checks.
+   NOT SUFFICIENT: Improving LCP alone does not test this interaction.
    ```
 
    A simpler implementation must still deliver all requested formats, paths,

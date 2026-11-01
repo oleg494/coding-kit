@@ -38,16 +38,15 @@ success; idempotent with `--dry-run` for destructive steps; output bounded to
 
 ## 3. Body: size and tone
 
-- **Small.** The body loads on every read, and cost without solve rate is a loss:
-  context-file studies show ~+20% cost for no accuracy gain; the kit's A/B held
-  solve rate at +21% steps and +41% tokens. Stay well under 500 lines; past ~350,
-  move detail into `references/<topic>.md`.
+- **Small.** Each loaded procedure costs context and work; assess that cost
+  against the outcome it protects. Stay well under 500 lines; past ~350, move
+  detail into `references/<topic>.md`.
 - **Each rule lives once**: restating OPS or a neighbor skill dilutes what is unique
   here. "Use X when Y, because Z" beats "critical, you must"; MUST/NEVER is for
   safety, authority and fabrication lines.
-- **Keep compliance tables**: rationalization and red-flag tables are load-bearing
-  where a skill defends a discipline — upstream experiments lost compliance when
-  test-first rebuttals were removed; trim duplicates, not tables.
+- **Keep decision-relevant examples**: retain a table when it prevents a named
+  failure, not merely because it increases compliance. Tables and prose carry
+  the same burden of demonstrating value in their intended scope.
 - **Write what the agent doesn't know**: gotchas, exact commands, fields,
   thresholds. Positive recipes beat prohibitions for output shape.
 
@@ -92,13 +91,22 @@ inputs (dry run).
 - `python scripts/tools/usage_audit.py --retirement-report` — no observed read
   requests in the window (default 14 days), proposal only.
 
-Promotion: the originating case passes, a nearby negative does not fire, a held-out
-case passes; routing needs trigger rate ≥ ~0.5 with false rate ≤ ~0.3 on the skill's
-own cases.
+Addition and continued default use of an optional procedure need a named user
+outcome or failure it protects, plus evidence proportionate to its cost and risk.
+Routing checks show whether it is selected, not whether it helps. Use an originating
+case, a nearby negative and a held-out case to assess outcome, side effects and
+additional work; do not promote on compliance or trigger rate alone.
 
-Retirement: no reads across the audit window *and* no ablation contribution —
-opportunity plus effect, not read counts. Reads without effect → rewrite or merge;
-neither → retire, folding unique content into the survivor.
+Apply the same standard to removal or narrowing: it need not make the model smarter.
+A reversible trial can be justified by observed cost and weak benefit evidence,
+with checks for the specific regressions at risk. Lack of a detected benefit is
+uncertainty, not proof of uselessness; retain unique useful knowledge on demand
+where appropriate. Read counts alone justify neither keeping nor retiring a skill.
+
+Authority, stopping, honesty and protections for irreversible or high-impact
+actions are not optional workflow overhead. Do not remove them by this cost rule.
+Keep the evidence and limitations attached to the decision; no requirement for
+another global benchmark, gate or fixed report format.
 
 ## Gotchas
 

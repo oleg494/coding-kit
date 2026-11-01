@@ -1,4 +1,35 @@
 # Changelog — Coding Agent OS
+- **Unreleased (2026-11-01) — purpose, inference and procedure cost:**
+  - OPS connects action-changing conclusions to the property actually measured;
+    no mandatory new reporting section. `brainstorming` replaces an unexplained
+    LCP target with a workflow-derived interaction/correctness example.
+  - `skill-authoring` evaluates optional procedure additions and removals by
+    outcome, cost and risk, not trigger compliance or required intelligence gain.
+    Authority, stop, honesty and irreversible-action protections are excluded
+    from the cost shortcut. Removes blanket protection for compliance tables
+    and a historical A/B figure previously used as a general rule.
+  - 16 paired text-decision probes: mostly similar reasonable decisions in both
+    versions, no measured quality improvement claimed. Two fresh native OMP
+    sessions loaded installed OPS/skills and exercised goal-derived acceptance
+    and reversible procedure narrowing while preserving publication permission.
+  - Only OPS and two skills changed, with installed mirrors synchronized. Inputs,
+    raw traces and rollback backups are retained locally, not published: they
+    include private session/environment data. These are maintainer-reported
+    observations, not a repository-reproducible quality benchmark.
+    No global OMP configuration, release tag or publication changed.
+- **Unreleased (2026-11-01) — scoped autonomous work:**
+  - `autonomous-work` distinguishes open exploration from a persistent project
+    mission. Removes universal mission forms, file handoffs and closure labels;
+    preserves project completion, authority, stop and evidence requirements.
+    Optional supervisor CLI details move to `references/supervisor.md`.
+  - Evidence: 14 matched no-tool first-response probes and four fresh OMP runs
+    with tools available. Both policies handled the observed cases; no quality
+    superiority or general causal effect is established. Raw inputs/results and
+    rollback mappings are retained locally, not included in this repository.
+  - Installed only this skill's payload into existing local mirrors; that change
+    did not modify OPS or global OMP settings. Full local deployment was blocked
+    by pre-existing missing memory files in the working checkout. Those unrelated
+    deletions are excluded from this commit; their manifest entries are preserved.
 - **v6.0.0 (2026-10-26) — one contract, 27 skills, text rewrite:**
   - Inventory 37 → 27. Folded into OPS.md: `superpowers`, `reasoning-engine`,
     `engineering-persona`. Merged: `yagni` → `ponytail`,

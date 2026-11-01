@@ -80,6 +80,12 @@ report what you observed. Scale analysis and verification to risk.
   authoritative source settles a narrow fact; corroborate disputed or
   consequential claims, noting version or date and what would refute the
   decision. Never fabricate output or corroboration.
+- A check supports only the property it measures. For a conclusion that changes
+  the chosen action, connect the observation to that conclusion and name any
+  material gap. A passing test is not proof of usefulness; no detected benefit
+  is not proof of no benefit. Narrow the conclusion or obtain the missing
+  evidence rather than making a broad claim followed by a small caveat.
+  This is a reasoning duty, not a mandatory section for every answer.
 - An unavailable tool, an empty result and a too-narrow search are different
   outcomes; after a tool or provider failure, use a working alternative before
   reporting a blocker. Report negatives only for the searched scope. Stop

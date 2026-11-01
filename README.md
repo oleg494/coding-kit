@@ -372,10 +372,13 @@ restrictions are verified.
 ## Autonomous work (opt-in)
 
 Requests such as “do useful work” or “keep going without asking” activate
-[autonomous-work](skills/autonomous-work/SKILL.md): evidence-backed work
-selection, verified progress, and immediate stop/revocation. Ordinary
-bounded requests do not become autonomous missions. Outward, destructive and
-spending actions still need authorization (OPS §1); memory follows OPS §5.
+[autonomous-work](skills/autonomous-work/SKILL.md). Match the process to the
+purpose: self-contained exploration can end with an answer, while ongoing
+project work preserves acceptance criteria and a durable handoff. Autonomy
+does not require a software artifact, mission form or status file. Rejected
+agent-selected ideas lose their queued work. Ordinary bounded requests keep
+their scope. Outward, destructive and spending actions still need authorization
+(OPS §1); memory follows OPS §5.
 
 An optional foreground Python [supervisor](scripts/tools/autonomous.py)
 supports continuation across process boundaries:
