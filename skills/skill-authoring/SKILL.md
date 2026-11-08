@@ -4,7 +4,7 @@ description: 'Use when creating or editing a skill, or turning a session, proced
 license: MIT
 compatibility: applies to skills/ in this set, ~/.hermes/skills, .claude/skills
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Authoring skills

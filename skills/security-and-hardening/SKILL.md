@@ -3,7 +3,7 @@ name: security-and-hardening
 description: 'Use when code touches untrusted input, auth, sessions, secrets, uploads, webhooks, third-party APIs, or personal data, and when reviewing a feature for vulnerabilities. Covers STRIDE over trust boundaries, injection, XSS, broken access control, SSRF, input validation, dependency triage, fetched content as data. Not for release and rollback planning (shipping-and-launch) or for choosing telemetry (observability-and-instrumentation).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Security and hardening

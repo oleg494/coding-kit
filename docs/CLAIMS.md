@@ -49,6 +49,10 @@ release approval; unobserved CI remains unverified.
 | C-23 | Historical DeepSWE A/B observations (6/9 solved in both arms, +21% steps, +41% prompt tokens) | — | — | unverified (historical) |
 | C-24 | v4.5.1 policy-calibration observations (stated-next-action evidence) | — | External release notes only: <https://github.com/oleg494/coding-kit/releases/tag/v4.5.1> | evidence-only |
 | C-25 | The kit makes no demonstrated universal coding-quality or token-efficiency improvement claim | — | [README](../README.md) "Evidence and limitations" | evidence-only |
+| C-26 | Session runner rejects fresh-session substitution, missing policy/gate proof, provider/tool errors and writes after revocation; real TypeScript gate accepts string and array prompts | `python -m pytest tests/test_session_runner.py -q` | [session runner tests](../tests/test_session_runner.py), [CHANGELOG](CHANGELOG.md) v6.1.0 | verified |
+| C-27 | v6.1.0 clean tracked-source snapshot plus authorized delta passed 1048 tests, 24 prerequisite skips, 618 subtests; this is not a green claim for the working checkout with missing memory files | `python -B -X utf8 -m pytest tests -q -rs -p no:cacheprovider` | [CHANGELOG](CHANGELOG.md) v6.1.0 scoped verification | verified |
+| C-28 | v6.1.0 local application synchronized owned skill payloads and preserved router bodies; full checkout deployment remains blocked by 21 pre-existing missing engine files | — | [CHANGELOG](CHANGELOG.md) v6.1.0 scoped application | evidence-only |
+| C-29 | Native session comparison: baseline and 6.1 policy each passed ten local cases once; no demonstrated advantage | `python eval/session_runner.py --cases eval/session_cases.json --policy <frozen-policy.md> --output <new-run-dir> --model <provider/model>` | [Session evaluation](session-evaluation.md), [CHANGELOG](CHANGELOG.md) v6.1.0 | evidence-only |
 
 Notes on the unverified rows:
 

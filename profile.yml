@@ -2,7 +2,7 @@
 # Single source of truth: paths, skills, adapters.
 # Core method lives in OPS.md; skills load on demand for one open question.
 
-version: "6.0.0"
+version: "6.1.0"
 name: coding-agent-kit
 description: Coding Agent OS — one operating contract, 27 on-demand skills, cross-chat memory, trap-suite evals.
 
@@ -65,7 +65,7 @@ skills:
     - ponytail                      # minimal change + YAGNI (MIT; adapted from DietrichGebert/ponytail)
     - dashboard-design              # dashboard design + honest data-viz + rendered UI review
     - design-system                 # compact design tokens & shared components
-    - autonomous-work               # opt-in autonomous work selection + supervisor
+    - autonomous-work               # delegated initiative, work styles and continuity
 
 adapters:
   - platform: antigravity

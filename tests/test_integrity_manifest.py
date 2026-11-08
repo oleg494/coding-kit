@@ -155,6 +155,18 @@ class BuildManifestTest(unittest.TestCase):
             integrity.check(self.root, m),
             ["drifted: skills/demo/references/sub/guide.md"])
 
+    def test_session_execution_assets_cannot_drift_silently(self):
+        assets = ("eval/session_gate.ts", "eval/session_cases.json")
+        for rel in assets:
+            _write(self.root / rel, "original\n")
+        baseline = integrity.build_manifest(self.root)
+        for rel in assets:
+            with self.subTest(asset=rel):
+                _write(self.root / rel, "changed\n")
+                self.assertEqual(integrity.check(self.root, baseline),
+                                 [f"drifted: {rel}"])
+                _write(self.root / rel, "original\n")
+
     def test_owned_payload_binary_reference_tamper_is_detected(self):
         m = integrity.build_manifest(self.root)
         path = self.root / "skills" / "demo" / "references" / "ref.bin"

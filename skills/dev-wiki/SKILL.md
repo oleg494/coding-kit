@@ -3,7 +3,7 @@ name: dev-wiki
 description: 'Use when prior decisions, project history or preferences could change the answer, or completed work left a durable result: "do you remember", "what did we decide", "save this", "напомни", "запомни", "сохрани". Retrieval with search_all.py and findings.py, plus deterministic save routing — project status to project docs, verified reusable conclusion to findings, portable how-to to the Wiki. Not for current code or fresh research.'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Dev Wiki — cross-session developer memory

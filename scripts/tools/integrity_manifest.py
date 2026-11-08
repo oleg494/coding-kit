@@ -71,7 +71,8 @@ except (ImportError, ValueError):
 # (kind, pattern) rows: kind "file" = exact relpath, "glob" = fnmatch over
 # the whole tree, "tree" = all *.py under a directory prefix.
 _FILE_SCOPE = ("OPS.md", "AGENTS.md", "profile.yml", "SKILL_RUNTIME.md",
-               "eval/trigger_queries.json")
+               "eval/trigger_queries.json", "eval/session_gate.ts",
+               "eval/session_cases.json")
 _GLOB_SCOPE = ("adapters/*.md", "eval/*.py", "eval/scenarios/*.md",
                "eval/tasks/*/TASK.md", "eval/baselines/*.json")
 _TREE_SCOPE = ("scripts", "memory/db-tools", "memory/scripts")

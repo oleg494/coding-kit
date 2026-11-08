@@ -3,7 +3,7 @@ name: design-system
 description: 'Use when creating or refactoring product UI, landing-page styling, visual direction, shared components, themes, design tokens, or adapting a supplied design reference; dashboard tokens and themes are in scope. Full inventory, state matrix and rendered verification for new or shared components; abbreviated for a local styling change. Not for dashboard information hierarchy, KPI semantics, filters or chart choice (dashboard-design), software architecture, or static illustrations.'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Design System

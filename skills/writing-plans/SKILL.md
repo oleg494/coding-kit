@@ -3,7 +3,7 @@ name: writing-plans
 description: 'Use when specified work needs an execution plan or hits a plan defect mid-execution: coupled or multi-slice changes, work split across agents, several independently landable outcomes, or a plan that disagrees with what a slice already shipped. Not for deciding what to build (use brainstorming); not for a single small change.'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Writing Plans

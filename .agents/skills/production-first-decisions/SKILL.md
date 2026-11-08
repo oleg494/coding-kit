@@ -4,7 +4,7 @@ description: 'Use before committing to a consequential tool, library, standard o
 license: MIT
 compatibility: any project
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Production-first: decisions grounded in evidence

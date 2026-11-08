@@ -3,7 +3,7 @@ name: verification-before-completion
 description: 'Use before claiming work is complete, fixed, passing or ready to merge, and before committing or opening a PR: matching the evidence to the type of claim. Not for writing or choosing the checks themselves (use testing-discipline), for diagnosing a failure (use systematic-debugging), or for judging another agent completed work (use fable-judge).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # verification-before-completion

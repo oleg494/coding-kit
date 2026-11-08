@@ -3,7 +3,7 @@ name: using-git-worktrees
 description: Use when work needs an isolated workspace — concurrent writers or parallel agents, an explicit user request for isolation, or changes that would interfere with the current checkout. Covers detection, native worktree tools before the git fallback, setup, clean baseline, ignore handling, and removing task-created worktrees. Not for every planned change (a bounded single-writer task works in place) and not for merge authority or branch-retention decisions (use git-workflow-and-versioning).
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Using Git Worktrees

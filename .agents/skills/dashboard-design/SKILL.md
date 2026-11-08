@@ -3,7 +3,7 @@ name: dashboard-design
 description: 'Use when designing, redesigning or reviewing marketplace, seller, operations, finance, logistics or analytics dashboards: information hierarchy, KPI and metric semantics, filters, chart and table choice, honest data visualization, dense layouts, and verifying dashboard states in the running app. Not for product UI, themes, tokens or landing pages (design-system), nor posters or static illustrations.'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Dashboard Design

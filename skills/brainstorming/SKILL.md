@@ -3,7 +3,7 @@ name: brainstorming
 description: 'Use when deciding what to build: a new feature, component or subsystem, a vague or conflicted request, a requirement that spans several capabilities, or a product-level design choice with real tradeoffs. Produces intent, constraints, capability map, spec and observable acceptance. Not for service or module structure (architecture-simplicity), consequential tool selection (production-first-decisions), executing already-specified multi-slice work (writing-plans), or non-code judgment work (fable-method).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Brainstorming — from idea to agreed design
@@ -102,7 +102,9 @@ Plan/design-only requests stop at their requested deliverable.
    needs little or none of this.
 7. **Continue.** Use `writing-plans` when the execution shape is non-obvious,
    then implement and verify without asking the user to approve the same
-   authorized work again.
+   authorized work again. The outcome and grant agreed in design carry into
+   execution: ordinary implementation decisions inside them are yours, and
+   the deliverable is produced rather than handed back as a plan.
 
    When intent was unclear, briefly reflect what the thing is for and who it
    serves before committing to a design. Separate the user's statements from

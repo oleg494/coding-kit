@@ -1,5 +1,43 @@
 # Changelog — Coding Agent OS
-- **Unreleased (2026-11-01) — purpose, inference and procedure cost:**
+- **v6.1.0 (2026-11-09) — delegated initiative and session continuity:**
+  - OPS carries the user's outcome, exclusions and existing grants across short
+    follow-up turns. Deliver the usable result first and take the next safe
+    in-scope step instead of returning ordinary technical decisions to the user.
+  - Optional exact-task, partner and autonomous-mission styles describe work
+    selection, not tool permissions. No mandatory startup questionnaire, mode
+    file or new daemon. Standing grants keep their actual scope and expiry;
+    explicit read-only, revocation and host permission gates remain controlling.
+  - `autonomous-work` covers delegated choice, ongoing ownership and unresolved
+    grant continuity, including read-only research choice. It rejects goal
+    substitution, stale priorities, artificial task-count limits and make-work.
+    `brainstorming` preserves an existing implementation grant across design.
+  - A native OMP session runner executes file-based tasks over resumed sessions
+    with read/write/todo-only confinement, immutable inputs, recorded tool effects
+    and deterministic artifact checks. Validation is offline; live runs require
+    an explicit model and output directory. This is not an OS sandbox or a
+    claim of general quality improvement. See `docs/session-evaluation.md`.
+  - Existing November-1 corrections below are included. Private historical
+    research and raw local evaluation traces are not publication assets.
+  - Verification on a clean tracked-HEAD archive plus the exact 6.1 delta:
+    1048 tests passed, 24 environment-dependent skips, 618 subtests; integrity
+    213 files; size gate hard 0; doctor 14/14 with disposable memory and synced
+    installed skill copies. Docker/image and Windows symlink/alias prerequisites
+    account for skips. These are local pre-publication checks, not CI results.
+  - Local application was a backed-up, scoped sync of 27 owned skills and router
+    version headers, not a full `deploy.py` run. Read-only `deploy.verify()`
+    reported ALL OK and the canonical mirror had no pending actions. Original
+    OPS paths and foreign skills were retained. The working checkout still has
+    exactly the 21 pre-existing missing memory-engine files; their manifest
+    entries remain intact, so full checkout deployment remains blocked.
+  - Real native OMP comparison (`custom-openai/gpt-6-astra`, one repeat): both
+    baseline and 6.1 policy passed all 10 local cases, 40 user turns total.
+    Fixture/gate/runtime/model inputs matched. The candidate had 80 file/turn
+    assertions, no tool errors or gate denials, and verified session continuity.
+    This is regression evidence, not demonstrated superiority. A separate native
+    installed-loading smoke read OPS and autonomous-work 6.1.0 successfully.
+    A final same-path session-identity hardening added a regression test; all 43
+    runner tests and a fresh three-turn native revocation smoke passed afterward.
+- **2026-11-01 — purpose, inference and procedure cost (included in v6.1.0):**
   - OPS connects action-changing conclusions to the property actually measured;
     no mandatory new reporting section. `brainstorming` replaces an unexplained
     LCP target with a workflow-derived interaction/correctness example.

@@ -3,7 +3,7 @@ name: systematic-debugging
 description: 'Use when something fails or behaves unexpectedly: a bug, a failing test or build, a hung or stale process, a service that broke after an update or restart, a zero metric on a feature that looks fine, or "it used to work". Covers root-cause investigation before fixes, boundary evidence and runtime incidents. Not for writing the regression test (use testing-discipline) or the closing claim (use verification-before-completion).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # systematic-debugging

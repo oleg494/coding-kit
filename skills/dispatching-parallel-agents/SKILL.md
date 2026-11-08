@@ -3,7 +3,7 @@ name: dispatching-parallel-agents
 description: 'Use when several work slices can be handed to separate agents at once: unrelated failures with distinct root causes, independent subsystems, or parallel slices whose interfaces are already defined. Not for related failures or exploratory debugging (investigate inline), and not for deciding slice boundaries or workspace isolation (use writing-plans and using-git-worktrees).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Dispatching Parallel Agents

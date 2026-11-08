@@ -4,7 +4,7 @@ description: 'Use when a multi-file change, a rename, or an explicit graph revie
 license: MIT
 compatibility: 'git repo; code-review-graph MCP when available, otherwise LSP/source search'
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Code graph review: what will the change break

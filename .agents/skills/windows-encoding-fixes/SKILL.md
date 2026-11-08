@@ -4,7 +4,7 @@ description: 'Use when a script or install fails on Windows text or child-proces
 compatibility: Windows (win32), PowerShell 5.1, MINGW64/Git Bash, Python 3.12+
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Windows: encodings, console, child processes

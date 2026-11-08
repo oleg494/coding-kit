@@ -4,7 +4,7 @@ description: 'Use when touching money or quota logic: pay/buy/subscribe, promo o
 license: MIT
 compatibility: any languages/stacks with balances, quotas, promo codes, limits
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Money path safety

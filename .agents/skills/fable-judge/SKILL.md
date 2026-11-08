@@ -3,7 +3,7 @@ name: fable-judge
 description: 'Use when finished work is claimed done and someone must confirm it independently: "judge this work", "verify what it did", "did the tests really pass", a pasted agent report, a diff or branch to check. Produces an evidence-based verdict (VERIFIED / VERIFIED WITH CAVEATS / REFUTED). Also runs the trap suite via "/fable-judge suite <target>". Not for writing the work itself or for routine code review (use code-review-and-quality).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # fable-judge

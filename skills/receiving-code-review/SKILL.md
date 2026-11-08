@@ -3,7 +3,7 @@ name: receiving-code-review
 description: Use when code review feedback arrives and you are about to implement it — especially when an item is unclear, technically questionable, out of scope, or conflicts with an earlier decision. Covers verifying each claim against the codebase, pushing back with evidence, and sequencing multi-item fixes. Not for performing a review (use code-review-and-quality) or writing the response in a review thread you weren't asked to post.
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Code Review Reception

@@ -4,7 +4,7 @@ description: 'Use only for an explicit /fable-method request, or for non-code ju
 license: MIT
 trigger: /fable-method
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # The Fable Method

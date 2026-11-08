@@ -1,6 +1,6 @@
 # Coding Agent OS — Skill Runtime
 
-> **v6.0.0** | Host integration notes, not another operating contract.
+> **v6.1.0** | Host integration notes, not another operating contract.
 
 ## Startup
 
@@ -25,6 +25,13 @@ kit.
 
 A read-only request is a scope rule, not a technical sandbox. Use the host's
 read-only mode where available; an auto-approved tool is not permission.
+
+Work styles (exact task, partner, autonomous mission) describe delegated initiative,
+not host permission modes. Carry the user's actual scope and grants into delegated
+tasks and resumed context; summaries are pointers to their source, not new authority.
+Do not require a startup style menu. A session/project agreement can be stated once
+in ordinary language; subsequent short requests remain within its current bounds.
+The host owns cancellation of its workers and enforcement of tool access.
 
 ## Memory
 

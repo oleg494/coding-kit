@@ -3,7 +3,7 @@ name: web-research
 description: 'Use when a fact from outside the project is needed: "find out", "look up", "what do they say about", "how it works", "compare", "find information", "is this still true". Identify or read the primary source first — open a known URL directly, search only when the owner of the fact is unknown — then cross-check material claims, date them, and answer with links. Not for the local knowledge base or recorded project facts (use dev-wiki) or consequential tool/library decisions (use production-first-decisions).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Web Research — facts from the outside world

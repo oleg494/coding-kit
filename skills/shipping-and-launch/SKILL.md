@@ -3,7 +3,7 @@ name: shipping-and-launch
 description: 'Use when releasing to production: pre-launch readiness review, staged rollout or canary, feature-flag plan, rollback plan, post-launch verification. Decides what to deploy, at what exposure, and when to reverse it. Not for adding logs, metrics, traces or alerts (observability-and-instrumentation) and not for code-level hardening (security-and-hardening).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Shipping and launch

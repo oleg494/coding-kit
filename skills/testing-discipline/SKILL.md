@@ -4,7 +4,7 @@ description: 'Use when writing or fixing tests, working test-first (TDD red-gree
 license: MIT
 compatibility: pytest, jest and similar; applicable to any language
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # testing-discipline

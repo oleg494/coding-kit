@@ -3,7 +3,7 @@ name: observability-and-instrumentation
 description: 'Use when adding or repairing logging, metrics, tracing, or alerting so production behavior is visible and diagnosable: a new service or integration, a feature that needs evidence it works, an incident that took too long to diagnose, alerts that page for the wrong thing. Not for release, rollout or rollback decisions (shipping-and-launch).'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Observability and instrumentation

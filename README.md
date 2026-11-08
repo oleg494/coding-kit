@@ -202,7 +202,7 @@ to use instead. Cross-references are pointers, not a load order.
 | Windows encoding, CRLF/BOM, cmd/PowerShell quirks | `windows-encoding-fixes` |
 | Creating or editing a skill | `skill-authoring` |
 | `/fable-method`, or a non-code plan/audit/report | `fable-method` |
-| Explicitly granted open-ended mission | `autonomous-work` |
+| Delegated work selection, ongoing ownership, or unresolved grant continuity | `autonomous-work` |
 
 `profile.yml` declares these kit-owned skills. Third-party skills beside them
 (for example Firecrawl) are not kit release assets; kit validation and
@@ -369,16 +369,26 @@ restrictions are verified.
 
 </details>
 
-## Autonomous work (opt-in)
+## Initiative and work styles
 
-Requests such as “do useful work” or “keep going without asking” activate
-[autonomous-work](skills/autonomous-work/SKILL.md). Match the process to the
-purpose: self-contained exploration can end with an answer, while ongoing
-project work preserves acceptance criteria and a durable handoff. Autonomy
-does not require a software artifact, mission form or status file. Rejected
-agent-selected ideas lose their queued work. Ordinary bounded requests keep
-their scope. Outward, destructive and spending actions still need authorization
-(OPS §1); memory follows OPS §5.
+Ordinary tasks delegate implementation decisions; ongoing work can delegate outcome
+ownership. State boundaries once: follow-ups do not reset them. No startup form is required.
+
+| Optional style | Delegated work | Completion |
+|---|---|---|
+| Exact task | Requested result and implementation decisions | Finish; report unrelated findings |
+| Partner | Defined outcome and expressly allowed adjacent work | Finish the outcome; propose a new objective |
+| Autonomous mission | Select useful objectives inside the agreed area | Stop when useful authorized work is exhausted, genuinely blocked, or revoked |
+
+Example: “Partner on this local client for this session: repair its configuration
+using supplied credentials, no purchases or unrelated services.” The actual grant,
+not the label, authorizes effects; covered work needs no repeated approval.
+
+[autonomous-work](skills/autonomous-work/SKILL.md) covers delegated ownership, not every
+bounded task. Deliver results, drop rejected work; read-only and stop remain controlling.
+Styles are not a sandbox. Standing grants keep their actual scope, expiry and revocation.
+No general quality gain is claimed; [session evaluation](docs/session-evaluation.md)
+checks are designed for actual file effects across turns, not next-action prose.
 
 An optional foreground Python [supervisor](scripts/tools/autonomous.py)
 supports continuation across process boundaries:

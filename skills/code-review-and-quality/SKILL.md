@@ -3,7 +3,7 @@ name: code-review-and-quality
 description: Use when performing a code review — your own, another agent's, or a human's — or dispatching an independent reviewer at a merge boundary or before a major change lands. Covers scope (diff vs whole-system), five review axes, severity counts, the recomputable verdict. Not for received feedback (use receiving-code-review), blast-radius/rename graphs (use code-graph-review), or an adversarial audit of a finished-work claim (use fable-judge).
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Code Review and Quality

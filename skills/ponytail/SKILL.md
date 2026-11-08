@@ -3,7 +3,7 @@ name: ponytail
 description: 'Use for the smallest complete change: "ponytail", "be lazy", "simplest solution", "YAGNI", bloat or over-engineering complaints, or a change that adds an abstraction, a new dependency, a config knob or dead code "just in case". Cuts speculative code, never requested behavior. Not for module, layer or schema decisions (architecture-simplicity) or evidence-based tool choice (production-first-decisions). Levels: lite, full (default), ultra.'
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Ponytail — lazy senior dev mode

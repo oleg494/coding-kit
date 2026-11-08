@@ -3,7 +3,7 @@ name: git-workflow-and-versioning
 description: Use when committing, choosing a branch or base, resolving conflicts, organizing parallel work streams, integrating a finished branch (local merge, PR, keep-as-is), cutting a release, picking a semantic version bump, tagging, or writing a changelog. Not for creating or cleaning up an isolated workspace (use using-git-worktrees) and not for deciding whether the change is correct (use code-review-and-quality / verification-before-completion).
 license: MIT
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Git Workflow and Versioning

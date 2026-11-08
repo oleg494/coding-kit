@@ -4,7 +4,7 @@ description: 'Use when designing or reviewing structure: module and layer bounda
 license: MIT
 compatibility: any language and stack, architecture design/review phase
 metadata:
-  version: "6.0.0"
+  version: "6.1.0"
 ---
 
 # Architecture & simplicity
