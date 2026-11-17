@@ -45,14 +45,15 @@ TASKS = ROOT / "eval" / "tasks"
 FIXTURE = TASKS / "repo-fixture"
 
 sys.path.insert(0, str(ROOT / "eval"))
+sys.path.insert(0, str(ROOT))
 try:
-    from runner import resolve_cmd  # shared confined-spec parser (fail closed)
-    from telemetry import load_reported_usage, summarize_durations
-    from rigor import container
-except ImportError:
     from eval.runner import resolve_cmd
     from eval.telemetry import load_reported_usage, summarize_durations
     from eval.rigor import container
+except ImportError:
+    from runner import resolve_cmd  # shared confined-spec parser (fail closed)
+    from telemetry import load_reported_usage, summarize_durations
+    from rigor import container
 
 # Shared failure taxonomy — exactly these six values, per the v3.2 schema.
 ERROR_CLASSES = (

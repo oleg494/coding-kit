@@ -58,24 +58,7 @@ It does not configure your agent's rules or skills.
 <details>
 <summary>Use a different memory location</summary>
 
-Set `MEMORY_ROOT` before installation and in sessions that use the kit.
-
-PowerShell:
-
-```powershell
-$env:MEMORY_ROOT = "$HOME/coding-memory"
-python scripts/install.py
-```
-
-Bash:
-
-```bash
-export MEMORY_ROOT="$HOME/coding-memory"
-python scripts/install.py
-```
-
-Examples below call the engine from the clone, so they do not depend on
-shell expansion of `~` in script arguments.
+Set `MEMORY_ROOT` before installation and in sessions that use the kit (PowerShell: `$env:MEMORY_ROOT = "$HOME/coding-memory"`, Bash: `export MEMORY_ROOT="$HOME/coding-memory"`), then run `python scripts/install.py`. Examples below run from the clone without relying on shell `~` expansion.
 
 </details>
 
@@ -292,22 +275,9 @@ pier + mini-swe-agent in Docker, and a 10-task seed-0 subset:
 | Prompt tokens across those five tasks | **+41%**: 99.5M vs 70.4M |
 | Task-level differences | One kit win and one kit loss |
 
-This was a small historical sample using a 36-skill manifest, not a benchmark
-of the current release. Version 6.0 cuts the inventory and the always-loaded
-contract partly because of this result; that cut has not been re-measured. Raw artifacts are retained outside this repository;
-the repo does not ship a reproduction script for these numbers. The results
-are descriptive, not a causal explanation or a general reliability claim.
-Prompt-token counts are not a measured monetary bill.
+This was a small historical sample using a 36-skill manifest, not a benchmark of the current release (the 6.0 cut has not been re-measured). Raw artifacts live outside this repository with no reproduction script; results are descriptive, not causal, and prompt-token counts are not a measured monetary bill.
 
-The [4.5.1 release notes](https://github.com/oleg494/coding-kit/releases/tag/v4.5.1)
-separately document policy-calibration observations and their limits. They
-are stated-next-action evidence, not an end-to-end coding-quality win rate.
-
-Every public claim the kit makes — including its unverified ones — is
-tracked in the [claims ledger](docs/CLAIMS.md), which lists the runnable
-verification command, the evidence artifact, or an explicit `unverified`
-status for each claim, plus the release acceptance gates and rollback
-procedures that must hold before a version tag.
+The [4.5.1 release notes](https://github.com/oleg494/coding-kit/releases/tag/v4.5.1) document stated-next-action policy calibration, not end-to-end coding quality. Every public claim — including unverified ones — is tracked in the [claims ledger](docs/CLAIMS.md) with its verification command, evidence artifact, or `unverified` status, plus release gates and rollback procedures.
 
 ### Run the kit's checks
 
@@ -336,14 +306,7 @@ and controlled comparisons separately. Record the resolved model and reasoning
 level when observed; otherwise label them unknown. A self-assessed text probe
 is not a tool-loop success rate, a speedup, or a model comparison.
 
-Trap and trigger results carry `comparison_id`: a digest of executed prompts,
-expectations, selected cases, scorer code and execution settings. `trend.py`
-compares only matching IDs within a model. Unknown IDs stay visible without
-deltas and cannot seed baselines; existing run files are never rewritten.
-On `--update-baselines`, new trap/trigger baselines use
-`{model: {comparison_id: rate}}`; old numeric baselines are not reused.
-Matching IDs do not control mutable images, ambient skills or provider aliases,
-and do not prove that an instruction change caused an improvement.
+Trap and trigger results carry `comparison_id` (digest of prompts, expectations, cases, scorer code and settings). `trend.py` compares only matching IDs within a model, keeping unknown IDs without deltas and never rewriting existing run files. `--update-baselines` writes `{model: {comparison_id: rate}}`. Matching IDs do not control mutable images, ambient skills or provider aliases, and do not prove causal improvement.
 
 <details>
 <summary>Evaluation tools and what they measure</summary>
@@ -405,30 +368,14 @@ configuring commands; a workspace is not a security sandbox.
 
 ### Carry unfinished work into a fresh session
 
-Capture a task brief with `scripts/tools/handoff.py`. The brief is JSON with
-`goal`, `acceptance`, `constraints`, `pending`, and `observations`. Each
-observation has a `claim` and a nonempty `paths` list of workspace-relative
-regular files that support it. List only files you intend to fingerprint.
+Capture a task brief (`goal`, `acceptance`, `constraints`, `pending`, `observations` with nonempty workspace-relative regular-file `paths`) using `scripts/tools/handoff.py`:
 
 ```text
 python scripts/tools/handoff.py capture --workspace /path/to/repo --brief brief.json --output handoff.json
 python scripts/tools/handoff.py resume --workspace /path/to/repo --handoff handoff.json
 ```
 
-Capture stores hashes, not file contents, and refuses to overwrite an existing
-handoff. Resume is read-only: it returns the complete task context and marks
-observations stale when their supporting files changed, disappeared, or became
-unsafe to read. Exit codes: `0` unchanged, `1` drift, `2` invalid input. Use
-`--json` on resume for structured output. Unchanged bytes are not proof that a
-claim is true, that tests passed, or that an action is authorized.
-
-Give the fresh agent the resume output and the workspace, not the previous chat.
-It must inspect stale evidence and preserve current user edits before continuing.
-For automatic worker launches, add `--handoff /path/to/handoff.json` to the
-supervisor invocation. The supervisor refreshes this context before each worker;
-the configured independent verifier remains the completion gate. Neither tool
-executes commands embedded in a handoff, snapshots the whole repository, or
-replaces the host's permission and sandbox controls.
+`capture` stores hashes (never file contents) and refuses to overwrite. `resume` is read-only, flags stale/changed/unsafe observations (exit `0` unchanged, `1` drift, `2` invalid input; `--json` supported), and proves unchanged bytes only — not truth, passing tests, or authorization. Give the fresh agent the resume output and workspace (or pass `--handoff` to the supervisor); neither tool executes embedded commands or replaces host controls.
 
 ## Upgrading
 

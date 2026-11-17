@@ -8,6 +8,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+if __name__ == "eval.rigor.isolation":
+    sys.modules.setdefault("rigor.isolation", sys.modules[__name__])
+elif __name__ == "rigor.isolation":
+    sys.modules.setdefault("eval.rigor.isolation", sys.modules[__name__])
+
 from . import container
 
 MANAGED_PATHS_WINDOWS = [

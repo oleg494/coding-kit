@@ -32,6 +32,11 @@ import tempfile
 import time
 from pathlib import Path
 
+if __name__ == "eval.rigor.runner":
+    sys.modules.setdefault("rigor.runner", sys.modules[__name__])
+elif __name__ == "rigor.runner":
+    sys.modules.setdefault("eval.rigor.runner", sys.modules[__name__])
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 TASKS_DIR = HERE / "tasks"
@@ -42,10 +47,18 @@ sys.path.insert(0, str(ROOT))
 from results_io import save_result
 from prompt_assembly import skill_manifest
 from eval.runner import judge_one, parse as parse_scenario
-from rigor.policy import compute_bundle_hash, extract_policy_bundle_from_git
-from rigor import container as confinement
-from rigor.isolation import (check_managed_settings_windows,
-                             get_claude_version, run_canary_isolation_probe)
+try:
+    from eval.rigor.policy import compute_bundle_hash, extract_policy_bundle_from_git
+except ImportError:
+    from rigor.policy import compute_bundle_hash, extract_policy_bundle_from_git
+try:
+    from eval.rigor import container as confinement
+    from eval.rigor.isolation import (check_managed_settings_windows,
+                                      get_claude_version, run_canary_isolation_probe)
+except ImportError:
+    from rigor import container as confinement
+    from rigor.isolation import (check_managed_settings_windows,
+                                 get_claude_version, run_canary_isolation_probe)
 from task_runner import shortcut_patterns
 
 TIER_SCHEMA = {

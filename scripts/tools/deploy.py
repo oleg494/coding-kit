@@ -180,7 +180,7 @@ def validate_manifest(dest: Path, mani: object) -> tuple[bool, str | None]:
         try:
             # Must resolve strictly inside dest
             target_resolved = target.resolve()
-            if target.exists() and not str(target_resolved).startswith(str(dest_resolved)):
+            if target.exists() and not target_resolved.is_relative_to(dest_resolved):
                 return False, f"manifest entry resolves outside destination: {item!r}"
         except Exception as e:
             return False, f"error resolving manifest entry {item!r}: {e}"
@@ -249,6 +249,15 @@ def sync_one_skill(src: Path, target: Path, log, dest: Path | None = None,
                 raise RuntimeError(f"Refusing to unlink link {f}")
             if not dry:
                 f.unlink()
+                parent = f.parent
+                while parent != target and parent.parent != parent:
+                    try:
+                        if any(parent.iterdir()):
+                            break
+                        parent.rmdir()
+                    except OSError:
+                        break
+                    parent = parent.parent
             log.append("del " + src.name + "/" + str(f.relative_to(target)))
 @dataclass
 class SkillsReport:
@@ -626,259 +635,46 @@ def verify():
     return ok
 
 
+class _ModuleView:
+    """Read live module globals even when loaded without sys.modules registration."""
+    def __init__(self, ns: dict):
+        self._ns = ns
+
+    def __getattr__(self, name: str):
+        try:
+            return self._ns[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+
+def _load_canonical():
+    """Load sibling _deploy_canonical lazily so isolated deploy imports work."""
+    try:
+        from . import _deploy_canonical
+        return _deploy_canonical
+    except (ImportError, ValueError):
+        try:
+            import _deploy_canonical
+            return _deploy_canonical
+        except ImportError:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "_deploy_canonical", Path(__file__).resolve().parent / "_deploy_canonical.py")
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod
+
+
 def plan_canonical_sync(canon: Path) -> list[dict]:
-    """Compute ONE unified change plan for canonical sync (incl. manifest).
-    Source skills are preflighted for links/escapes/presence; a differing
-    pre-existing same-name skill is a collision error unless the kit
-    previously owned it (manifest claim) or it is byte-identical (adoption)."""
-    names = master_skill_names()
-    plan = []
-    if is_link(canon) or has_link_ancestor(canon, KIT):
-        return [{"op": "error", "target": canon, "desc": f"ERROR: canonical target {canon} or ancestor is a link"}]
-
-    # Slugs the kit previously owned (destination manifest claim), read
-    # once here — never through a linked manifest — and reused for the
-    # same-name collision gate and the stale-dir retirement below.
-    # A manifest that exists but is unreadable or not a valid ownership
-    # claim fails closed: degrading to empty ownership would reclassify
-    # every previously-owned skill as a foreign collision target.
-    previously_owned: set[str] = set()
-    mani_file = canon / MANIFEST_NAME
-    if is_link(mani_file):
-        pass  # the manifest link check below adds the plan error
-    elif mani_file.is_file():
-        try:
-            previous = json.loads(mani_file.read_text(encoding="utf-8"))
-            skills_list = previous.get("skills") if isinstance(previous, dict) else None
-            if (not isinstance(skills_list, list)
-                    or not all(isinstance(name, str) for name in skills_list)):
-                raise ValueError("invalid ownership manifest structure")
-            previously_owned = set(skills_list)
-        except (OSError, ValueError) as e:
-            return [{"op": "error", "target": mani_file,
-                     "desc": (f"ERROR: destination manifest {mani_file} is "
-                              f"unreadable or malformed ({e}) — refusing to "
-                              f"sync with unknown ownership; fix or remove it "
-                              f"and re-run")}]
-
-    # Source preflight: no write may be planned from a missing, linked or
-    # escaping source skill (dry-run reports it too).
-    for n in names:
-        src = SKILLS / n
-        if not src.exists():
-            plan.append({"op": "error", "skill": n, "src": src,
-                         "desc": f"ERROR: source skill missing: {src}"})
-            continue
-        bad_src = scan_skill_links(SKILLS, src)
-        if bad_src:
-            plan.append({"op": "error", "skill": n, "src": src,
-                         "desc": f"ERROR: source skill {n} contains link/escape: {', '.join(bad_src)}"})
-
-    if not canon.exists():
-        if any(item.get("op") == "error" for item in plan):
-            return plan
-        for n in names:
-            plan.append({"op": "add-skill", "skill": n, "src": SKILLS / n, "target": canon / n, "desc": f"add .agents/skills/{n}"})
-        plan.append({"op": "upd-manifest", "target": canon / MANIFEST_NAME, "desc": f"add {MANIFEST_NAME}"})
-        return plan
-
-    for n in names:
-        src, target = SKILLS / n, canon / n
-        if is_link(target):
-            try:
-                if target.resolve() == src.resolve():
-                    continue
-            except Exception:
-                pass
-            plan.append({"op": "error", "skill": n, "target": target, "desc": f"ERROR: skill {n} is a link: {target}"})
-            continue
-        if not target.exists():
-            plan.append({"op": "add-skill", "skill": n, "src": src, "target": target, "desc": f"add .agents/skills/{n}"})
-            continue
-        bad_links = scan_skill_links(canon, target)
-        if bad_links:
-            plan.append({"op": "error", "skill": n, "target": target, "desc": f"ERROR: skill {n} contains link/escape: {', '.join(bad_links)}"})
-            continue
-        if target.resolve() == src.resolve():
-            continue
-        if n not in previously_owned and not dirs_byte_identical(src, target):
-            plan.append({"op": "error", "skill": n, "target": target,
-                         "desc": (f"ERROR: skill {n} already exists in {canon} with foreign content "
-                                  f"(not claimed by {MANIFEST_NAME}, not byte-identical to master) — refusing to overwrite")})
-            continue
-        for f in src.rglob("*"):
-            if f.is_file():
-                rel = f.relative_to(src)
-                tf = target / rel
-                if not tf.exists() or f.read_bytes() != tf.read_bytes():
-                    plan.append({"op": "upd-file", "src": f, "target": tf, "desc": f"upd {n}/{rel}"})
-        for f in target.rglob("*"):
-            if f.is_file() and not (src / f.relative_to(target)).exists():
-                plan.append({"op": "del-file", "target": f, "desc": f"del {n}/{f.relative_to(target)}"})
-    # Remove stale directories only when the previous kit manifest claimed
-    # them. Foreign directories in the canonical destination belong to the
-    # user and must survive canonical sync unchanged.
-    for entry in sorted(canon.iterdir()):
-        if entry.is_dir() and entry.name in previously_owned and entry.name not in names:
-            bad_links = scan_skill_links(canon, entry)
-            if bad_links:
-                plan.append({"op": "error", "target": entry, "desc": f"ERROR: stale dir {entry.name} contains link/escape: {', '.join(bad_links)}"})
-            else:
-                plan.append({"op": "rm-dir", "target": entry, "desc": f"rm-dir {entry.name}"})
-
-    # Manifest check
-    if is_link(mani_file):
-        plan.append({"op": "error", "target": mani_file, "desc": f"ERROR: manifest {mani_file} is a link"})
-    elif not mani_file.exists():
-        plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"add {MANIFEST_NAME}"})
-    else:
-        try:
-            curr_mani = json.loads(mani_file.read_text(encoding="utf-8"))
-            if curr_mani.get("kit_version") != VERSION or curr_mani.get("skills") != names:
-                plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"upd {MANIFEST_NAME}"})
-        except Exception:
-            plan.append({"op": "upd-manifest", "target": mani_file, "desc": f"upd {MANIFEST_NAME}"})
-
-    return plan
+    return _load_canonical().plan_canonical_sync(_ModuleView(globals()), canon)
 
 
 def canonical_mode(argv=None):
-    """--canonical: sync KIT/skills -> the repo's .agents/skills/ (the
-    agentskills.io canonical location); --dry-run lists actions without
-    writing. Per-adapter opt-in lives in profile.yml
-    adapters[].canonical. The full-deploy integrity gate runs BEFORE
-    planning (drifted control plane => exit 3); the result is re-verified
-    after the transaction and any mismatch rolls back and fails."""
-    argv = list(sys.argv[1:]) if argv is None else argv
-    dry = "--dry-run" in argv
-    canon = KIT / ".agents" / "skills"
-    integrity_gate()
-    plan = plan_canonical_sync(canon)
-    has_errors = any(item.get("op") == "error" for item in plan)
-    if dry:
-        print("DRY RUN — no changes written")
-        if not plan:
-            print("no changes")
-        else:
-            for item in plan:
-                print(item["desc"])
-        return 1 if has_errors else 0
-
-    if has_errors:
-        for item in plan:
-            if item.get("op") == "error":
-                print(item["desc"])
-        print("canonical sync aborted due to errors/links")
-        return 1
-
-    print(f"canonical: {canon}")
-    actions: list[str] = []
-    tx = DeployTransaction()
-    with tx:
-        for item in plan:
-            op = item["op"]
-            if op in ("add-skill", "upd-file", "del-file", "rm-dir"):
-                skill_name = item.get("skill")
-                target_path = canon / skill_name if skill_name else item["target"]
-                tx.record_absent_ancestors(target_path)
-                tx.snapshot_target(target_path)
-            elif op == "upd-manifest":
-                tx.record_absent_ancestors(item["target"])
-                tx.snapshot_target(item["target"])
-
-        tx.mark_mutations_started()
-        if not canon.exists():
-            canon.mkdir(parents=True)
-
-        try:
-            for item in plan:
-                op = item["op"]
-                if op == "add-skill":
-                    safe_copytree(item["src"], item["target"], boundary=canon)
-                    actions.append(item["desc"])
-                elif op == "upd-file":
-                    if not is_safe_under_boundary(item["target"], canon):
-                        print(f"ERROR: unsafe upd file target {item['target']}")
-                        tx.rollback("unsafe upd file target")
-                        return 1
-                    item["target"].parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(item["src"], item["target"])
-                    actions.append(item["desc"])
-                elif op == "del-file":
-                    if not is_safe_under_boundary(item["target"], canon):
-                        print(f"ERROR: unsafe del file target {item['target']}")
-                        tx.rollback("unsafe del file target")
-                        return 1
-                    item["target"].unlink()
-                    actions.append(item["desc"])
-                elif op == "rm-dir":
-                    safe_rmtree(item["target"])
-                    actions.append(item["desc"])
-                elif op == "upd-manifest":
-                    names = master_skill_names()
-                    safe_write_text(
-                        item["target"],
-                        json.dumps({"kit_version": VERSION, "skills": names}, indent=1),
-                        boundary=canon,
-                    )
-                    actions.append(item["desc"])
-                elif op == "error":
-                    print(item["desc"])
-                    tx.rollback(item["desc"])
-                    return 1
-        except Exception as e:
-            tx.rollback(str(e))
-            return 1
-
-        verify_errs = verify_canonical_result(canon, plan)
-        if verify_errs:
-            for e in verify_errs:
-                print("VERIFY FAIL:", e)
-            tx.rollback("canonical result verification failed")
-            return 1
-        tx.commit()
-
-    for a in actions:
-        print(a)
-    if not actions:
-        print("no changes")
-    print("canonical sync complete")
-    return 0
+    return _load_canonical().canonical_mode(_ModuleView(globals()), argv)
 
 
 def verify_canonical_result(canon: Path, plan: list[dict]) -> list[str]:
-    """Re-check the canonical destination after the transaction: every
-    owned skill present and byte-identical to master (no links/escapes),
-    the manifest exact, no retired dir left. Runs inside the transaction
-    so any mismatch rolls back."""
-    errs: list[str] = []
-    names = master_skill_names()
-    for n in names:
-        src, target = SKILLS / n, canon / n
-        if not target.exists():
-            errs.append(f"skill {n} missing after sync: {target}")
-            continue
-        if is_link(target):
-            errs.append(f"skill {n} is a link after sync: {target}")
-            continue
-        bad = scan_skill_links(canon, target)
-        if bad:
-            errs.append(f"skill {n} contains link/escape after sync: {', '.join(bad)}")
-            continue
-        if not dirs_byte_identical(src, target):
-            errs.append(f"skill {n} differs from master after sync")
-    for item in plan:
-        if item["op"] == "rm-dir" and item["target"].exists():
-            errs.append(f"retired skill dir still present after sync: {item['target']}")
-    mani = canon / MANIFEST_NAME
-    try:
-        curr = json.loads(mani.read_text(encoding="utf-8"))
-    except Exception as e:
-        errs.append(f"manifest unreadable after sync: {mani} ({e})")
-        return errs
-    if curr.get("kit_version") != VERSION or curr.get("skills") != names:
-        errs.append(f"manifest mismatch after sync (want kit_version={VERSION}, skills={names})")
-    return errs
+    return _load_canonical().verify_canonical_result(_ModuleView(globals()), canon, plan)
 
 def deploy_preview() -> int:
     """CK-01: read-only full-deploy preview. Same gates and plan as the

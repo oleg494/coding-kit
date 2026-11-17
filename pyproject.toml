@@ -1,0 +1,13 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "eval", "tests"]
+norecursedirs = [
+    ".git",
+    ".worktrees",
+    ".agents",
+    "eval",
+    "dist",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+]

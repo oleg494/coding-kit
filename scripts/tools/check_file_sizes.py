@@ -52,7 +52,11 @@ LIMITS = {
 
 # Directories out of the tree (by name, any level).
 EXCLUDE_DIRS = {".git", "db", "node_modules", "__pycache__", ".cache",
-                "dist", "build", "vendor"}
+                "dist", "build", "vendor", ".worktrees", ".superpowers",
+                ".pytest_cache", ".ruff_cache", ".agents", ".venv"}
+
+# Path prefixes excluded from file-size checks (mutable run archives).
+EXCLUDE_PREFIXES = ("eval/results/",)
 
 # Names not counted (append-only logs, generated, backups).
 EXCLUDE_NAMES = {"CHANGELOG.md", "index.md"}
@@ -68,12 +72,16 @@ def _tier_for(rel_path: str):
     return None
 
 
+def _count_bytes_lines(data: bytes) -> int:
+    """Count physical lines consistently regardless of a trailing newline."""
+    if not data:
+        return 0
+    return data.count(b"\n") + (0 if data.endswith(b"\n") else 1)
+
+
 def _count_lines(path: Path) -> int:
-    """Lines like wc -l: count of \n (binary, fast). A file without a
-    trailing newline loses its last line by one — same as wc -l and the
-    base (db/files.lines) we cross-check against."""
-    with open(path, "rb") as fh:
-        return sum(1 for _ in fh)
+    """Count physical lines in a file using the same rule as staged_rows()."""
+    return _count_bytes_lines(path.read_bytes())
 
 
 def _load_baseline():
@@ -114,6 +122,8 @@ def collect(root: Path) -> list:
                 continue
             full = Path(dirpath) / name
             rel = full.relative_to(root).as_posix()
+            if rel.startswith(EXCLUDE_PREFIXES):
+                continue
             tier = _tier_for(rel)
             if tier is None:
                 continue
@@ -145,7 +155,9 @@ def staged_rows(root: Path) -> list:
     rows = []
     for rel in r.stdout.decode("utf-8", "replace").split("\0"):
         rel = rel.strip()
-        if not rel:
+        if not rel or rel.startswith(EXCLUDE_PREFIXES):
+            continue
+        if any(part in EXCLUDE_DIRS or part.startswith("venv") for part in Path(rel).parts[:-1]):
             continue
         tier = _tier_for(rel)
         if tier is None or os.path.basename(rel) in EXCLUDE_NAMES:
@@ -158,7 +170,7 @@ def staged_rows(root: Path) -> list:
             continue
         if g.returncode != 0:
             continue  # removed from the index / not staged content
-        lines = g.stdout.count(b"\n")
+        lines = _count_bytes_lines(g.stdout)
         level, cap = _level(rel, lines, tier, baseline)
         if level in (None, "baseline-ok"):
             continue

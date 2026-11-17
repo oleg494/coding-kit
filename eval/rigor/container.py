@@ -36,6 +36,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+if __name__ == "eval.rigor.container":
+    sys.modules.setdefault("rigor.container", sys.modules[__name__])
+elif __name__ == "rigor.container":
+    sys.modules.setdefault("eval.rigor.container", sys.modules[__name__])
+
 DEFAULT_IMAGE = "python:3.12-alpine"
 HERE = Path(__file__).resolve().parent
 EXECUTOR_PREFIX = "docker:"

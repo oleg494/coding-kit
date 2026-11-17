@@ -60,7 +60,10 @@ except ImportError:
 
 def resolve_cmd(spec: str) -> dict | None:
     """Parse a declared container executor without launching it."""
-    from rigor import container
+    try:
+        from eval.rigor import container
+    except ImportError:
+        from rigor import container
 
     if not spec or not spec.strip():
         return None
