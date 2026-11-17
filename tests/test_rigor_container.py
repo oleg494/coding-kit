@@ -45,6 +45,16 @@ def test_confined_executor_spec_is_parsed_explicitly():
         container.parse_executor_spec("docker:img")          # no argv
     with pytest.raises(ValueError):
         container.parse_executor_spec("docker:img @ro:/only-host")  # no :container
+    for bad_spec in (
+        "docker:--privileged -v /:/host:rw alpine sh",
+        "docker:-e FOO=1 alpine sh",
+        "docker:img @ro:~/.ssh:/ssh python /x.py",
+        "docker:img @ro:/var/run/docker.sock:/var/run/docker.sock python /x.py",
+        "docker:img @ro:/etc/shadow:/shadow python /x.py",
+        "docker:img @ro:/:/host python /x.py",
+    ):
+        with pytest.raises(ValueError):
+            container.parse_executor_spec(bad_spec)
 
 
 @pytest.mark.parametrize("server_os,available", [("linux", True), ("windows", False), ("", False)])
@@ -83,7 +93,7 @@ def test_confined_argv_writes_only_the_workdir(tmp_path):
     assert "--read-only" in cmd
     assert f"{work.resolve().as_posix()}:{container.WORK_MOUNT}:rw" in cmd
     assert f"{policy.resolve().as_posix()}:{container.POLICY_MOUNT}:ro" in cmd
-    assert cmd[-3:] == ["img", "python", "/x.py"]
+    assert cmd[-4:] == ["--", "img", "python", "/x.py"]
 
     online = container.confined_argv(
         container.parse_executor_spec("docker:img @net python /x.py"),

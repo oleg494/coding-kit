@@ -77,7 +77,7 @@ class SecretLintPureTest(unittest.TestCase):
             "postgresql://localhost:5432/db without userinfo",
             # Windows path value: backslash separator + extension in the
             # last segment is pathish (the kit lives on Windows paths)
-            "token C:\\Users\\oleg2\\Desktop\\docs\\notes.md",
+            "token C:\\Users\\alice\\Desktop\\docs\\notes.md",
         ]:
             secrets, _ = self.f.find_secrets(text)
             self.assertFalse(secrets, f"must NOT block prose: {text!r}")
@@ -94,7 +94,7 @@ class SecretLintPureTest(unittest.TestCase):
             self.assertTrue(secrets, f"must block: {text!r}")
 
     def test_pii_warns_only(self):
-        secrets, pii = self.f.find_secrets("mail oleg2200000@gmail.com ip 87.242.85.247")
+        secrets, pii = self.f.find_secrets("mail alice@example.com ip 192.0.2.10")
         self.assertFalse(secrets)
         self.assertEqual(len(pii), 2)
 

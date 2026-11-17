@@ -251,6 +251,25 @@ class BuildManifestTest(unittest.TestCase):
                "sub" / "guide.md", "# mirror drift\n")
         self.assertEqual(integrity.check(self.root, m), [])
 
+    def test_workflows_and_control_plane_metadata_in_scope(self):
+        extras = (
+            ".github/workflows/test.yml",
+            "CLAUDE.md",
+            "VERSION",
+            "scripts/file_size_baseline.json",
+            "eval/memory_cases.json",
+            "eval/rigor/route/cases.json",
+            "eval/rigor/tasks/001-x/TASK.md",
+            "eval/rigor/offline/006-x/TASK.md",
+        )
+        for rel in extras:
+            _write(self.root / rel, f"# {rel}\n")
+        _write(self.root / ".worktrees" / "exp" / "OPS.md", "# scratch\n")
+        m = integrity.build_manifest(self.root)
+        for rel in extras:
+            self.assertIn(rel, m)
+        self.assertFalse([k for k in m if k.startswith(".worktrees/")])
+
 
 class CheckTest(unittest.TestCase):
     def setUp(self):

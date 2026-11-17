@@ -38,7 +38,7 @@ class FixtureBuilders:
     """Reusable line builders for the two transcript formats."""
 
     @staticmethod
-    def claude_user(text, cwd="C:\\Users\\oleg2\\Desktop\\WORK\\mp-agent"):
+    def claude_user(text, cwd="C:\\Users\\alice\\Desktop\\WORK\\mp-agent"):
         return {"type": "user", "cwd": cwd, "timestamp": "2026-08-20T10:00:00Z",
                 "message": {"role": "user", "content": text}}
 
@@ -61,7 +61,7 @@ class FixtureBuilders:
                 "message": {"role": "assistant", "content": blocks}}
 
     @staticmethod
-    def omp_session(cwd="C:/Users/oleg2/Desktop/WORK/mp-agent", title="mp"):
+    def omp_session(cwd="C:/Users/alice/Desktop/WORK/mp-agent", title="mp"):
         return {"type": "session", "cwd": cwd, "title": title,
                 "timestamp": "2026-08-20T10:00:00Z"}
 
@@ -99,20 +99,20 @@ class ClaudeFormatTest(unittest.TestCase, FixtureBuilders):
         rows = [
             self.claude_user("почини поиск в mp-agent"),
             self.claude_assistant(tools=[
-                ("Bash", {"command": 'python C:/Users/oleg2/.memory/db-tools/search_all.py "mp-agent"'}),
+                ("Bash", {"command": 'python C:/Users/alice/.memory/db-tools/search_all.py "mp-agent"'}),
                 ("Read", {"path": "skill://memory"}),
             ]),
             self.claude_tool_result("found 3 rows"),
             self.claude_user("теперь добавь вывод в findings.py"),
             self.claude_assistant(tools=[
-                ("Bash", {"command": "python C:/Users/oleg2/.memory/db-tools/findings.py add mp --text x"}),
-                ("Bash", {"command": "python C:/Users/oleg2/.memory/scripts/memory-warmup.py"}),
+                ("Bash", {"command": "python C:/Users/alice/.memory/db-tools/findings.py add mp --text x"}),
+                ("Bash", {"command": "python C:/Users/alice/.memory/scripts/memory-warmup.py"}),
                 # echo strings mentioning entrypoints are not executions
                 ("Bash", {"command": "echo 'ran search_all.py earlier'"}),
             ]),
             self.claude_assistant(text="Done. Follows OPS.md (Coding Agent OS) rules."),
         ]
-        _write_jsonl(self.tmp / "claude" / "C--Users-oleg2-Desktop-WORK-mp-agent"
+        _write_jsonl(self.tmp / "claude" / "C--Users-alice-Desktop-WORK-mp-agent"
                      / "s1.jsonl", rows)
         res = self._audit()
         self.assertEqual(len(res["sessions"]), 1)
@@ -127,13 +127,13 @@ class ClaudeFormatTest(unittest.TestCase, FixtureBuilders):
     def test_kit_internal_by_slug(self):
         rows = [
             self.claude_user(
-                "kit-eval task", cwd="C:\\Users\\oleg2\\AppData\\Local"
+                "kit-eval task", cwd="C:\\Users\\alice\\AppData\\Local"
                                     "\\Temp\\kit-eval-ab12cd"),
             self.claude_assistant(tools=[
                 ("Bash", {"command": "python memory-warmup.py"}),
             ]),
         ]
-        _write_jsonl(self.tmp / "claude" / "C--Users-oleg2-AppData-Local-Temp-"
+        _write_jsonl(self.tmp / "claude" / "C--Users-alice-AppData-Local-Temp-"
                      "kit-eval-ab12cd" / "s2.jsonl", rows)
         res = self._audit()
         s = res["sessions"][0]
@@ -145,7 +145,7 @@ class ClaudeFormatTest(unittest.TestCase, FixtureBuilders):
             self.claude_user("напомни про код кит: что мы решили?"),
             self.claude_assistant(tools=[]),
         ]
-        _write_jsonl(self.tmp / "claude" / "C--Users-oleg2" / "s3.jsonl", rows)
+        _write_jsonl(self.tmp / "claude" / "C--Users-alice" / "s3.jsonl", rows)
         res = self._audit()
         self.assertTrue(res["sessions"][0]["kit_internal"])
 
@@ -155,7 +155,7 @@ class ClaudeFormatTest(unittest.TestCase, FixtureBuilders):
             self.claude_tool_result("<system-reminder>noise</system-reminder>"),
             self.claude_assistant(tools=[]),
         ]
-        _write_jsonl(self.tmp / "claude" / "C--Users-oleg2-Desktop-WORK-x"
+        _write_jsonl(self.tmp / "claude" / "C--Users-alice-Desktop-WORK-x"
                      / "s4.jsonl", rows)
         res = self._audit()
         self.assertEqual(res["sessions"][0]["human_turns"], 1)
@@ -167,14 +167,14 @@ class ClaudeFormatTest(unittest.TestCase, FixtureBuilders):
         rows = [
             self.claude_user("покажи что в findings"),
             self.claude_assistant(tools=[
-                ("Read", {"path": "C:/Users/oleg2/.memory/db-tools/findings.py"}),
+                ("Read", {"path": "C:/Users/alice/.memory/db-tools/findings.py"}),
                 ("Bash", {"command": "echo 'findings.py updated yesterday'"}),
                 ("Grep", {"pattern": "search_all",
-                          "path": "C:/Users/oleg2/.memory/db-tools"}),
+                          "path": "C:/Users/alice/.memory/db-tools"}),
                 ("Bash", {"command": "python findings.py add z --text w"}),
             ]),
         ]
-        _write_jsonl(self.tmp / "claude" / "C--Users-oleg2-Desktop-WORK-r"
+        _write_jsonl(self.tmp / "claude" / "C--Users-alice-Desktop-WORK-r"
                      / "s5.jsonl", rows)
         res = self._audit()
         s = res["sessions"][0]
@@ -195,7 +195,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         """toolCall blocks AND tool_execution_start events both count; the
         same call emitted in both forms (same toolCallId) counts once."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/oxtest",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/oxtest",
                              title="oxtest search"),
             self.omp_message("user", "найди что мы знаем про oxtest"),
             self.omp_tool_call("bash",
@@ -222,7 +222,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
 
     def test_kit_internal_omp(self):
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/coding-kit",
+            self.omp_session(cwd="C:/Users/alice/Desktop/coding-kit",
                              title="kit work"),
             self.omp_message("user", "run check_file_sizes"),
             self.omp_tool_call("bash", {"command": "python check_file_sizes.py --ci"}),
@@ -238,7 +238,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         """A real-project build.py with no memory marker is not a
         memory-engine call."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/other-app",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/other-app",
                              title="other app build"),
             self.omp_message("user", "rebuilt the project"),
             self.omp_tool_call("bash", {"command": "python build.py --full"}),
@@ -256,7 +256,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         memory_calls; skills_search is kit skill discovery with its own
         counter, not a memory call."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/proj",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/proj",
                              title="proj diagnostics"),
             self.omp_message("user", "run diagnostics"),
             self.omp_tool_call("bash",
@@ -283,11 +283,11 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         """db-tools/build.py under .memory counts; a project db-tools
         build.py also carries the marker and counts."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/proj",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/proj",
                              title="proj"),
             self.omp_message("user", "rebuild index"),
             self.omp_tool_call("bash",
-                               {"command": "python C:/Users/oleg2/.memory/db-tools/build.py --full"},
+                               {"command": "python C:/Users/alice/.memory/db-tools/build.py --full"},
                                id="d1"),
             self.omp_tool_start("bash",
                                 {"command": "cd db-tools && python build.py"},
@@ -309,13 +309,13 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
             {"recipient_name": "functions.bash", "parameters": {
                 "command": "echo 'memory-warmup.py just ran'"}},
             {"recipient_name": "functions.read", "parameters": {
-                "path": "C:/Users/oleg2/.memory/db-tools/search_all.py"}},
+                "path": "C:/Users/alice/.memory/db-tools/search_all.py"}},
         ]})
         outer = {"tool_uses": [
             {"recipient_name": "tools.parallel", "parameters": inner},
         ]}
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/nest",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/nest",
                              title="nested"),
             self.omp_message("user", "do it in parallel"),
             self.omp_tool_call("multi_tool_use.parallel", outer, id="w1"),
@@ -338,7 +338,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
                 "command": "python doctor.py"}},
         ]}
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/proj",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/proj",
                              title="search"),
             self.omp_message("user", "find the skill"),
             self.omp_tool_call("multi_tool_use.parallel", wrapper, id="p1"),
@@ -360,7 +360,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         script parses recursively and the memory entry counts once (the
         echo mention is not a second execution)."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/qa",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/qa",
                              title="quoted script"),
             self.omp_message("user", "find it"),
             self.omp_tool_call(
@@ -379,7 +379,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         """bash -c "cd ~/.memory/db-tools && python build.py": the cd
         marker carries into the inner script, so build.py counts."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/qa",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/qa",
                              title="quoted build"),
             self.omp_message("user", "rebuild"),
             self.omp_tool_call(
@@ -397,7 +397,7 @@ class OmpFormatTest(unittest.TestCase, FixtureBuilders):
         subcommand; uv run python <script> resolves past the nested
         runner to the actually executed script."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/qa",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/qa",
                              title="uv scripts"),
             self.omp_message("user", "warm up"),
             self.omp_tool_call("bash",
@@ -507,7 +507,7 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
         self.tmp = Path(tempfile.mkdtemp())
 
     def _session_with_commands(self, commands, tool="bash"):
-        rows = [self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+        rows = [self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                                  title="regressions"),
                 self.omp_message("user", "run it")]
         rows.extend(self.omp_tool_call(tool, {"command": c}, id=f"r{i}")
@@ -577,13 +577,13 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
         """env lists, paths and prompts in the arguments object are not
         command lines; the real command field still counts."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                              title="fields"),
             self.omp_message("user", "run"),
             self.omp_tool_call("bash", {
                 "command": "python findings.py add a --text b",
                 "env": ["PYTHONUTF8=1", "PATH=/usr/bin"],
-                "cwd": "C:/Users/oleg2/.memory/db-tools",
+                "cwd": "C:/Users/alice/.memory/db-tools",
                 "prompt": "please run search_all.py",
             }, id="f1"),
             self.omp_tool_call("run_command", {
@@ -601,7 +601,7 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
         search_all.py`) inside env/paths list values are inert data,
         never parsed as commands."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                              title="inert"),
             self.omp_message("user", "check"),
             self.omp_tool_call("bash", {
@@ -621,7 +621,7 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
         stays one argument instead of being split into phantom
         commands."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                              title="argv"),
             self.omp_message("user", "add note"),
             self.omp_tool_call("bash", {
@@ -652,7 +652,7 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
             ["python", "x.py", "' || findings.py"],
         ]
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                              title="injection"),
             self.omp_message("user", "guard"),
         ]
@@ -670,7 +670,7 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
         """A command field emitted as a pre-split list joins into one
         command with argument boundaries preserved."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                              title="cmdlist"),
             self.omp_message("user", "run"),
             self.omp_tool_call("bash", {
@@ -688,7 +688,7 @@ class CommandAttributionRegressionTest(unittest.TestCase, FixtureBuilders):
         list of strings) is ONE command, not several command strings —
         bash -c inner script parses as one command."""
         rows = [
-            self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/reg",
+            self.omp_session(cwd="C:/Users/alice/Desktop/WORK/reg",
                              title="topargv"),
             self.omp_message("user", "run"),
             self.omp_tool_call("bash",
@@ -761,12 +761,12 @@ class AggregationTest(unittest.TestCase, FixtureBuilders):
 
     def test_aggregates_and_json_shape(self):
         _write_jsonl(
-            self.tmp / "claude" / "C--Users-oleg2-Desktop-coding-kit" / "a.jsonl",
-            [self.claude_user("x", cwd="C:\\Users\\oleg2\\Desktop\\coding-kit"),
+            self.tmp / "claude" / "C--Users-alice-Desktop-coding-kit" / "a.jsonl",
+            [self.claude_user("x", cwd="C:\\Users\\alice\\Desktop\\coding-kit"),
              self.claude_assistant(tools=[("Bash", {"command": "doctor.py"})])])
         _write_jsonl(
             self.tmp / "omp" / "-Desktop-WORK-realproj" / "b.jsonl",
-            [self.omp_session(cwd="C:/Users/oleg2/Desktop/WORK/realproj"),
+            [self.omp_session(cwd="C:/Users/alice/Desktop/WORK/realproj"),
              self.omp_message("user", "y"),
              self.omp_tool_call("bash", {"command": "memory-warmup.py"})])
         res = usage_audit.audit(claude_root=self.tmp / "claude",
@@ -788,7 +788,7 @@ class AggregationTest(unittest.TestCase, FixtureBuilders):
         self.assertIn("memory_calls_note", res)
 
     def test_since_filters_old_sessions(self):
-        p = self.tmp / "claude" / "C--Users-oleg2-Desktop-WORK-old" / "old.jsonl"
+        p = self.tmp / "claude" / "C--Users-alice-Desktop-WORK-old" / "old.jsonl"
         _write_jsonl(p, [self.claude_user("old task")])
         old = 1_000_000_000  # 2001-09-09, always older than --since 2026-01-01
         os.utime(p, (old, old))

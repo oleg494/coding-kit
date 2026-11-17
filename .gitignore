@@ -15,4 +15,12 @@ skip.local
 # private superpowers execution workspace
 .superpowers/
 .worktrees/
+.pytest_cache/
+.ruff_cache/
+
 # release tarballs (built per release, not source-controlled)
+dist/
+
+# local evaluation runs and CI staging outputs
+eval/ci-results/
+eval/results/local-*/

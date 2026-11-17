@@ -29,12 +29,14 @@ from pathlib import Path
 KIT = Path(__file__).resolve().parents[1]
 RESULTS = KIT / "eval" / "results"
 
-# Raw-byte forms: JSON-escaped backslashes count too — any
-# Users\<name> / Users/<name> spelling contains one of these byte runs.
+# Raw-byte forms: JSON-escaped backslashes count too — catch concrete
+# non-placeholder home directory paths for any contributor/CI user.
 _PERSONAL = (
-    re.compile(rb"Users\\\\oleg2"),
-    re.compile(rb"Users/oleg2"),
-    re.compile(rb"Users\\\\\\\\oleg2"),
+    re.compile(
+        rb"(?:[A-Za-z]:\\{1,4}Users\\{1,4}|[A-Za-z]:/Users/|(?<![A-Za-z0-9_])/(?:home|Users)/)"
+        rb"(?!(?:runner|runneradmin|root|ubuntu|user|alice|bob|test|dev|ci|agent|name|example|you|<)[\\/\s\"'])"
+        rb"[A-Za-z0-9._-]{2,}"
+    ),
 )
 
 def _tracked_result_files() -> list[Path]:
@@ -73,8 +75,6 @@ class ResultHygieneTest(unittest.TestCase):
                 for pat in _PERSONAL:
                     self.assertIsNone(pat.search(raw),
                                       f"{p.name}: personal path leaked")
-                self.assertNotIn(b"oleg2", raw,
-                                 f"{p.name}: username literal leaked")
 
     def test_tracked_results_still_parse(self):
         # Byte surgery on evidence artifacts (path scrubs) must not break

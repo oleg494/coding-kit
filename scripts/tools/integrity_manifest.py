@@ -44,6 +44,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -70,12 +71,20 @@ except (ImportError, ValueError):
         _ki_spec.loader.exec_module(kit_inventory)
 # (kind, pattern) rows: kind "file" = exact relpath, "glob" = fnmatch over
 # the whole tree, "tree" = all *.py under a directory prefix.
-_FILE_SCOPE = ("OPS.md", "AGENTS.md", "profile.yml", "SKILL_RUNTIME.md",
+_FILE_SCOPE = ("OPS.md", "AGENTS.md", "CLAUDE.md", "VERSION", "profile.yml",
+               "SKILL_RUNTIME.md", "scripts/file_size_baseline.json",
                "eval/trigger_queries.json", "eval/session_gate.ts",
-               "eval/session_cases.json")
-_GLOB_SCOPE = ("adapters/*.md", "eval/*.py", "eval/scenarios/*.md",
-               "eval/tasks/*/TASK.md", "eval/baselines/*.json")
+               "eval/session_cases.json", "eval/memory_cases.json",
+               "eval/rigor/route/cases.json")
+_GLOB_SCOPE = (".github/workflows/*.yml", "adapters/*.md", "eval/*.py",
+               "eval/scenarios/*.md", "eval/tasks/*/TASK.md",
+               "eval/rigor/tasks/*/TASK.md", "eval/rigor/offline/*/TASK.md",
+               "eval/baselines/*.json")
 _TREE_SCOPE = ("scripts", "memory/db-tools", "memory/scripts")
+_PRUNE_DIRS = frozenset({
+    "__pycache__", ".git", ".worktrees", ".superpowers", ".pytest_cache",
+    ".ruff_cache", ".venv", "venv", "node_modules", ".agents", "dist",
+})
 
 
 def in_scope(rel: str, root: Path | None = None,
@@ -144,11 +153,18 @@ def scope_files(root: Path) -> list[Path]:
     root = Path(root)
     slugs = _owned_slugs(root)
     out = []
-    for p in root.rglob("*"):
-        if p.is_file():
-            rel = p.relative_to(root).as_posix()
-            if in_scope(rel, root, slugs):
-                out.append(p)
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in _PRUNE_DIRS)
+        rel_dir = Path(dirpath).relative_to(root).as_posix()
+        if rel_dir == "eval/results" or rel_dir.startswith("eval/results/"):
+            dirnames[:] = []
+            continue
+        for name in sorted(filenames):
+            p = Path(dirpath) / name
+            if p.is_file():
+                rel = p.relative_to(root).as_posix()
+                if in_scope(rel, root, slugs):
+                    out.append(p)
     return [p for _, p in sorted(
         (p.relative_to(root).as_posix(), p) for p in out)]
 

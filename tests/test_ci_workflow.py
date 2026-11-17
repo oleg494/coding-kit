@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EVALS_WORKFLOW = ROOT / ".github" / "workflows" / "evals.yml"
 TEST_WORKFLOW = ROOT / ".github" / "workflows" / "test.yml"
+CLAUDE_WORKFLOW = ROOT / ".github" / "workflows" / "claude.yml"
 ALL_WORKFLOWS = [TEST_WORKFLOW, EVALS_WORKFLOW]
 
 
@@ -94,11 +95,11 @@ class TestCIWorkflow(unittest.TestCase):
                 )
 
     def test_artifact_upload_v4_configuration(self):
-        """Artifact upload in evals.yml must use upload-artifact@v4 against the CI-only dir and fail if missing."""
-        self.assertIn(
-            "uses: actions/upload-artifact@v4",
+        """Artifact upload in evals.yml must use upload-artifact@<40-hex-sha> # v4 against eval/ci-results."""
+        self.assertRegex(
             self.evals_content,
-            "evals.yml must use actions/upload-artifact@v4",
+            r"uses:\s*actions/upload-artifact@[0-9a-f]{40}\s+#\s*v4",
+            "evals.yml must pin actions/upload-artifact@<sha> # v4",
         )
         self.assertRegex(
             self.evals_content,
@@ -208,6 +209,37 @@ class TestCIWorkflow(unittest.TestCase):
         for name, content in self.workflows.items():
             with self.subTest(workflow=name):
                 self.assertNotIn("write", content, f"{name} must not grant write permissions")
+
+    def test_all_actions_pinned_to_commit_sha(self):
+        """Every third-party/official action in CI workflows must pin a 40-char commit SHA."""
+        for path in (*ALL_WORKFLOWS, CLAUDE_WORKFLOW):
+            content = path.read_text(encoding="utf-8")
+            uses_refs = re.findall(r"^\s*-?\s*uses:\s*([^\s#]+)", content, re.M)
+            self.assertTrue(uses_refs, f"{path.name} must declare actions")
+            for ref in uses_refs:
+                with self.subTest(workflow=path.name, ref=ref):
+                    self.assertRegex(
+                        ref,
+                        r"^[^@]+@[0-9a-f]{40}$",
+                        f"{path.name}: {ref} must pin a 40-hex commit SHA",
+                    )
+
+
+class TestClaudeWorkflow(unittest.TestCase):
+    """Static security checks for the @claude assistant workflow."""
+
+    def test_claude_workflow_author_association_gate(self):
+        self.assertTrue(CLAUDE_WORKFLOW.is_file(), "claude.yml must exist")
+        content = CLAUDE_WORKFLOW.read_text(encoding="utf-8")
+        for role in ("OWNER", "MEMBER", "COLLABORATOR"):
+            self.assertIn(role, content)
+        self.assertIn("author_association", content)
+        for event_field in (
+            "github.event.issue.author_association",
+            "github.event.comment.author_association",
+            "github.event.review.author_association",
+        ):
+            self.assertIn(event_field, content)
 
 
 if __name__ == "__main__":

@@ -576,3 +576,70 @@ def test_real_gate_still_accepts_string_system_prompt(tmp_path):
     events = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line.strip()]
     ready = next(event for event in events if event["type"] == "gate_ready")
     assert ready["policy_loaded"] is True
+
+
+def test_dash_prompt_uses_end_of_options_and_strips_memory_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMORY_ROOT", str(tmp_path / "host-memory"))
+    monkeypatch.setenv("MEMORY_ROOT_RESEARCH_DB", str(tmp_path / "host-memory" / "research.db"))
+    result, run = run_execution(tmp_path, turns=["- leading dash prompt"],
+                                checks=[{"kind": "file_contains", "path": "out/result.txt", "value": "OK"}])
+    assert result.returncode == 0, result.stderr
+    assert run["passed"] is True
+    # Confirm _command puts "--" immediately before prompt
+    if str(ROOT / "eval") not in sys.path:
+        sys.path.insert(0, str(ROOT / "eval"))
+    import session_runner
+    cmd = session_runner._command(
+        type("A", (), {"omp": "omp", "model": "m"})(),
+        tmp_path, tmp_path, tmp_path / "r.yml", "pol", "- leading dash", None,
+    )
+    assert cmd[-2:] == ["--", "- leading dash"]
+
+
+def test_assert_contained_rejects_broken_intermediate_symlink(tmp_path):
+    if str(ROOT / "eval") not in sys.path:
+        sys.path.insert(0, str(ROOT / "eval"))
+    import session_runner
+    root = tmp_path / "ws"
+    (root / "out").mkdir(parents=True)
+    link = root / "out" / "escape_link"
+    missing_outside = tmp_path / "outside_nonexistent"
+    try:
+        link.symlink_to(missing_outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unavailable on this filesystem")
+    with pytest.raises(session_runner.InputError):
+        session_runner._assert_contained(root.resolve(), root.resolve() / "out" / "escape_link" / "payload.txt", "test")
+
+
+@pytest.mark.skipif(BUN is None, reason="bun is required to exercise the real gate")
+def test_real_gate_rejects_broken_intermediate_symlink(tmp_path):
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / "out").mkdir()
+    link = workspace / "out" / "escape_link"
+    try:
+        link.symlink_to(tmp_path / "outside_nonexistent", target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unavailable on this filesystem")
+    log = tmp_path / "gate.jsonl"
+    harness = tmp_path / "harness_link.ts"
+    harness.write_text(
+        HARNESS.replace(
+            "['write', { path: 'out' }, 'c6'],",
+            "['write', { path: 'out/escape_link/payload.txt' }, 'c6'],",
+        ),
+        encoding="utf-8", newline="\n",
+    )
+    env = dict(os.environ)
+    env.update({
+        "SESSION_GATE_ROOT": str(workspace),
+        "SESSION_GATE_LOG": str(log),
+        "SESSION_GATE_POLICY_MARKER": "M",
+        "SESSION_GATE_WRITABLE": json.dumps([{"path": str(workspace / "out"), "dir": True}]),
+    })
+    res = subprocess.run([BUN, str(harness), str(GATE)], capture_output=True, text=True, encoding="utf-8", env=env)
+    assert res.returncode == 0, res.stderr
+    decisions = {(item["toolName"], item["toolCallId"]): item["blocked"]
+                 for item in json.loads(res.stdout)["decisions"]}
+    assert decisions[("write", "c6")] is True

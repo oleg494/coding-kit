@@ -32,7 +32,7 @@ class FindBareTextTrueTest(unittest.TestCase):
         src = ("a = 1\nb = 2\n"
                "subprocess.run(cmd, text=True)\n"
                "c = subprocess.run(cmd2, text=True, encoding='utf-8')\n"
-               "subprocess.run(cmd3, text=True)\n")
+               "subprocess.run(cmd3, universal_newlines=True)\n")
         self.assertEqual(doctor.find_bare_text_true(src), [3, 5])
 
 

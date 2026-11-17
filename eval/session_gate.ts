@@ -18,12 +18,25 @@ export default function (pi: ExtensionAPI) {
     return rel === '' || (rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
   };
 
-  const nearestReal = (target: string): string => {
-    let current = path.resolve(target);
-    while (!fs.existsSync(current) && current !== path.dirname(current)) {
-      current = path.dirname(current);
+  const nearestReal = (target: string): string | null => {
+    const resolvedTarget = path.resolve(target);
+    if (!inside(root, resolvedTarget)) return resolvedTarget;
+    const rel = path.relative(root, resolvedTarget);
+    if (rel === '') return root;
+    let cur = root;
+    let lastReal = root;
+    for (const part of rel.split(path.sep)) {
+      cur = path.join(cur, part);
+      const st = fs.lstatSync(cur, { throwIfNoEntry: false });
+      if (!st) break;
+      try {
+        lastReal = fs.realpathSync(cur);
+      } catch {
+        return null;
+      }
+      if (!inside(root, lastReal)) return lastReal;
     }
-    return fs.realpathSync(current);
+    return lastReal;
   };
 
   const emit = (event: unknown) => fs.appendFileSync(logPath, JSON.stringify(event) + '\n');
@@ -34,7 +47,7 @@ export default function (pi: ExtensionAPI) {
       const base = path.resolve(String(item.path));
       if (!inside(root, base)) throw new Error(`writable path escapes root: ${base}`);
       const real = nearestReal(base);
-      if (!inside(root, real)) throw new Error(`writable real path escapes root: ${base}`);
+      if (!real || !inside(root, real)) throw new Error(`writable real path escapes root: ${base}`);
       return { base, dir: item.dir === true, real };
     });
 
@@ -54,11 +67,11 @@ export default function (pi: ExtensionAPI) {
     return parts.join('/');
   };
 
-  const writableTarget = (target: string): boolean => {
-    const real = nearestReal(target);
+  const writableTarget = (target: string, real: string): boolean => {
     return writable.some((entry) => {
       if (entry.dir) return inside(entry.base, target) && inside(entry.real, real);
-      return path.resolve(entry.base) === path.resolve(target) && real === nearestReal(entry.base);
+      const entryReal = nearestReal(entry.base);
+      return Boolean(entryReal) && inside(entry.base, target) && inside(target, entry.base) && inside(entryReal!, real) && inside(real, entryReal!);
     });
   };
 
@@ -111,8 +124,12 @@ export default function (pi: ExtensionAPI) {
       }
     }
     const real = nearestReal(target);
+    if (real === null) {
+      emit({ type: 'tool_call', name, toolCallId, path: input?.path, normalized, allowed: false, reason: 'broken symlink' });
+      return { block: true, reason: 'Symbolic links must resolve inside the frozen workspace.' };
+    }
     const contained = inside(root, target) && inside(root, real);
-    const allowed = contained && (name === 'read' || writableTarget(target));
+    const allowed = contained && (name === 'read' || writableTarget(target, real));
     emit({
       type: 'tool_call', name, toolCallId, path: input?.path, normalized, allowed,
       reason: !contained ? 'outside workspace' : (allowed ? 'inside workspace' : 'path is not writable'),

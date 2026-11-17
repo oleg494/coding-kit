@@ -28,9 +28,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import secrets
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -94,6 +96,60 @@ def _local_ids() -> tuple | None:
     return None if uid == 0 else (uid, gid)
 
 
+_IMAGE_RE = re.compile(
+    r"^(?:(?:[A-Za-z0-9][A-Za-z0-9._-]*(?::\d+)?|\[[0-9a-fA-F:]+\])/)?"
+    r"[A-Za-z0-9][A-Za-z0-9._/-]*"
+    r"(?::[A-Za-z0-9_.-]+)?"
+    r"(?:@sha256:[0-9a-f]{64})?$"
+)
+_SENSITIVE_MOUNT_NAMES = frozenset({
+    ".ssh", ".aws", ".gnupg", ".kube", ".docker",
+    "docker.sock", "podman.sock", "containerd.sock",
+})
+_SENSITIVE_MOUNT_EXACT = frozenset({
+    "/etc/shadow", "/etc/gshadow", "/etc/sudoers",
+})
+
+
+def _validate_image(image: str) -> str:
+    if (not image or image.startswith("-") or ".." in image or "//" in image
+            or not _IMAGE_RE.fullmatch(image)):
+        raise ValueError(f"invalid container image reference: {image!r}")
+    return image
+
+
+def _validate_ro_mount(host: str) -> str:
+    norm = host.replace("\\", "/").strip()
+    if not norm or norm.startswith("//./pipe/") or norm == "/":
+        raise ValueError(f"unsafe read-only mount source: {host!r}")
+    if re.fullmatch(r"[A-Za-z]:/?", norm):
+        raise ValueError(f"unsafe read-only mount source: {host!r}")
+    raw_parts = [p.lower() for p in norm.split("/") if p and p != "."]
+    if any(part in _SENSITIVE_MOUNT_NAMES for part in raw_parts):
+        raise ValueError(f"sensitive read-only mount source denied: {host!r}")
+    if norm.lower() in _SENSITIVE_MOUNT_EXACT:
+        raise ValueError(f"sensitive read-only mount source denied: {host!r}")
+    try:
+        expanded = Path(host).expanduser()
+        resolved = expanded.resolve()
+        res_posix = resolved.as_posix().lower()
+        if (resolved == Path(resolved.anchor)
+                or any(p.lower() in _SENSITIVE_MOUNT_NAMES for p in resolved.parts)
+                or res_posix in _SENSITIVE_MOUNT_EXACT):
+            raise ValueError(f"sensitive read-only mount source denied: {host!r}")
+        for probe in (expanded, resolved):
+            try:
+                if stat.S_ISSOCK(os.lstat(probe).st_mode):
+                    raise ValueError(f"socket read-only mount source denied: {host!r}")
+            except OSError:
+                pass
+    except ValueError:
+        raise
+    except OSError:
+        pass
+    return host
+
+
 def _docker_argv(image: str, argv: list, *, name: str, network: bool,
                  workdir: Path | None = None, ro_mounts: tuple = (),
                  env: dict | None = None) -> list[str]:
@@ -106,6 +162,7 @@ def _docker_argv(image: str, argv: list, *, name: str, network: bool,
     runs as root (CI daemon case) the image default is kept — the container is
     root inside its own boundary only, with no capabilities to reach the host.
     """
+    _validate_image(image)
     ids = _local_ids()
     cmd = ["docker", "run", "--rm", "--name", name,
            # `-i` is what forwards stdin (the prompt) into the boundary; the
@@ -122,10 +179,11 @@ def _docker_argv(image: str, argv: list, *, name: str, network: bool,
         cmd += ["-v", f"{Path(workdir).resolve().as_posix()}:{WORK_MOUNT}:rw",
                 "-w", WORK_MOUNT]
     for src, dst in ro_mounts:
+        _validate_ro_mount(str(src))
         cmd += ["-v", f"{Path(src).resolve().as_posix()}:{dst}:ro"]
     for key, value in (env or {}).items():
         cmd += ["-e", f"{key}={value}"]
-    cmd += [image, *argv]
+    cmd += ["--", image, *argv]
     return cmd
 
 
@@ -158,13 +216,16 @@ def parse_executor_spec(executor_spec: str | None) -> dict:
             host, sep, container = token[len("@ro:"):].rpartition(":")
             if not sep or not host or not container:
                 raise ValueError(f"invalid read-only mount token: {token!r}")
-            mounts.append((_unquote(host), container))
+            clean_host = _unquote(host)
+            _validate_ro_mount(clean_host)
+            mounts.append((clean_host, container))
         else:
             argv.append(token)
     if not image or not argv:
         raise ValueError(
             f"confined executor needs `{EXECUTOR_PREFIX}<image> <argv...>`: "
             f"{executor_spec!r}")
+    _validate_image(image)
     return {"mode": "container", "spec": executor_spec, "image": image,
             "argv": argv, "mounts": tuple(mounts), "network": network}
 

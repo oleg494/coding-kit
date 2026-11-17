@@ -39,8 +39,15 @@ except ImportError:
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
     pass
+
+
+def _extract_frontmatter(text: str) -> str | None:
+    """Return the YAML frontmatter block delimited by line-anchored `---` lines."""
+    m = re.match(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|\Z)", text, re.S)
+    return m.group(1) if m else None
 
 KIT = Path(__file__).resolve().parents[1]
 
@@ -110,11 +117,10 @@ def check_frontmatter() -> tuple[bool, str]:
         if not md.is_file():
             bad.append(f"{sk.name}: no SKILL.md")
             continue
-        head = md.read_text(encoding="utf-8", errors="replace").split("---")
-        if len(head) < 3:
+        fm = _extract_frontmatter(md.read_text(encoding="utf-8", errors="replace"))
+        if fm is None:
             bad.append(f"{sk.name}: no frontmatter")
             continue
-        fm = head[1]
         if yaml is not None:
             try:
                 fm_yaml = yaml.safe_load(fm)
@@ -298,11 +304,10 @@ def check_frontmatter_spec() -> tuple[bool, str]:
             bad.append(f"{sk.name}: no SKILL.md")
             continue
         total += 1
-        parts = md.read_text(encoding="utf-8", errors="replace").split("---")
-        if len(parts) < 3:
+        fm_text = _extract_frontmatter(md.read_text(encoding="utf-8", errors="replace"))
+        if fm_text is None:
             bad.append(f"{sk.name}: no frontmatter")
             continue
-        fm_text = parts[1]
         fm_yaml = None
         if yaml is not None:
             try:
@@ -344,15 +349,34 @@ def check_memory() -> tuple[bool, str]:
         return (False, f"memory root: {e}")
     dbs = sorted((root / "db").glob("*.db"))
     for db in dbs:
+        con = None
         try:
-            con = sqlite3.connect(db)
+            con = sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True)
             row = con.execute("PRAGMA integrity_check").fetchone()
-            con.close()
             if row and row[0] != "ok":
                 return (False, f"{db.name}: {row[0]}")
         except sqlite3.Error as e:
             return (False, f"{db.name}: {e}")
-    return (True, f"{root} ok, {len(dbs)} db healthy")
+        finally:
+            if con is not None:
+                con.close()
+    notes = []
+    db_tools = root / "db-tools"
+    expected_tools = (KIT / "memory" / "db-tools").resolve()
+    try:
+        if db_tools.exists() and db_tools.resolve() != expected_tools:
+            notes.append(f"WARN db-tools -> {db_tools.resolve()}")
+    except OSError:
+        notes.append("WARN db-tools unreadable")
+    warmup_copy = root / "scripts" / "memory-warmup.py"
+    warmup_src = KIT / "memory" / "scripts" / "memory-warmup.py"
+    try:
+        if warmup_copy.is_file() and warmup_src.is_file() and warmup_copy.read_bytes() != warmup_src.read_bytes():
+            notes.append("WARN scripts/memory-warmup.py differs from kit")
+    except OSError:
+        pass
+    suffix = f" ({'; '.join(notes)})" if notes else ""
+    return (True, f"{root} ok, {len(dbs)} db healthy{suffix}")
 
 
 def check_adapters() -> tuple[bool, str]:
@@ -407,8 +431,8 @@ def check_skill_supply_chain() -> tuple[bool, str]:
         if not md.is_file():
             continue
         total += 1
-        head = md.read_text(encoding="utf-8", errors="replace").split("---")
-        if len(head) >= 3 and not re.search(r"^license:\s*\S+", head[1], re.M):
+        fm = _extract_frontmatter(md.read_text(encoding="utf-8", errors="replace"))
+        if fm is not None and not re.search(r"^license:\s*\S+", fm, re.M):
             unlicensed.append(sk.name)
     if not unlicensed:
         return (True, f"{total} skills, all licensed" if total else "no skills")
@@ -430,6 +454,11 @@ def check_integrity() -> tuple[bool, str]:
     data = m.load_manifest(KIT)
     if data is None:
         return (False, f"no readable {m.MANIFEST_NAME} — run --update")
+    vfile = KIT / "VERSION"
+    if vfile.is_file():
+        expected_ver = vfile.read_text(encoding="utf-8").strip()
+        if data.get("kit_version") != expected_ver:
+            return (False, f"manifest kit_version {data.get('kit_version')!r} != VERSION {expected_ver!r}")
     problems = m.check(KIT, data["files"])
     if problems:
         return (False, "; ".join(problems[:5])
@@ -457,7 +486,7 @@ def find_bare_text_true(source: str) -> list[int]:
         if name not in ("run", "Popen", "check_output", "check_call"):
             continue
         has_text_true = any(
-            k.arg == "text" and getattr(k.value, "value", None) is True
+            k.arg in ("text", "universal_newlines") and getattr(k.value, "value", None) is True
             for k in node.keywords)
         has_encoding = any(k.arg == "encoding" for k in node.keywords)
         if has_text_true and not has_encoding:
@@ -466,24 +495,29 @@ def find_bare_text_true(source: str) -> list[int]:
 
 
 def check_encoding_discipline() -> tuple[bool, str]:
-    """No bare text=True subprocess calls in engine/script code — each one
-    is a latent cp1251 mojibake bug on Windows (use _compat.run, or pass
+    """No bare text=True/universal_newlines=True subprocess calls in engine/script/eval code —
+    each one is a latent cp1251 mojibake bug on Windows (use _compat.run, or pass
     encoding='utf-8', errors='replace')."""
     bad = []
-    patterns = ("memory/db-tools/*.py", "memory/scripts/*.py",
-                "scripts/*.py", "scripts/tools/*.py", "eval/*.py")
-    for pattern in patterns:
-        for p in sorted(KIT.glob(pattern)):
+    for top in ("memory", "scripts", "eval"):
+        base = KIT / top
+        if not base.is_dir():
+            continue
+        for p in sorted(base.rglob("*.py")):
+            rel = p.relative_to(KIT).as_posix()
+            if rel.startswith("eval/results/") or "__pycache__" in p.parts:
+                continue
             for ln in find_bare_text_true(
                     p.read_text(encoding="utf-8", errors="replace")):
-                bad.append(f"{p.relative_to(KIT).as_posix()}:{ln}")
+                bad.append(f"{rel}:{ln}")
     return (not bad, "no bare text=True" if not bad else "; ".join(bad[:5]))
 
 def check_backup_freshness() -> tuple[bool, str]:
     """Backup/DR freshness (wave1 Task 4): WARN when the newest memory
     backup is older than 14 days or none exists. WARN-tier: doctor stays
     green (ok=True) — a stale backup must not block work, only nag."""
-    root = Path(os.environ.get("MEMORY_ROOT") or Path.home() / ".memory")
+    raw_root = os.environ.get("MEMORY_ROOT")
+    root = Path(raw_root).expanduser() if raw_root else Path.home() / ".memory"
     backups = root / "backups"
     if not backups.is_dir():
         return (True, "no backups yet (WARN: run scripts/tools/backup_memory.py)")
@@ -513,6 +547,7 @@ def check_backup_freshness() -> tuple[bool, str]:
 _DEPLOYED_SKILL_DIRS = (
     Path.home() / ".agents" / "skills",
     Path.home() / ".claude" / "skills",
+    Path.home() / ".zcode" / "skills",
     KIT / ".agents" / "skills",
 )
 

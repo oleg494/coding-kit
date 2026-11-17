@@ -68,21 +68,32 @@ def _inside(root, target):
                           and not os.path.isabs(rel))
 
 
-def _nearest_real(path):
-    current = Path(path)
-    while not current.exists():
-        if current.parent == current:
+def _nearest_real(root, target, label):
+    """Walk prefixes from root to target so broken intermediate symlinks fail closed."""
+    rel = os.path.relpath(target, root)
+    if rel == ".":
+        return root
+    cur = Path(root)
+    last_real = Path(root)
+    for part in Path(rel).parts:
+        cur = cur / part
+        if not os.path.lexists(cur):
             break
-        current = current.parent
-    return current.resolve(strict=True)
+        try:
+            last_real = cur.resolve(strict=True)
+        except OSError as exc:
+            raise InputError(f"{label}: broken symlink in path: {cur} ({exc})") from None
+        if not _inside(root, last_real):
+            raise InputError(f"{label}: real path escapes workspace: {cur}")
+    return last_real
 
 
 def _assert_contained(root, target, label):
     root = Path(root).resolve(strict=True)
-    target = Path(target).resolve(strict=False)
+    target = Path(os.path.abspath(str(target)))
     if not _inside(root, target):
         raise InputError(f"{label}: path escapes workspace: {target}")
-    real = _nearest_real(target)
+    real = _nearest_real(root, target, label)
     if not _inside(root, real):
         raise InputError(f"{label}: real path escapes workspace: {target}")
 
@@ -491,7 +502,7 @@ def _command(args, workspace, session_dir, runtime, policy_injected, prompt, res
            "--approval-mode", "yolo"]
     if resume:
         cmd.extend(["--resume", str(resume)])
-    cmd.append(prompt)
+    cmd.extend(["--", prompt])
     return cmd
 
 
@@ -571,7 +582,7 @@ def _evaluate_check(root, workspace, initial, check, turn):
         result.update(passed=actual == check["value"], actual=actual,
                       actual_files=actual_files)
         return result
-    path = workspace / Path(*rel.split("/"))
+    path = root / Path(*rel.split("/"))
     try:
         _assert_contained(root, path, f"check {kind} {rel}")
     except InputError as exc:
@@ -634,6 +645,7 @@ def _run_case(case, repeat, args, output_root, policy, policy_text, policy_sha, 
     run_dir.mkdir(parents=True)
     workspace = run_dir / "workspace"
     workspace.mkdir()
+    workspace = workspace.resolve()
     session_dir = run_dir / "session"
     session_dir.mkdir()
     gate_log = run_dir / "gate.jsonl"
@@ -673,7 +685,9 @@ def _run_case(case, repeat, args, output_root, policy, policy_text, policy_sha, 
         policy_injected = policy_text + " [" + policy_marker + "]"
         result["policy_marker"] = policy_marker
         result["policy_injected_sha256"] = _sha(policy_injected.encode("utf-8"))
-        env = dict(os.environ, **_gate_env(workspace, gate_log, case["writable"], policy_marker))
+        base_env = {k: v for k, v in os.environ.items()
+                    if k not in ("MEMORY_ROOT", "MEMORY_ROOT_RESEARCH_DB")}
+        env = dict(base_env, **_gate_env(workspace, gate_log, case["writable"], policy_marker))
         session_path = None
         per_turn_checks = {}
         gate_offset = gate_log.stat().st_size if gate_log.is_file() else 0

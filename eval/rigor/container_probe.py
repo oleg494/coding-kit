@@ -78,7 +78,8 @@ def main():
             [sys.executable, "-c",
              "import sys\n"
              "open(sys.argv[1], 'w').write('probe\\n')\n", target],
-            capture_output=True, text=True, timeout=60)
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=60)
         out["subprocess"] = {"result": "wrote" if proc.returncode == 0
                              else "blocked",
                              "returncode": proc.returncode,

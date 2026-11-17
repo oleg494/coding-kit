@@ -34,7 +34,11 @@ def check_managed_settings_windows() -> dict:
     if sys.platform == "win32":
         for k in reg_keys:
             try:
-                r = subprocess.run(["reg", "query", k], capture_output=True, text=True)
+                r = subprocess.run(
+                    ["reg", "query", k],
+                    capture_output=True, text=True,
+                    encoding="utf-8", errors="replace",
+                )
                 if r.returncode == 0 and "Settings" in r.stdout:
                     found.append(f"reg:{k}")
             except Exception:
@@ -47,10 +51,15 @@ def check_managed_settings_windows() -> dict:
     }
 
 def get_claude_version(claude_cmd: str = "claude") -> str:
-    exe = shutil.which(claude_cmd) or claude_cmd
-    cmd = ["cmd", "/c", exe, "--version"] if sys.platform == "win32" else [exe, "--version"]
+    exe = shutil.which(claude_cmd)
+    if not exe:
+        return "unknown"
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        r = subprocess.run(
+            [exe, "--version"],
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=30,
+        )
         if r.returncode == 0:
             return r.stdout.strip()
     except Exception:
