@@ -96,7 +96,7 @@ def _report(text):
 
 
 SOUL_BLOCK = """{begin}
-coding-kit {version}: methodology skills live under `{ext_root}/{category}/`
+coding-kit {version}: read `{kit_ops}` once per session (contract; `{kit_agents}` for routing); methodology skills live under `{ext_root}/{category}/`
 (load via `skill_view coding-kit/<name>`; bare names may collide with local skills).
 Project memory: `python ~/.memory/db-tools/search_all.py "<topic>"` (findings/Wiki;
 check [superseded]/[unverified] badges). Past conversations: `session_search`.
@@ -131,8 +131,29 @@ def kit_skills(kit: Path) -> list[Path]:
                   key=lambda d: d.name)
 
 
+def _integrity_gate(kit: Path) -> None:
+    """When kit carries integrity-manifest.json, verify control plane before planning/applying."""
+    manifest_file = kit / "integrity-manifest.json"
+    if not manifest_file.exists() and not is_link(manifest_file):
+        return
+    import importlib.util
+    im_path = Path(__file__).resolve().parent / "integrity_manifest.py"
+    spec = importlib.util.spec_from_file_location("integrity_manifest", im_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    data = mod.load_manifest(kit)
+    if data is None:
+        raise Conflict(f"unreadable integrity manifest in {kit}")
+    problems = mod.check(kit, data["files"])
+    if problems:
+        preview = "; ".join(problems[:5])
+        more = f" (+{len(problems) - 5} more)" if len(problems) > 5 else ""
+        raise Conflict(f"integrity drift detected: {preview}{more}")
+
+
 def validate(kit: Path, home: Path, ext_root: Path):
     """Shared preflight for preview/apply/restore; raises Conflict."""
+    _integrity_gate(kit)
     if not home.is_dir():
         raise Conflict(f"hermes home not found: {home}")
     if has_link_ancestor(home, home.parent if home.parent != home else Path(home.anchor)):
@@ -348,11 +369,14 @@ def _external_dir_entries(cfg: str) -> list:
     return out
 
 
-def _patch_soul(soul: str, version: str, ext_root: Path) -> str:
+def _patch_soul(soul: str, version: str, ext_root: Path, kit: Path | None = None) -> str:
     """Replace/insert ONLY the delimited kit block; personal text stays untouched."""
+    kit_ops = (kit / "OPS.md").as_posix() if kit else "OPS.md"
+    kit_agents = (kit / "AGENTS.md").as_posix() if kit else "AGENTS.md"
     block = SOUL_BLOCK.format(
         begin=MARK_BEGIN.format(version=version), end=MARK_END,
-        version=version, ext_root=ext_root.as_posix(), category=CATEGORY)
+        version=version, ext_root=ext_root.as_posix(), category=CATEGORY,
+        kit_ops=kit_ops, kit_agents=kit_agents)
     # replace any older kit block regardless of its version marker
     pattern = re.compile(r"(?s)<!-- kit:begin v[^>]*-->\n?<!\[CDATA\[.*?\]\]>\n?<!-- kit:end -->"
                          r"|<!-- kit:begin v[^>]*-->.*?<!-- kit:end -->")
@@ -391,7 +415,7 @@ def apply_adapter(kit: Path, home: Path, ext_root: Path, retire_legacy: bool,
         targets.append(legacy)
     texts = {}
     for name, patch in (("config.yaml", lambda s: _patch_config(s, ext_root.as_posix())),
-                        ("SOUL.md", lambda s: _patch_soul(s, version, ext_root))):
+                        ("SOUL.md", lambda s: _patch_soul(s, version, ext_root, kit))):
         path = home / name
         old = path.read_bytes().decode("utf-8") if path.exists() else ""
         new = patch(old)

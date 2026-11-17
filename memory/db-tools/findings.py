@@ -257,16 +257,16 @@ def _superseded_expr(alias, cur=None):
     """The bare superseded-by subquery EXPRESSION (no alias): links
     kind='supersedes', to_id = the OLD row. A scalar subquery, NOT a LEFT
     JOIN: a second `--supersedes N` would fan row N out into duplicate
-    result rows (and duplicate --json ids) with a join; MAX(from_id)
-    keeps one row per finding and prefers the latest replacement. Callers
-    that SELECT it append ' AS superseded_by'; callers that FILTER on it use
-    it directly (an aliased expression is invalid inside WHERE). `alias` is
-    a fixed column reference (f.id), never user input."""
+    result rows (and duplicate --json ids) with a join; MIN(from_id)
+    keeps one row per finding. Callers that SELECT it append ' AS
+    superseded_by'; callers that FILTER on it use it directly (an aliased
+    expression is invalid inside WHERE). `alias` is a fixed column
+    reference (f.id), never user input."""
     if cur is not None:
         has_links = cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'").fetchone()[0] > 0
         if not has_links:
             return "NULL"
-    return ("(SELECT MAX(l.from_id) FROM links l "
+    return ("(SELECT MIN(l.from_id) FROM links l "
             f"WHERE l.to_id = {alias} AND l.kind = 'supersedes')")
 
 

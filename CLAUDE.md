@@ -2,13 +2,14 @@
 
 @AGENTS.md
 
-AGENTS.md points to OPS.md, the full contract. This file only adapts it to a
-run on a GitHub-hosted runner, where the machine-local parts cannot apply.
+AGENTS.md points to OPS.md, the full contract. The runner restrictions below
+apply ONLY when running on a GitHub-hosted runner (`GITHUB_ACTIONS=true` via
+`.github/workflows/claude.yml`), where machine-local state is absent. Interactive
+local sessions follow OPS.md and `~/.memory` normally.
 
-## Runner context
+## Runner context (`GITHUB_ACTIONS=true`)
 
-You run from `.github/workflows/claude.yml` on `ubuntu-latest`, triggered by an
-`@claude` mention in an issue or pull request comment.
+Applies when triggered by `@claude` on `.github/workflows/claude.yml` (`ubuntu-latest`):
 
 - The memory store (`~/.memory`, its search and findings tools, the warmup
   script) does not exist on the runner. Skip memory search and saving (OPS §5)
@@ -32,7 +33,7 @@ separately from failures caused by the change.
 Repository gates to respect before proposing a push:
 
 - **File size.** Code soft 500 / hard 1000 lines, docs soft 300 / hard 500.
-  Split rather than grow; never edit `scripts/tools/file_size_baseline.json`
+  Split rather than grow; never edit `scripts/file_size_baseline.json`
   to make the check pass.
 - **Integrity manifest.** `integrity-manifest.json` hash-pins the control
   plane. After changing a file in its scope, regenerate it with

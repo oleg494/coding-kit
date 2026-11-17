@@ -797,6 +797,22 @@ class AggregationTest(unittest.TestCase, FixtureBuilders):
                                 since=date(2026, 1, 1))
         self.assertEqual(res["sessions"], [])
 
+    def test_pipe_split_qualified_python_and_kit_skills_reads(self):
+        cmds = usage_audit._entries_from_command(
+            "cat x.txt | /usr/bin/python3 ~/.memory/db-tools/search_all.py query"
+        )
+        self.assertTrue(
+            any(usage_audit._entry_is_memory(exe, ctx) for exe, ctx in cmds),
+            cmds,
+        )
+        self.assertEqual(
+            usage_audit._skill_read_targets(
+                "read_file",
+                {"file_path": r"C:\Users\alice\.hermes\kit-skills\coding-kit\ponytail\SKILL.md"},
+            ),
+            {"ponytail"},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

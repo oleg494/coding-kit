@@ -95,3 +95,28 @@ class TestRouterGeneration(unittest.TestCase):
             self.assertNotIn("memory-warmup", text)
             self.assertNotIn(deploy.SOUL_MARKER, text)
             self.assertNotIn("old embedded soul body", text)
+
+    def test_generated_router_preserves_both_codegraph_blocks(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            router_path = Path(td) / "GEMINI.md"
+            upper = "<!-- CODEGRAPH_START -->\nA\n<!-- CODEGRAPH_END -->"
+            lower = "<!-- codegraph:start -->\nB\n<!-- codegraph:end -->"
+            old = (
+                "# Coding Agent Router (Gemini CLI) - coding-kit v4.6.0\n"
+                f"{deploy.SOUL_MARKER}\nold body\n{upper}\n\n{lower}\n"
+            )
+            router_path.write_text(old, encoding="utf-8")
+            harness = [{
+                "id": "gemini",
+                "router": str(router_path),
+                "name": "Antigravity / Gemini",
+                "skills_line": "# Skills: ~/.gemini/skills/",
+                "skills_dir": "~/.gemini/skills",
+            }]
+            with mock.patch.object(deploy, "HARNESSES", harness):
+                actions = deploy.regen_routers()
+            self.assertEqual(actions, [(str(router_path), "regenerated")])
+            text = router_path.read_text(encoding="utf-8")
+            self.assertIn(upper, text)
+            self.assertIn(lower, text)

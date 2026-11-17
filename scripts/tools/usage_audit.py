@@ -55,6 +55,7 @@ Run:
 import argparse
 import importlib.util
 import json
+import os
 import re
 import sys
 from datetime import date, datetime, timedelta
@@ -70,7 +71,11 @@ HOME = Path.home()
 CLAUDE_ROOT = HOME / ".claude" / "projects"
 OMP_ROOT = HOME / ".omp" / "agent" / "sessions"
 GEMINI_ROOT = HOME / ".gemini" / "tmp"
-HERMES_DB = HOME / "AppData" / "Local" / "hermes" / "state.db"
+HERMES_DB = (
+    Path(os.environ["HERMES_HOME"]).expanduser() / "state.db"
+    if os.environ.get("HERMES_HOME")
+    else HOME / "AppData" / "Local" / "hermes" / "state.db"
+)
 
 KIT = Path(__file__).resolve().parents[2]
 _spec = importlib.util.spec_from_file_location(
@@ -151,7 +156,8 @@ SKILL_URI_RE = re.compile(r"skill://([A-Za-z0-9_-]+)(?:/[^?#]*)?(?:[:?#].*)?$")
 # capture). The payload segment after the skill name is required, so
 # any reference/eval/asset under the skill maps to it.
 SKILL_PATH_RE = re.compile(
-    r"(?:^|/)skills/(?:skills/)?(?!skills\b)([A-Za-z0-9_-]+)/"
+    r"(?i)(?:^|/)(?:kit-skills|skills)/(?:(?:skills|coding-kit)/)?"
+    r"(?!(?:skills|coding-kit)\b)([A-Za-z0-9_-]+)/"
     r"(?:[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*)"
     r"(?:[:?#].*)?$")
 SKILL_READ_NOTE = (
@@ -370,7 +376,7 @@ def _split_commands(text: str) -> list[str]:
             current = []
             i += 2
             continue
-        if ch in ("\n", ";"):
+        if ch in ("\n", ";", "|"):
             segments.append("".join(current))
             current = []
             i += 1
@@ -430,6 +436,7 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
         if not toks:
             continue
         first = toks[0].strip()
+        first_name = os.path.basename(first.replace("\\", "/"))
         context = " ".join(cd_marks + [chunk])
         if first == "cd":
             if len(toks) > 1 and MEMORY_MARKER_RE.search(toks[1]):
@@ -439,9 +446,9 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
                 # apply to commands that follow
                 cd_marks = []
             continue
-        if RUNNER_RE.fullmatch(first) and len(toks) > 1:
+        if RUNNER_RE.fullmatch(first_name) and len(toks) > 1:
             script_index = 1
-            if first.lower() in ("uv", "uvx") and toks[1] == "run":
+            if first_name.lower() in ("uv", "uvx") and toks[1] == "run":
                 # uv run <script> / uv run python <script>: the script
                 # is what actually executes, not the `run` subcommand.
                 # Skip run-flags and their values (--python 3.12), a
@@ -450,6 +457,7 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
                 j = 2
                 while j < len(toks):
                     tok = toks[j].strip()
+                    tok_name = os.path.basename(tok.replace("\\", "/"))
                     if tok in ("-c", "-m") or \
                             _RUN_FLAG_PAYLOAD_RE.fullmatch(tok):
                         script_index = len(toks)
@@ -458,7 +466,7 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
                             or _RUN_OPTION_VALUE_RE.fullmatch(tok)):
                         j += 2
                         continue
-                    if tok.startswith("-") or RUNNER_RE.fullmatch(tok):
+                    if tok.startswith("-") or RUNNER_RE.fullmatch(tok_name):
                         j += 1
                         continue
                     script_index = j
@@ -491,7 +499,7 @@ def _entries_from_command(text: str) -> list[tuple[str, str]]:
                 script = toks[script_index].strip()
                 if script and script not in ("-c", "-m"):
                     entries.append((script, context))
-        elif _SHELL_RUNNER_RE.fullmatch(first) and len(toks) > 2 and \
+        elif _SHELL_RUNNER_RE.fullmatch(first_name) and len(toks) > 2 and \
                 toks[1].lower() in ("-c", "-lc", "-ic") and toks[2].strip():
             # bash -c "findings.py add x; echo done": the quoted inner
             # script is what executes — parse it recursively (quote-aware

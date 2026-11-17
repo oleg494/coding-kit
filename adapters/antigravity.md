@@ -1,23 +1,29 @@
 # Antigravity IDE + Gemini — Setup Guide (coding-kit)
 
-> How to wire the coding-kit into Antigravity IDE.
+> How to wire the coding-kit into Antigravity IDE and Gemini hosts.
 
-## 1. What Antigravity reads
+## 1. What Antigravity / Gemini reads
 
-- User-level instructions: `~/AGENTS.md` (home directory, applies to all workspaces).
-- Skills: `~/.agents/skills/` — SKILL.md dirs.
-- Workspace: `WORK/` is the typical opened folder; per-project AGENTS.md would go there.
+- Antigravity user-level global rules (`<RULE[user_global]>`): `~/.gemini/GEMINI.md` (and `~/AGENTS.md` for repo/generic hosts).
+- Skills: `~/.gemini/skills/` and `~/.agents/skills/` — SKILL.md dirs (or junctions to `skills/`).
+- Workspace: open your project folder; per-project `AGENTS.md` overrides workspace context.
 
 ## 2. Install
 
+### Automated rollout (recommended)
+```bash
+python scripts/install.py        # bootstrap ~/.memory, engine junction, wiki index
+python scripts/tools/deploy.py   # sync owned skills + refresh user routers (~/.gemini/GEMINI.md, ~/AGENTS.md, ...)
+```
+
 ### Step 1: Rules
-Merge a pointer to the clone's absolute `OPS.md` path into `~/AGENTS.md`.
-Preserve existing instructions. Load the contract once; do not copy the
+Merge a pointer to the clone's absolute `OPS.md` path into `~/.gemini/GEMINI.md` and `~/AGENTS.md`.
+Preserve existing instructions and `CODEGRAPH` blocks. Load the contract once; do not copy the
 repository router with a relative link into an unrelated directory.
 
 ### Step 2: Skills
 Copy or link only the owned skills declared in `profile.yml` into
-`~/.agents/skills/`, preserving unrelated skills. A full-directory wildcard
+`~/.gemini/skills/` and `~/.agents/skills/`, preserving unrelated skills. A full-directory wildcard
 would also copy third-party sources and is not the kit ownership contract.
 
 ### Step 3: Memory

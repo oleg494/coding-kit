@@ -11,6 +11,8 @@
 
 ## 2. Install
 
+Run `python scripts/install.py` (memory root) and `python scripts/tools/deploy.py` (owned skills + routers), or configure manually:
+
 ### Step 1: Rules
 Merge a pointer to the clone's absolute `OPS.md` path into
 `~/.zcode/AGENTS.md`, preserving existing rules. Load it once. Copying the

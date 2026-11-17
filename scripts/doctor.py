@@ -548,8 +548,68 @@ _DEPLOYED_SKILL_DIRS = (
     Path.home() / ".agents" / "skills",
     Path.home() / ".claude" / "skills",
     Path.home() / ".zcode" / "skills",
+    Path.home() / ".gemini" / "skills",
     KIT / ".agents" / "skills",
 )
+
+_ROUTER_TARGETS = (
+    ("omp", Path.home() / ".omp" / "agent" / "AGENTS.md"),
+    ("antigravity", Path.home() / "AGENTS.md"),
+    ("gemini", Path.home() / ".gemini" / "GEMINI.md"),
+    ("zcode", Path.home() / ".zcode" / "AGENTS.md"),
+    ("codex", Path.home() / ".codex" / "AGENTS.md"),
+    ("opencode", Path.home() / ".config" / "opencode" / "AGENTS.md"),
+    ("claude", Path.home() / ".claude" / "CLAUDE.md"),
+)
+
+_CLAUDE_STALE_RE = re.compile(
+    r"(?m)^- At session start:[^\n]*memory-warmup\.py"
+    r"|\n+# (?P<slug>superpowers|yagni|learn|agent-ux|executing-plans"
+    r"|subagent-driven-development|test-driven-development"
+    r"|requesting-code-review|dashboard-ui-review|data-visualization)"
+    r"\n-\s+\*\*(?P=slug)\*\*\s+\(`~/.claude/skills/(?P=slug)/SKILL\.md`\)"
+)
+
+
+def check_routers(expect_drift: bool = False) -> tuple[bool, str]:
+    """Verify kit-owned user routers match VERSION and lack retired sections."""
+    if not expect_drift:
+        expect_drift = os.environ.get("EXPECT_SKILLS_DRIFT") == "1"
+    ver = (KIT / "VERSION").read_text(encoding="utf-8").strip()
+    bad: list[str] = []
+    checked = 0
+    for name, path in _ROUTER_TARGETS:
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            bad.append(f"{name}: unreadable ({exc})")
+            checked += 1
+            continue
+        first = text.splitlines()[0] if text else ""
+        owned = (
+            "# Coding Agent Router" in text
+            or "# coding-kit — Agent Soul" in text
+            or bool(re.match(r"^# coding-kit v\d+", first))
+        )
+        if not owned:
+            continue
+        checked += 1
+        if f"v{ver}" not in first:
+            bad.append(f"{name}: version drift ({first[:48]})")
+        elif name == "claude" and _CLAUDE_STALE_RE.search(text):
+            bad.append("claude: stale warmup/retired skill section")
+    if checked == 0:
+        return (True, "WARN: no kit-owned routers present")
+    if bad:
+        if expect_drift:
+            return (True, f"WARN (expected drift): {'; '.join(bad[:3])}")
+        return (
+            False,
+            "; ".join(bad[:5]) + (f" (+{len(bad) - 5} more)" if len(bad) > 5 else ""),
+        )
+    return (True, f"{checked} kit routers match v{ver}")
 
 
 def check_skills_sync(expect_drift: bool = False) -> tuple[bool, str]:
@@ -659,6 +719,7 @@ def main() -> int:
         ("supply chain", check_skill_supply_chain()),
         ("frontmatter-spec", check_frontmatter_spec()),
         ("skills-sync", check_skills_sync(expect_drift=args.expect_skills_drift)),
+        ("routers", check_routers(expect_drift=args.expect_skills_drift)),
         ("backup freshness", check_backup_freshness()),
         ("encoding discipline", check_encoding_discipline()),
     ]

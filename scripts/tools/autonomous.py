@@ -136,7 +136,14 @@ def _write_json_atomic(path: Path, doc: dict) -> None:
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(tmp, path)
+        for attempt in range(5):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.02 * (attempt + 1))
     finally:
         try:
             tmp.unlink()
@@ -155,11 +162,22 @@ def _pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
     if os.name == "nt":
-        process = ctypes.windll.kernel32.OpenProcess(0x00100000, False, pid)
-        if not process:
-            return False
-        ctypes.windll.kernel32.CloseHandle(process)
-        return True
+        from ctypes import wintypes
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        k32.OpenProcess.restype = wintypes.HANDLE
+        k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        k32.WaitForSingleObject.restype = wintypes.DWORD
+        k32.CloseHandle.argtypes = [wintypes.HANDLE]
+        k32.CloseHandle.restype = wintypes.BOOL
+        access = 0x1000 | 0x00100000  # PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE
+        handle = k32.OpenProcess(access, False, pid)
+        if not handle:
+            return ctypes.get_last_error() == 5  # ERROR_ACCESS_DENIED => alive
+        try:
+            return k32.WaitForSingleObject(handle, 0) != 0  # not WAIT_OBJECT_0
+        finally:
+            k32.CloseHandle(handle)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:

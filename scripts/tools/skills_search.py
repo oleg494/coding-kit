@@ -20,6 +20,12 @@ import re
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 HERE = Path(__file__).resolve().parent          # scripts/tools/
 KIT = HERE.parent.parent                        # kit root
 DEFAULT_DIR = KIT / "skills"
@@ -54,10 +60,25 @@ def parse_skill(path: Path) -> dict | None:
     if not m:
         return None
     fields: dict[str, str] = {}
-    for line in m.group(1).splitlines():
-        if ":" in line:
+    lines = m.group(1).splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if ":" in line and not line[0].isspace():
             k, _, v = line.partition(":")
-            fields[k.strip().lower()] = v.strip().strip("'\"")
+            key = k.strip().lower()
+            raw = v.strip()
+            if raw in (">", ">-", ">+", "|", "|-", "|+"):
+                block_lines = []
+                i += 1
+                while i < len(lines) and (not lines[i].strip() or lines[i][0].isspace()):
+                    block_lines.append(lines[i].strip())
+                    i += 1
+                sep = "\n" if raw.startswith("|") else " "
+                fields[key] = sep.join(s for s in block_lines if s).strip()
+                continue
+            fields[key] = raw.strip("'\"")
+        i += 1
     name = fields.get("name")
     description = fields.get("description")
     if not name or not description:
@@ -108,6 +129,8 @@ def score(skill: dict, query: str) -> float:
 
 
 def search(skills: list[dict], query: str, top: int) -> list[tuple[float, dict]]:
+    if top <= 0:
+        return []
     ranked = sorted(((score(s, query), s) for s in skills),
                     key=lambda x: -x[0])
     return [(sc, s) for sc, s in ranked[:top] if sc > 0]
@@ -124,6 +147,8 @@ def main() -> int:
                     help=f"skills directory (default {DEFAULT_DIR})")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
+    if args.top <= 0:
+        ap.error("--top must be >= 1")
 
     skills = catalog(args.dir)
     if not skills:

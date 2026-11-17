@@ -55,6 +55,20 @@ class CatalogTest(unittest.TestCase):
         skills = catalog(self.tmp)
         self.assertEqual(score(skills[0], "   "), 0.0)
 
+    def test_multiline_folded_and_literal_descriptions_and_nonpositive_top(self):
+        d = self.tmp / "multi"
+        d.mkdir()
+        (d / "SKILL.md").write_text(
+            "---\nname: multi\ndescription: >\n  Line one\n  line two\n---\nBody\n",
+            encoding="utf-8",
+        )
+        parsed = parse_skill(d / "SKILL.md")
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed["description"], "Line one line two")
+        skills = catalog(self.tmp)
+        self.assertEqual(search(skills, "Line", top=0), [])
+        self.assertEqual(search(skills, "Line", top=-3), [])
+
 
 if __name__ == "__main__":
     unittest.main()

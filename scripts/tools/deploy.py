@@ -68,9 +68,10 @@ HARNESSES = [
     {"id": "omp", "router": "~/.omp/agent/AGENTS.md", "name": "OMP",
      "skills_line": "# Skills: auto-discovered (kit skills synced to ~/.agents/skills)",
      "skills_dir": None},
-    # Gemini CLI has no managed deployment target here. Its chat-JSON
-    # transcripts remain readable through eval/transcript_normalize.py;
-    # deployment coverage does not imply that the upstream CLI is retired.
+    # Gemini chat-JSON transcripts remain readable via eval/transcript_normalize.py.
+    {"id": "gemini", "router": "~/.gemini/GEMINI.md", "name": "Antigravity / Gemini",
+     "skills_line": "# Skills: ~/.gemini/skills/",
+     "skills_dir": "~/.gemini/skills"},
     {"id": "antigravity", "router": "~/AGENTS.md", "name": "Antigravity",
      "skills_line": "# Skills: ~/.agents/skills/",
      "skills_dir": "~/.agents/skills"},
@@ -83,7 +84,7 @@ HARNESSES = [
      "skills_line": None, "skills_dir": None},
 ]
 CLAUDE_MD = Path.home() / ".claude" / "CLAUDE.md"
-SYNC_TARGETS = ["~/.claude/skills", "~/.agents/skills", "~/.zcode/skills"]
+SYNC_TARGETS = ["~/.claude/skills", "~/.agents/skills", "~/.zcode/skills", "~/.gemini/skills"]
 
 def integrity_gate():
     """Refuse to roll out a kit tree whose control plane drifted from
@@ -439,10 +440,28 @@ def sync_skills() -> list[SkillsReport]:
     return execute_skills(plan)
 
 
+_RETIRED_CLAUDE_SECTIONS = re.compile(
+    r"\n+# (?P<slug>superpowers|yagni|learn|agent-ux|executing-plans"
+    r"|subagent-driven-development|test-driven-development"
+    r"|requesting-code-review|dashboard-ui-review|data-visualization)"
+    r"\n-\s+\*\*(?P=slug)\*\*\s+\(`~/.claude/skills/(?P=slug)/SKILL\.md`\)"
+    r"[^\n]*(?:\n(?!# ).*)*"
+)
+_WARMUP_STARTUP_RE = re.compile(
+    r"(?m)^(- At session start:[^\n]*?),\s*then\s+`python[^`]*memory-warmup\.py`(\.?)\s*$"
+)
+
+
 def codegraph_block(old: str):
-    m = re.search(r"<!-- CODEGRAPH_START -->.*?<!-- CODEGRAPH_END -->",
-                  old, re.S)
-    return ("\n" + m.group(0) + "\n") if m else ""
+    blocks = []
+    for pat in (
+        r"<!-- CODEGRAPH_START -->.*?<!-- CODEGRAPH_END -->",
+        r"<!-- codegraph:start -->.*?<!-- codegraph:end -->",
+    ):
+        m = re.search(pat, old, re.S)
+        if m:
+            blocks.append(m.group(0))
+    return ("\n" + "\n\n".join(blocks) + "\n") if blocks else ""
 
 
 def is_router_kit_owned(old_content: str) -> bool:
@@ -527,8 +546,17 @@ def regen_routers(dry: bool = False):
     return actions
 
 
+def _clean_claude_md_body(text: str) -> str:
+    """Remove retired startup warmup calls and retired skill sections from CLAUDE.md."""
+    cleaned = _WARMUP_STARTUP_RE.sub(r"\1\2", text)
+    cleaned2 = _RETIRED_CLAUDE_SECTIONS.sub("", cleaned)
+    if cleaned2 != text:
+        cleaned2 = re.sub(r"\n{3,}", "\n\n", cleaned2).rstrip() + "\n"
+    return cleaned2
+
+
 def bump_claude_md(dry: bool = False):
-    """Bump the machine CLAUDE.md version line. dry=True writes nothing."""
+    """Bump the machine CLAUDE.md version line and clean stale entries. dry=True writes nothing."""
     if is_link(CLAUDE_MD) or has_link_ancestor(CLAUDE_MD, Path.home()):
         return "skipped (link target or ancestor)"
     if not CLAUDE_MD.exists():
@@ -542,6 +570,7 @@ def bump_claude_md(dry: bool = False):
         f" refreshed {TODAY})",
         t, count=1)
     t2 = re.sub(r"\(\d+, English\)", f"({n}, English)", t2, count=1)
+    t2 = _clean_claude_md_body(t2)
     if t2 != t and _MANAGED_DATE.sub("", t2) != _MANAGED_DATE.sub("", t):
         if dry:
             return "would bump"
@@ -625,10 +654,16 @@ def verify():
         ok = ok and good
         print(("OK  " if good else "FAIL") + " " + str(h["router"]))
     if CLAUDE_MD.exists():
-        first = CLAUDE_MD.read_text(encoding="utf-8").splitlines()[0]
-        good = f"v{VERSION}" in first
+        claude_text = CLAUDE_MD.read_text(encoding="utf-8")
+        first = claude_text.splitlines()[0] if claude_text else ""
+        stale = (
+            _WARMUP_STARTUP_RE.search(claude_text)
+            or _RETIRED_CLAUDE_SECTIONS.search(claude_text)
+        )
+        good = (f"v{VERSION}" in first) and not stale
         ok = ok and good
-        print(("OK  " if good else "FAIL") + " " + str(CLAUDE_MD))
+        print(("OK  " if good else "FAIL") + " " + str(CLAUDE_MD)
+              + (" (stale warmup/retired skills)" if stale else ""))
     else:
         print(f"SKIP {CLAUDE_MD} (not present)")
     print("\nVERDICT:", "ALL OK" if ok else "FAILED")

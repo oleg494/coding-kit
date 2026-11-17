@@ -313,5 +313,24 @@ class TestDeployRollbackRegression(unittest.TestCase):
                 self.assertNotEqual(rc, 0, "deploy must abort on traversal manifest")
                 # Output should report preflight conflict/error
                 self.assertIn("DEPLOY ABORTED:", out.getvalue())
+
+    def test_rollback_clears_readonly_attributes(self):
+        import stat
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory() as td:
+            target_dir = Path(td) / "dest" / "alpha"
+            ro_file = target_dir / "ro.txt"
+            with deploy.DeployTransaction() as tx:
+                tx.record_absent_ancestors(target_dir)
+                tx.snapshot_target(target_dir)
+                tx.mark_mutations_started()
+                target_dir.mkdir(parents=True)
+                ro_file.write_text("locked", encoding="utf-8")
+                ro_file.chmod(stat.S_IREAD)
+                ok = tx.rollback("forced")
+            self.assertTrue(ok)
+            self.assertFalse(target_dir.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

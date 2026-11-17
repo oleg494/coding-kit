@@ -115,10 +115,24 @@ def safe_rmtree(target: Path) -> None:
                 raise RuntimeError(f"Refusing to delete link file {fp}")
     for root_dir, dirs, files in os.walk(target, topdown=False, followlinks=False):
         for f in files:
-            (Path(root_dir) / f).unlink()
+            fp = Path(root_dir) / f
+            try:
+                fp.unlink()
+            except PermissionError:
+                os.chmod(fp, stat.S_IWRITE)
+                fp.unlink()
         for d in dirs:
-            (Path(root_dir) / d).rmdir()
-    target.rmdir()
+            dp = Path(root_dir) / d
+            try:
+                dp.rmdir()
+            except PermissionError:
+                os.chmod(dp, stat.S_IWRITE)
+                dp.rmdir()
+    try:
+        target.rmdir()
+    except PermissionError:
+        os.chmod(target, stat.S_IWRITE)
+        target.rmdir()
 
 
 def scan_skill_links(dest: Path, skill_dir: Path) -> list:

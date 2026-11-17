@@ -35,16 +35,18 @@ except Exception:  # noqa: S110,BLE001 — optional console nicety
     pass
 
 DEFAULT_ROOT = Path.home() / ".memory"
-# Files that are rebuilt by install.py / build.py — excluded from backups.
-REBUILDABLE = {"_compat.pyc", "__pycache__"}
+# Files and caches that are rebuilt or maintained outside snapshots — excluded from backups.
+REBUILDABLE = {"_compat.pyc", "__pycache__", "db-tools", "indexes", "eval-archive"}
 SQLITE_SIDECAR_SUFFIXES = ("-wal", "-shm", "-journal")
 DEFAULT_KEEP = 10
 
 
-def _prune_completed(dest: Path, keep: int, marker: str = ".complete") -> None:
+def _prune_completed(dest: Path, keep: int, marker: str = ".complete",
+                     suffix: str | None = None) -> None:
     completed = sorted(
         p for p in dest.iterdir()
         if p.is_dir() and (p / marker).is_file()
+        and (suffix is None or p.name.endswith(suffix))
     ) if dest.is_dir() else []
     for old in completed[:-max(1, keep)]:
         shutil.rmtree(old)
@@ -62,7 +64,7 @@ def _is_corruption(e: sqlite3.Error) -> bool:
 
 def memory_root() -> Path:
     import os
-    return Path(os.environ.get("MEMORY_ROOT") or DEFAULT_ROOT)
+    return Path(os.environ.get("MEMORY_ROOT") or DEFAULT_ROOT).expanduser()
 
 
 # Files/folders present only in a real memory root — the same set
@@ -168,6 +170,7 @@ def backup(dest: Path | None = None, root: Path | None = None,
         (target / ".complete").write_text("ok\n", encoding="utf-8")
         offsite = _offsite_copy(target, keep)
     _prune_completed(target.parent, keep)
+    _prune_completed(target.parent, 3, ".complete", "-pre-restore")
     _prune_completed(target.parent, 3, ".degraded")  # DR evidence, small cap
     return {"name": target.name, "path": str(target),
             "files": copied, "dbs": dbs, "skipped": skipped,

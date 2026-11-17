@@ -44,10 +44,11 @@ assuming the two hosts share a skill directory.
 # verified contract — do NOT rsync skills into ~/.hermes/skills/ anymore.
 ```
 
-### Antigravity
+### Antigravity / Gemini
 ```bash
-# rules: ~/AGENTS.md (user-level)
-# skills: ~/.agents/skills/
+# user rules: ~/.gemini/GEMINI.md (Antigravity <RULE[user_global]>) and ~/AGENTS.md
+# skills: ~/.gemini/skills/ and ~/.agents/skills/
+# rollout: python scripts/install.py && python scripts/tools/deploy.py
 ```
 
 ### ZCode (Z.ai)

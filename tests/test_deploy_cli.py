@@ -608,6 +608,39 @@ class ManagedDateStampTest(unittest.TestCase):
             self.assertIn("# Skills: added pointer", text)
             self.assertIn("installed 2026-10-21", text)
 
+    def test_bump_claude_md_cleans_retired_skills_and_warmup_keeps_custom(self):
+        deploy = load_deploy()
+        with tempfile.TemporaryDirectory(prefix="test-claude-clean-") as td:
+            claude = Path(td) / ".claude" / "CLAUDE.md"
+            claude.parent.mkdir(parents=True)
+            claude.write_text(
+                "# coding-kit v6.1.0 (repo master; machine CLAUDE.md refreshed 2026-11-09)\n"
+                "- At session start: `read /kit/OPS.md` (loads FIRST), then `python ~/.memory/scripts/memory-warmup.py`.\n\n"
+                "# graphify\n"
+                "- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - custom\n\n"
+                "# superpowers\n"
+                "- **superpowers** (`~/.claude/skills/superpowers/SKILL.md`) - retired\n\n"
+                "# yagni\n"
+                "- **yagni** (`~/.claude/skills/yagni/SKILL.md`) - retired\n\n"
+                "# ponytail\n"
+                "- **ponytail** (`~/.claude/skills/ponytail/SKILL.md`) - active\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(deploy, "CLAUDE_MD", claude), \
+                 mock.patch.object(deploy, "VERSION", "6.2.0"), \
+                 mock.patch.object(deploy, "TODAY", "2026-11-18"), \
+                 mock.patch.object(deploy, "master_skill_names", return_value=["ponytail"]):
+                status = deploy.bump_claude_md(dry=False)
+            self.assertEqual(status, "bumped")
+            new_text = claude.read_text(encoding="utf-8")
+            self.assertIn("v6.2.0", new_text)
+            self.assertNotIn("memory-warmup.py", new_text)
+            self.assertNotIn("# superpowers", new_text)
+            self.assertNotIn("# yagni", new_text)
+            self.assertIn("# graphify", new_text)
+            self.assertIn("# ponytail", new_text)
+            self.assertFalse(Path(str(claude) + ".kit-bak").exists())
+
 
 class DeploySecondDayTest(unittest.TestCase):
     """A real apply followed by a later-day apply must change nothing at all —

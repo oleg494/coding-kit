@@ -68,6 +68,11 @@ class MaterialityTest(unittest.TestCase):
 
     def test_major_restructure_high(self):
         for p in ("VERSION", "profile.yml", "OPS.md", "AGENTS.md",
+                  "CLAUDE.md", "SKILL_RUNTIME.md", "SECURITY.md",
+                  "scripts/doctor.py", "scripts/tools/deploy.py",
+                  "scripts/tools/hermes_adapter.py",
+                  "eval/session_runner.py", "eval/rigor/runner.py",
+                  "memory/db-tools/findings.py",
                   "adapters/UNIVERSAL.md", "integrity-manifest.json",
                   "skills/fable-judge/SKILL.md"):
             with self.subTest(path=p):

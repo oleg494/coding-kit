@@ -48,13 +48,20 @@ LOW = "low"
 
 _HIGH_EXACT = frozenset({
     "version", "profile.yml", "ops.md", "agents.md",
+    "claude.md", "skill_runtime.md", "security.md",
     "integrity-manifest.json", "pyproject.toml", "setup.py",
-    "scripts/install.py", "pytest.ini", "conftest.py",
+    "scripts/install.py", "scripts/doctor.py",
+    "scripts/tools/deploy.py", "scripts/tools/_deploy_fs.py",
+    "scripts/tools/_deploy_tx.py", "scripts/tools/_deploy_canonical.py",
+    "scripts/tools/hermes_adapter.py", "scripts/tools/integrity_manifest.py",
+    "pytest.ini", "conftest.py",
     "eval/task_runner.py", "eval/runner.py", "eval/results_io.py",
-    "eval/prompt_assembly.py",
+    "eval/prompt_assembly.py", "eval/session_runner.py",
+    "eval/session_gate.ts", "eval/behavior_oracles.py",
 })
 _HIGH_PREFIXES = (
     ".github/workflows/", "adapters/", "eval/scenarios/",
+    "eval/rigor/", "memory/db-tools/", "memory/scripts/",
 )
 _HIGH_SUFFIXES = (
     "requirements.txt", "pipfile", "pipfile.lock", "poetry.lock",
@@ -132,8 +139,9 @@ def summarize(changed_paths: list[str]) -> str:
 
 
 if __name__ == "__main__":
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     import json
     argv = sys.argv[1:]
     if argv and argv[0] in ("-h", "--help"):

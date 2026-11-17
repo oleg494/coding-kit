@@ -17,11 +17,11 @@ def connect_ro(path):
 
 
 def resolve_lifecycle_links(con, names):
-    """Resolve transitive MAX(from_id) supersedes targets and symmetric contradicts."""
+    """Resolve transitive supersedes targets and symmetric contradicts."""
     if "links" not in names:
         return {}, {}
     direct = dict(con.execute(
-        "SELECT to_id, MAX(from_id) FROM links WHERE kind='supersedes' GROUP BY to_id"
+        "SELECT to_id, MIN(from_id) FROM links WHERE kind='supersedes' GROUP BY to_id"
     ))
     replacements = {}
     for target_id in direct:
