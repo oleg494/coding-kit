@@ -50,7 +50,7 @@ for _dir in (str(_ENGINE_DIR), str(_SCRIPT_DIR)):
     if _dir not in sys.path:
         sys.path.insert(0, _dir)
 
-from _compat import chulan_root  # noqa: E402
+from _compat import chulan_root, fix_encoding, ro_uri  # noqa: E402
 from ftsquery import sanitize_query as _sanitize  # noqa: E402
 
 
@@ -103,7 +103,7 @@ def list_dbs() -> list:
     for p in sorted(DB_DIR.glob("*.db")):
         con = None
         try:
-            con = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
+            con = sqlite3.connect(ro_uri(p), uri=True)
             has = con.execute(
                 "SELECT COUNT(*) FROM sqlite_master WHERE name='files_fts'"
             ).fetchone()[0] > 0
@@ -191,7 +191,7 @@ def stats() -> dict:
     if WIKI_DB.exists():
         con = None
         try:
-            con = sqlite3.connect(f"file:{WIKI_DB.as_posix()}?mode=ro", uri=True)
+            con = sqlite3.connect(ro_uri(WIKI_DB), uri=True)
             where = _wiki_where(con)
             out["wiki_entries"] = con.execute(
                 f"SELECT COUNT(*) FROM files WHERE {where}"
@@ -210,7 +210,7 @@ def stats() -> dict:
             continue
         con = None
         try:
-            con = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
+            con = sqlite3.connect(ro_uri(p), uri=True)
             n = con.execute("SELECT COUNT(*) FROM files").fetchone()[0]
         except sqlite3.Error:
             continue
@@ -221,8 +221,7 @@ def stats() -> dict:
     if RESEARCH_DB.exists():
         con = None
         try:
-            con = sqlite3.connect(f"file:{RESEARCH_DB.as_posix()}?mode=ro",
-                                  uri=True)
+            con = sqlite3.connect(ro_uri(RESEARCH_DB), uri=True)
             out["findings"] = con.execute(
                 "SELECT COUNT(*) FROM findings").fetchone()[0]
             has_proj = con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='findings'").fetchone()[0] > 0
@@ -251,7 +250,7 @@ def recent_entries(limit: int = 5) -> list:
         return []
     con = None
     try:
-        con = sqlite3.connect(f"file:{WIKI_DB.as_posix()}?mode=ro", uri=True)
+        con = sqlite3.connect(ro_uri(WIKI_DB), uri=True)
         rows = con.execute(
             f"SELECT {_REL} AS rel_path, date(mtime, 'unixepoch') AS d "
             f"FROM files WHERE {_wiki_where(con)} "
@@ -289,8 +288,7 @@ def unsure_feed() -> list:
     week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M")
     con = None
     try:
-        con = sqlite3.connect(f"file:{RESEARCH_DB.as_posix()}?mode=ro",
-                              uri=True)
+        con = sqlite3.connect(ro_uri(RESEARCH_DB), uri=True)
         cols = {c[1] for c in con.execute("PRAGMA table_info(findings)").fetchall()}
         has_imp = "importance" in cols
         has_links = con.execute(
@@ -301,6 +299,8 @@ def unsure_feed() -> list:
             "JOIN findings a ON a.id = l.from_id "
             "JOIN findings b ON b.id = l.to_id "
             "WHERE l.kind = 'contradicts' "
+            "AND IFNULL(a.text, '') NOT LIKE '%[superseded:%' "
+            "AND IFNULL(b.text, '') NOT LIKE '%[superseded:%' "
             "AND NOT EXISTS (SELECT 1 FROM links s "
             "               WHERE (s.to_id = l.from_id OR s.to_id = l.to_id) "
             "               AND s.kind = 'supersedes') "
@@ -308,10 +308,12 @@ def unsure_feed() -> list:
         ).fetchall() if has_links else []
         # IFNULL: rows from before the verify_cmd/source ALTERs may hold
         # NULL instead of '' — NULL is exactly "no anchor"
-        sup_filter = (
-            "AND NOT EXISTS (SELECT 1 FROM links s WHERE s.to_id = f.id AND s.kind = 'supersedes') "
-            if has_links else ""
-        )
+        sup_filter = "AND IFNULL(f.text, '') NOT LIKE '%[superseded:%' "
+        if has_links:
+            sup_filter += (
+                "AND NOT EXISTS (SELECT 1 FROM links s "
+                "WHERE s.to_id = f.id AND s.kind = 'supersedes') "
+            )
         order_by = (
             "ORDER BY CASE f.importance "
             "  WHEN 'high' THEN 1 "
@@ -348,18 +350,19 @@ def high_priority_feed() -> list:
     con = None
     rows = []
     try:
-        con = sqlite3.connect(f"file:{RESEARCH_DB.as_posix()}?mode=ro",
-                              uri=True)
+        con = sqlite3.connect(ro_uri(RESEARCH_DB), uri=True)
         cols = {c[1] for c in con.execute("PRAGMA table_info(findings)")}
         if "importance" not in cols:
             return []
         has_links = con.execute(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'"
         ).fetchone()[0] > 0
-        sup_filter = (
-            "AND NOT EXISTS (SELECT 1 FROM links l WHERE l.to_id = f.id AND l.kind = 'supersedes')"
-            if has_links else ""
-        )
+        sup_filter = "AND IFNULL(f.text, '') NOT LIKE '%[superseded:%' "
+        if has_links:
+            sup_filter += (
+                "AND NOT EXISTS (SELECT 1 FROM links l "
+                "WHERE l.to_id = f.id AND l.kind = 'supersedes') "
+            )
         rows = con.execute(f"""
             SELECT f.id, f.project, f.topic, IFNULL(f.verified_at, '')
             FROM findings f
@@ -390,7 +393,7 @@ def integrity_check() -> dict:
         if md.name in ("index.md", "log.md", "README.md"):
             continue
         try:
-            if not md.read_text(encoding="utf-8").startswith("---"):
+            if not md.read_text(encoding="utf-8-sig", errors="replace").startswith("---"):
                 errors.append(f"{md.relative_to(WIKI_ROOT)}: missing frontmatter")
         except Exception:
             errors.append(f"{md.relative_to(WIKI_ROOT)}: unreadable")
@@ -436,7 +439,7 @@ def _availability() -> dict:
             available[name] = "absent"
             continue
         try:
-            with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as con:
+            with closing(sqlite3.connect(ro_uri(path), uri=True)) as con:
                 for query in queries:
                     con.execute(query)
             available[name] = "ok"
@@ -577,8 +580,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:
-        pass
+    fix_encoding()
     sys.exit(main())

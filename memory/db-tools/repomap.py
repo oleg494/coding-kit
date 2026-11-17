@@ -20,7 +20,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from _compat import chulan_root, fix_encoding  # noqa: E402 — shared canon helper
+from _compat import chulan_root, fix_encoding, ro_uri  # noqa: E402 — shared canon helper
 
 fix_encoding()
 
@@ -29,7 +29,10 @@ CHAR_PER_TOKEN = 3  # rough estimate: code ~3-4 chars/token, Russian text ~2.5
 
 
 def _connect(db):
-    return sqlite3.connect(db)
+    if not os.path.exists(db):
+        print(f"database not found: {db}", file=sys.stderr)
+        sys.exit(1)
+    return sqlite3.connect(ro_uri(db), uri=True)
 
 
 def _module_index(conn) -> dict:
@@ -180,7 +183,10 @@ def _findings_for(rel_path: str) -> str:
     """research.db findings attached to a file (findings.py add --file)."""
     try:
         from findings_db import research_db_path
-        con = sqlite3.connect(research_db_path())
+        rd = research_db_path()
+        if not os.path.isfile(rd):
+            return ""
+        con = sqlite3.connect(ro_uri(rd), uri=True)
         con.row_factory = sqlite3.Row
         rows = con.execute(
             "SELECT id, topic, symbol FROM findings "

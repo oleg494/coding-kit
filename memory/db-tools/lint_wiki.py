@@ -36,7 +36,10 @@ SERVICE_FILES = {"README.md", "index.md", "log.md"}
 SKIP_DIRS = {"_templates", "raw", "assets"}
 
 # wave4 Task 14: the hygiene taxonomy.
-TAXONOMY_TYPES = {"user", "feedback", "project", "reference"}
+TAXONOMY_TYPES = {
+    "user", "feedback", "project", "reference",
+    "howto", "error", "errors", "decision", "decisions", "idea", "ideas",
+}
 FRESHNESS_DAYS = 180
 INDEX_MAX_LINES = 200  # Anthropic memory-tool cap
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
@@ -143,7 +146,7 @@ def check_index_cap(root: Path, errors: list[str]):
     index = root / "index.md"
     if not index.is_file():
         return
-    n = index.read_text(encoding="utf-8", errors="replace").count("\n")
+    n = index.read_text(encoding="utf-8-sig", errors="replace").count("\n")
     if n > INDEX_MAX_LINES:
         errors.append(
             f"index.md: {n} lines exceeds the {INDEX_MAX_LINES}-line cap — "
@@ -197,13 +200,17 @@ def stamp_modified(text: str, today: str | None = None) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    _here = str(Path(__file__).resolve().parent)
+    if _here not in sys.path:
+        sys.path.insert(0, _here)
+    import _compat
+    _compat.fix_encoding()
     if argv is None:
         argv = sys.argv[1:]
     if argv:
         root = Path(argv[0])
     else:
-        from _compat import chulan_root
-        root = chulan_root() / "Wiki"
+        root = _compat.chulan_root() / "Wiki"
 
 
     errors: list[str] = []
@@ -216,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
         if path.name in SERVICE_FILES or rel.parts[0] in SKIP_DIRS:
             continue
         posts.append(path)
-        text = path.read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8-sig", errors="replace")
         fm = parse_frontmatter(text)
         if fm is None:
             errors.append(f"{rel}: no YAML frontmatter (starts with '---' and closed by '---')")

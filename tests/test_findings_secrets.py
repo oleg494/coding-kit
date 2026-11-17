@@ -212,5 +212,51 @@ class SecretLintCLITest(unittest.TestCase):
         self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
         self.assertIn("possible secret", r.stderr)
 
+    def test_new_provider_tokens_json_and_punctuation_block(self):
+        for text in (
+            '{"api_key": "AbCdEfGh1234", "env": "dev"}',
+            "(password=AbCdEfGh12);",
+            "Authorization: Bearer AbCdEfGh1234",
+            "sk-" + "proj-0123456789abcdefghijABCDEFGHIJ",
+            "sk-" + "ant-0123456789abcdefghijABCDEFGHIJ",
+            "github_" + "pat_0123456789abcdefghijABCDEFGHIJ",
+            "hf_" + "0123456789abcdefghijABCDEFGHIJ",
+            "AIza" + "0123456789abcdefghijABCDEFGHIJ01234",
+            "eyJ" + "hbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTYifQ.signaturepart012",
+        ):
+            r = self._run("add", "secret check", "--text", text)
+            self.assertEqual(r.returncode, 2, f"must refuse {text!r}: {r.stdout + r.stderr}")
+
+    def test_search_no_log_and_env_no_log_and_missing_log_db(self):
+        import sqlite3
+        self._run("add", "alpha row", "--text", "uniquebodytoken alpha")
+        r1 = self._run("search", "uniquebodytoken", "--no-log")
+        self.assertEqual(r1.returncode, 0, r1.stderr)
+        env2 = dict(self.env, MEMORY_NO_LOG="1")
+        r2 = subprocess.run(
+            [sys.executable, str(FINDINGS), "search", "uniquebodytoken"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            env=env2, timeout=120,
+        )
+        self.assertEqual(r2.returncode, 0, r2.stderr)
+        con = sqlite3.connect(self.db_path)
+        has_log = con.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='search_log'"
+        ).fetchone()[0]
+        n = con.execute("SELECT COUNT(*) FROM search_log").fetchone()[0] if has_log else 0
+        con.close()
+        self.assertEqual(n, 0, "neither --no-log nor MEMORY_NO_LOG=1 may write search_log")
+
+        # log_search directly must refuse to create a missing DB file
+        import log
+        old = log.DB
+        absent = self.tmp / "absent_dir" / "research.db"
+        try:
+            log.DB = str(absent)
+            log.log_search("findings.py", "research", "probe", 0)
+            self.assertFalse(absent.exists())
+        finally:
+            log.DB = old
+
 if __name__ == "__main__":
     unittest.main()

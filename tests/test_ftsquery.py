@@ -77,6 +77,44 @@ class SanitizeMatrixTest(unittest.TestCase):
         self.assertEqual(n2, 1, f"fallback must match too: {fb}")
         con.close()
 
+    def test_multiword_phrase_preserved_and_executes(self):
+        self.assertEqual(sanitize_query('"memory root"'), '"memory root"')
+        self.assertEqual(
+            sanitize_query('"memory root" AND wiki'), '"memory root" AND wiki'
+        )
+        con = sqlite3.connect(":memory:")
+        con.execute("CREATE VIRTUAL TABLE t USING fts5(c)")
+        con.execute("INSERT INTO t VALUES ('set memory root path')")
+        con.execute("INSERT INTO t VALUES ('root memory inverted')")
+        q = sanitize_query('"memory root"')
+        n = con.execute(
+            "SELECT COUNT(*) FROM t WHERE t MATCH ?", (q,)
+        ).fetchone()[0]
+        self.assertEqual(n, 1)
+        con.close()
+
+    def test_special_ascii_chars_and_unclosed_inputs_safe(self):
+        con = sqlite3.connect(":memory:")
+        con.execute("CREATE VIRTUAL TABLE t USING fts5(c)")
+        con.execute(
+            "INSERT INTO t VALUES ('user@host foo/bar a+b NEAR(x * \"unclosed')"
+        )
+        for q_raw in (
+            "user@host",
+            "foo/bar",
+            "a+b",
+            "*",
+            "NEAR(x",
+            '"unclosed phrase',
+            'alpha "" beta',
+        ):
+            q = sanitize_query(q_raw)
+            if q:
+                con.execute("SELECT COUNT(*) FROM t WHERE t MATCH ?", (q,))
+        self.assertEqual(sanitize_query('"agent-lsp"*'), '"agent-lsp"*')
+        self.assertEqual(sanitize_query("{component}"), "{component}")
+        con.close()
+
 
 if __name__ == "__main__":
     unittest.main()

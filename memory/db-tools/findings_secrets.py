@@ -9,14 +9,22 @@ import re
 _SECRET_RES = [
     ("aws-access-key", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), None),
     ("github-token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"), None),
+    ("github-pat", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"), None),
+    ("openai-key", re.compile(r"\bsk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{20,}\b"), None),
+    ("anthropic-key", re.compile(r"\bsk-ant-[A-Za-z0-9_-]{20,}\b"), None),
+    ("huggingface-token", re.compile(r"\bhf_[A-Za-z0-9]{20,}\b"), None),
+    ("google-api-key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"), None),
+    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"), None),
     ("private-key-block", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), None),
+    ("bearer-token", re.compile(
+        r"(?i)\bAuthorization\s*:\s*Bearer\s+(?P<val>\S{6,})"), "val"),
     ("keyword+value", re.compile(
         r"(?i)(?<![A-Za-z])(?:password|passwd|пароль|api[_-]?key|secret"
-        r"|access[_-]?key|token)(?![A-Za-z])"
-        r"\s*[:=]?\s*(?P<val>\S{6,})"), "val"),
+        r"|access[_-]?key|auth[_-]?token|token)(?![A-Za-z])"
+        r"""['"]?\s*[:=]?\s*(?P<val>\S{6,})"""), "val"),
     ("aws-secret-key", re.compile(
         r"(?i)(?<![A-Za-z])(?:aws_)?secret[_-]?access[_-]?key"
-        r"\s*[:=]?\s*(?P<val>\S{6,})"), "val"),
+        r"""['"]?\s*[:=]?\s*(?P<val>\S{6,})"""), "val"),
     ("curl-u-cred", re.compile(
         r"(?:^|\s)-u\s+\S+:(?P<val>[^\s:]{6,})(?:\s|$)"), "val"),
     ("url-userinfo", re.compile(
@@ -46,7 +54,11 @@ def _pathish(v: str) -> bool:
 
 def _looks_secret(val: str) -> bool:
     """Credential-shaped value, not prose/code fragment/path."""
-    v = val.strip("'\"")
+    v = val.rstrip(",;")
+    if v.endswith(")") and "(" not in v:
+        v = v[:-1]
+    v = v.strip("'\"")
+    v = v.rstrip(",;")
     if not v or not v[0].isalnum():
         return False
     if any(c in v for c in _STRUCTURAL):

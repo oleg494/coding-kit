@@ -114,62 +114,15 @@ def venv_python():
     return d / "bin" / "python"
 
 
-def yaml_scalar(value):
-    """YAML scalar from a python value. A JSON string is valid YAML
-    (double quotes): json.dumps is safe for paths and arguments.
-    Used by text-based YAML surgeons (install_mcp apply_hermes,
-    install_proshivka hermes-hook) — without a YAML parser, so comments
-    and foreign formatting are not destroyed."""
-    import json
-    if isinstance(value, str):
-        return json.dumps(value)
-    return str(value)
-
-
-def replace_top_level_yaml_block(path, block, marker):
-    """Surgical replacement of a top-level YAML-config block: the marker
-    line without indentation + all following indented lines are replaced
-    with block; everything else (foreign sections, comments) is preserved
-    byte-for-byte. No block — appended at the end. No file — created (the
-    parent directory is created too). Returns True if the block was found
-    (replaced), False if it was appended (needed for the "does the user
-    have their own block" logic)."""
-    if os.path.exists(path):
-        with open(path, encoding="utf-8-sig") as f:
-            text = f.read()
-        lines = text.splitlines()
-        out = []
-        i = 0
-        replaced = False
-        while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-            is_block_start = (
-                bool(line) and not line[0].isspace()
-                and (stripped == marker
-                     or stripped.startswith(marker + " ")
-                     or stripped.startswith(marker + "\t")
-                     or stripped.startswith(marker + "#"))
-            )
-            if is_block_start:
-                i += 1
-                while i < len(lines) and (
-                        not lines[i].strip() or lines[i][0].isspace()):
-                    i += 1
-                out.extend(block.splitlines())
-                replaced = True
-                continue
-            out.append(line)
-            i += 1
-        if not replaced:
-            if out and out[-1].strip():
-                out.append("")
-            out.extend(block.splitlines())
-        text = "\n".join(out) + "\n"
+def ro_uri(path):
+    """Build an escaped SQLite read-only URI (handles PurePath, UNC, #, %, spaces)."""
+    from pathlib import PurePath
+    from urllib.parse import quote
+    if isinstance(path, PurePath) and not isinstance(path, Path):
+        posix = path.as_posix()
     else:
-        replaced = False
-        text = block
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(text)
-    return replaced
+        p = Path(path)
+        posix = (p if p.is_absolute() else Path(os.path.abspath(p))).as_posix()
+    if posix.startswith("/") and not posix.startswith("//"):
+        return "file://" + quote(posix, safe="/:") + "?mode=ro"
+    return "file:" + quote(posix, safe="/:") + "?mode=ro"

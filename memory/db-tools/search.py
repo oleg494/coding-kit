@@ -38,8 +38,8 @@ from log import empty_queries, log_search, search_stats
 
 
 def _connect(db_path):
-    """Opens the project database (row_factory — Row for name access)."""
-    con = sqlite3.connect(db_path)
+    """Opens the project database read-only (row_factory — Row for name access)."""
+    con = sqlite3.connect(_compat.ro_uri(db_path), uri=True)
     con.row_factory = sqlite3.Row
     return con
 
@@ -328,7 +328,7 @@ def _did_you_mean(query, db_name):
     if not toks:
         return ""
     try:
-        con = sqlite3.connect(rd)
+        con = sqlite3.connect(_compat.ro_uri(rd), uri=True)
         try:
             rows = con.execute(
                 "SELECT query, MAX(hits) FROM search_log WHERE hits > 0 "
@@ -366,7 +366,7 @@ def _wiki_hint(query, current_db):
     if not os.path.isfile(wiki):
         return ""
     try:
-        wcon = sqlite3.connect(wiki)
+        wcon = sqlite3.connect(_compat.ro_uri(wiki), uri=True)
         try:
             n = wcon.execute(
                 "SELECT COUNT(*) FROM files_fts WHERE files_fts MATCH ?",

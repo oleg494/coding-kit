@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.join(
 import _compat
 from ftsquery import fallback_query, sanitize_query
 from log import log_search
+from memory_corpus import resolve_lifecycle_links
 
 ROOT = _compat.chulan_root()
 
@@ -256,16 +257,16 @@ def _superseded_expr(alias, cur=None):
     """The bare superseded-by subquery EXPRESSION (no alias): links
     kind='supersedes', to_id = the OLD row. A scalar subquery, NOT a LEFT
     JOIN: a second `--supersedes N` would fan row N out into duplicate
-    result rows (and duplicate --json ids) with a join; MIN(from_id)
-    keeps one row per finding. Callers that SELECT it append
-    ' AS superseded_by'; callers that FILTER on it use it directly (an
-    aliased expression is invalid inside WHERE). `alias` is a fixed
-    column reference (f.id), never user input."""
+    result rows (and duplicate --json ids) with a join; MAX(from_id)
+    keeps one row per finding and prefers the latest replacement. Callers
+    that SELECT it append ' AS superseded_by'; callers that FILTER on it use
+    it directly (an aliased expression is invalid inside WHERE). `alias` is
+    a fixed column reference (f.id), never user input."""
     if cur is not None:
         has_links = cur.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='links'").fetchone()[0] > 0
         if not has_links:
             return "NULL"
-    return ("(SELECT MIN(l.from_id) FROM links l "
+    return ("(SELECT MAX(l.from_id) FROM links l "
             f"WHERE l.to_id = {alias} AND l.kind = 'supersedes')")
 
 
@@ -276,133 +277,151 @@ def _superseded_by(alias, cur=None):
 
 def cmd_del(args):
     con = connect()
-    cur = con.cursor()
-    row = cur.execute("SELECT topic FROM findings WHERE id = ?",
-                      (args.id,)).fetchone()
-    if not row:
-        print(f"no finding with id={args.id}")
-        return
-    # Re-point dangling supersedes: if the deleted row replaced others,
-    # they must not silently become current again. Their links to the
-    # deleted row are removed, but the fact that they were superseded
-    # must survive as text (tombstone) — deleting the correction must
-    # not resurrect the disproven conclusion as the apparent current one.
-    superseded_by_deleted = cur.execute(
-        "SELECT to_id FROM links WHERE from_id = ? AND kind = 'supersedes'",
-        (args.id,)).fetchall()
-    cur.execute("DELETE FROM findings WHERE id = ?", (args.id,))
-    cur.execute("DELETE FROM finding_classifications WHERE finding_id = ?", (args.id,))
-    n_links = cur.execute(
-        "DELETE FROM links WHERE from_id = ? OR to_id = ?",
-        (args.id, args.id)).rowcount
-    for (old_id,) in superseded_by_deleted:
-        cur.execute(
-            "UPDATE findings SET text = text || "
-            " '\n[superseded: conclusion replaced, replacer was deleted]' "
-            "WHERE id = ?", (old_id,))
-    con.commit()
-    print(f"[✓] deleted: id={args.id} \"{row['topic']}\""
-          + (f" (links deleted: {n_links})" if n_links else ""))
-    con.close()
+    try:
+        cur = con.cursor()
+        row = cur.execute("SELECT topic FROM findings WHERE id = ?",
+                          (args.id,)).fetchone()
+        if not row:
+            print(f"no finding with id={args.id}")
+            return
+        # Re-point dangling supersedes: if the deleted row replaced others,
+        # they must not silently become current again. Their links to the
+        # deleted row are removed, but the fact that they were superseded
+        # must survive as text (tombstone) — deleting the correction must
+        # not resurrect the disproven conclusion as the apparent current one.
+        superseded_by_deleted = cur.execute(
+            "SELECT to_id FROM links WHERE from_id = ? AND kind = 'supersedes'",
+            (args.id,)).fetchall()
+        cur.execute("DELETE FROM findings WHERE id = ?", (args.id,))
+        cur.execute("DELETE FROM finding_classifications WHERE finding_id = ?", (args.id,))
+        n_links = cur.execute(
+            "DELETE FROM links WHERE from_id = ? OR to_id = ?",
+            (args.id, args.id)).rowcount
+        for (old_id,) in superseded_by_deleted:
+            cur.execute(
+                "UPDATE findings SET text = text || "
+                " '\n[superseded: conclusion replaced, replacer was deleted]' "
+                "WHERE id = ?", (old_id,))
+        con.commit()
+        print(f"[✓] deleted: id={args.id} \"{row['topic']}\""
+              + (f" (links deleted: {n_links})" if n_links else ""))
+    finally:
+        con.close()
 
 
 def cmd_edit(args):
     con = connect()
-    cur = con.cursor()
-    row = cur.execute("SELECT * FROM findings WHERE id = ?",
-                      (args.id,)).fetchone()
-    if not row:
-        print(f"no finding with id={args.id}")
-        return
-    sets, params = [], []
-    evidence_changed = False
-    for col, val in (("topic", args.topic), ("text", args.text),
-                     ("tags", args.tags), ("source", args.source),
-                     ("verify_cmd", args.verify_cmd),
-                     ("file", args.file), ("symbol", args.symbol),
-                     ("project", validate_project_slug(args.project) if getattr(args, "project", None) is not None else None),
-                     ("importance", getattr(args, "importance", None))):
-        if col == "importance" and val is not None:
-            if val not in IMPORTANCE_LEVELS:
-                print(f"[!] invalid importance '{val}': must be one of {', '.join(sorted(IMPORTANCE_LEVELS))}", file=sys.stderr)
-                con.close()
+    try:
+        cur = con.cursor()
+        row = cur.execute("SELECT * FROM findings WHERE id = ?",
+                          (args.id,)).fetchone()
+        if not row:
+            print(f"no finding with id={args.id}")
+            return
+        proj_val = None
+        if getattr(args, "project", None) is not None:
+            try:
+                proj_val = validate_project_slug(args.project)
+            except ValueError as e:
+                print(f"[!] {e}", file=sys.stderr)
                 sys.exit(2)
-        if val is not None:
-            if col == "tags":
-                val = _norm_tags(val)
-            # Freshness: topic/text/source/file/symbol/verify_cmd ARE the
-            # evidence. An edit that actually changes one of them makes the
-            # old verified_at stamp a claim about the PRE-EDIT evidence —
-            # mark it so the SET loop below clears it. No-op values and
-            # tags/project/importance (bookkeeping) leave the stamp alone.
-            if col in ("topic", "text", "source", "verify_cmd",
-                       "file", "symbol") and val != row[col]:
-                evidence_changed = True
-            sets.append(f"{col} = ?")
-            params.append(val)
-    if not sets:
-        print("nothing to change: pass --topic/--text/--tags/--source/"
-              "--verify-cmd/--file/--symbol")
-        return
-    # Scan EVERY whitelisted column INDEPENDENTLY (add/edit choke-point
-    # symmetry; joining lets the regex bridge a field boundary — see cmd_add).
-    secrets = []
-    for v in (args.topic, args.text, args.tags, args.source,
-              args.verify_cmd, args.file, args.symbol,
-              getattr(args, "project", None), getattr(args, "importance", None)):
-        if v is not None:
-            secrets += find_secrets(str(v))[0]
-    if secrets and not getattr(args, "force", False):
-        print(f"[!] possible secret in edited fields ({len(secrets)} hit(s)) — "
-              f"REFUSED. Store only WHERE the secret lives; override: --force",
-              file=sys.stderr)
+        if args.verify_cmd and not _quote_balanced(args.verify_cmd):
+            print("[!] --verify-cmd has unbalanced quotes — the shell line "
+                  "would mis-parse at verify time; REFUSED", file=sys.stderr)
+            sys.exit(2)
+        sets, params = [], []
+        evidence_changed = False
+        for col, val in (("topic", args.topic), ("text", args.text),
+                         ("tags", args.tags), ("source", args.source),
+                         ("verify_cmd", args.verify_cmd),
+                         ("file", args.file), ("symbol", args.symbol),
+                         ("project", proj_val),
+                         ("importance", getattr(args, "importance", None))):
+            if col == "importance" and val is not None:
+                if val not in IMPORTANCE_LEVELS:
+                    print(f"[!] invalid importance '{val}': must be one of {', '.join(sorted(IMPORTANCE_LEVELS))}", file=sys.stderr)
+                    sys.exit(2)
+            if val is not None:
+                if col == "tags":
+                    val = _norm_tags(val)
+                # Freshness: topic/text/source/file/symbol/verify_cmd ARE the
+                # evidence. An edit that actually changes one of them makes the
+                # old verified_at stamp a claim about the PRE-EDIT evidence —
+                # mark it so the SET loop below clears it. No-op values and
+                # tags/project/importance (bookkeeping) leave the stamp alone.
+                if col in ("topic", "text", "source", "verify_cmd",
+                           "file", "symbol") and val != row[col]:
+                    evidence_changed = True
+                sets.append(f"{col} = ?")
+                params.append(val)
+        if not sets:
+            print("nothing to change: pass --topic/--text/--tags/--source/"
+                  "--verify-cmd/--file/--symbol")
+            return
+        # Scan EVERY whitelisted column INDEPENDENTLY (add/edit choke-point
+        # symmetry; joining lets the regex bridge a field boundary — see cmd_add).
+        secrets = []
+        for v in (args.topic, args.text, args.tags, args.source,
+                  args.verify_cmd, args.file, args.symbol,
+                  getattr(args, "project", None), getattr(args, "importance", None)):
+            if v is not None:
+                secrets += find_secrets(str(v))[0]
+        if secrets and not getattr(args, "force", False):
+            print(f"[!] possible secret in edited fields ({len(secrets)} hit(s)) — "
+                  f"REFUSED. Store only WHERE the secret lives; override: --force",
+                  file=sys.stderr)
+            sys.exit(2)
+        params.append(args.id)
+        if evidence_changed:
+            # Empty string is the schema's unverified sentinel (DEFAULT ''),
+            # matching cmd_add; search_all.py reads bool(verified_at).
+            sets.append("verified_at = ''")
+        # Columns are the fixed list above (topic/text/tags/source),
+        # values are only parameters: no injection.
+        cur.execute(f"UPDATE findings SET {', '.join(sets)} WHERE id = ?", params)  # noqa: S608 — columns whitelist, values params; nosemgrep
+        # Update audit trail in finding_classifications whenever project or importance is touched
+        if getattr(args, "project", None) is not None or getattr(args, "importance", None) is not None:
+            now = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
+            new_row = cur.execute("SELECT project, importance FROM findings WHERE id = ?", (args.id,)).fetchone()
+            cur.execute("""
+                INSERT OR REPLACE INTO finding_classifications (
+                    finding_id, project, project_provenance, project_evidence,
+                    importance, importance_provenance, importance_evidence,
+                    classified_at, classified_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (args.id, new_row["project"], "cli_edit", "user cli edit",
+                  new_row["importance"], "cli_edit", "user cli edit", now, "user-cli"))
+        con.commit()
+        print(f"[✓] updated: id={args.id} \"{row['topic']}\"")
+    finally:
         con.close()
-        sys.exit(2)
-    params.append(args.id)
-    if evidence_changed:
-        # Empty string is the schema's unverified sentinel (DEFAULT ''),
-        # matching cmd_add; search_all.py reads bool(verified_at).
-        sets.append("verified_at = ''")
-    # Columns are the fixed list above (topic/text/tags/source),
-    # values are only parameters: no injection.
-    cur.execute(f"UPDATE findings SET {', '.join(sets)} WHERE id = ?", params)  # noqa: S608 — columns whitelist, values params; nosemgrep
-    # Update audit trail in finding_classifications whenever project or importance is touched
-    if getattr(args, "project", None) is not None or getattr(args, "importance", None) is not None:
-        now = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
-        new_row = cur.execute("SELECT project, importance FROM findings WHERE id = ?", (args.id,)).fetchone()
-        cur.execute("""
-            INSERT OR REPLACE INTO finding_classifications (
-                finding_id, project, project_provenance, project_evidence,
-                importance, importance_provenance, importance_evidence,
-                classified_at, classified_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (args.id, new_row["project"], "cli_edit", "user cli edit",
-              new_row["importance"], "cli_edit", "user cli edit", now, "user-cli"))
-    con.commit()
-    print(f"[✓] updated: id={args.id} \"{row['topic']}\"")
-    con.close()
 
 
-def _log_findings_search(query, count, db_path):
+def _log_findings_search(query, count, db_path, no_log=False):
     """Best-effort telemetry — but never CREATE the store: a read-only
     query against an absent store must leave memory untouched (no new
     file, no row). log_search's own _connect() would otherwise create
     research.db + search_log on the first search of a missing store."""
+    if no_log:
+        return
     if os.path.exists(db_path):
         log_search("findings.py", "research", scrub_text(query), count)
 
 
-def _finding_record(r):
+def _finding_record(r, sup_by=None, contradicted_by=None):
     """The pinned lexical --json record shape for one result row."""
-    return {"id": r["id"], "created": r["created"], "topic": r["topic"],
-            "tags": r["tags"], "source": r["source"], "file": r["file"],
-            "score": round(r["score"], 4),
-            "superseded_by": r["superseded_by"],
-            "has_verify": bool(r["verify_cmd"]),
-            "verified_at": r["verified_at"],
-            "project": r["project"] if "project" in r.keys() else "unknown",
-            "importance": r["importance"] if "importance" in r.keys() else "unreviewed",
-            "snippet": r["snip"]}
+    rec = {"id": r["id"], "created": r["created"], "topic": r["topic"],
+           "tags": r["tags"], "source": r["source"], "file": r["file"],
+           "score": round(r["score"], 4),
+           "superseded_by": sup_by if sup_by is not None else r["superseded_by"],
+           "has_verify": bool(r["verify_cmd"]),
+           "verified_at": r["verified_at"],
+           "project": r["project"] if "project" in r.keys() else "unknown",
+           "importance": r["importance"] if "importance" in r.keys() else "unreviewed",
+           "snippet": r["snip"]}
+    if contradicted_by:
+        rec["contradicted_by"] = list(contradicted_by)
+    return rec
 
 
 def cmd_search(args):
@@ -417,231 +436,262 @@ def cmd_search(args):
     if con is None:
         print(f"findings search: {problem}", file=sys.stderr)
         sys.exit(1)
-    cur = con.cursor()
-    cols = {c[1] for c in cur.execute("PRAGMA table_info(findings)").fetchall()}
-    # Legacy stores predate project/importance. The SELECT projects a
-    # literal (`'unknown' AS project`), but the WHERE must filter on the
-    # bare EXPRESSION — an aliased expression is invalid inside WHERE
-    # (that mix was the invalid-syntax crash on scoped legacy queries).
-    proj_expr = "f.project" if "project" in cols else "'unknown'"
-    imp_expr = "f.importance" if "importance" in cols else "'unreviewed'"
-    sup_expr = _superseded_expr("f.id", cur)
-    base = ("SELECT f.id, f.created, f.topic, f.tags, f.source, f.file, "
-            f"f.symbol, f.verify_cmd, f.verified_at, {proj_expr} AS project, "
-            f"{imp_expr} AS importance, " + sup_expr + " AS superseded_by, "
-            "bm25(findings_fts, 10.0, 1.0) AS score, "
-            "snippet(findings_fts, 1, '[', ']', '…', 12) AS snip, "
-            "highlight(findings_fts, 0, '[', ']') AS htopic "
-            "FROM findings_fts JOIN findings f ON f.id = findings_fts.rowid "
-            "WHERE findings_fts MATCH ?")
-    count_sql = ("SELECT COUNT(*) FROM findings_fts JOIN findings f "
-                 "ON f.id = findings_fts.rowid WHERE findings_fts MATCH ?")
-    source = getattr(args, "source", "")
-    tag = getattr(args, "tag", "")
-    project = getattr(args, "project", "")
-    importance = getattr(args, "importance", "")
-    state = getattr(args, "state", "all") or "all"
-    verification = getattr(args, "verification", "all") or "all"
-    # Every filter is one more `?`; collect its binding ONCE in
-    # filter_params so the fallback/prefix retries (which rebuild the
-    # query param) can never drift out of sync with the SQL string.
-    filters = ""
-    filter_params = []
-    if source:
-        filters += " AND f.source LIKE ?"
-        filter_params.append(f"%{source}%")
-    if tag:
-        filters += " AND ' '||f.tags||' ' LIKE ?"
-        filter_params.append(f"% {tag} %")
-    if project:
-        filters += f" AND ({proj_expr}) = ?"
-        filter_params.append(project)
-    if importance:
-        filters += f" AND ({imp_expr}) = ?"
-        filter_params.append(importance)
-    # Lifecycle: 'superseded' spans an intact supersedes link AND the
-    # '[superseded:' tombstone left when the replacer row was deleted
-    # (so a disproven conclusion stays superseded forever). All applied
-    # in WHERE = before LIMIT, so counts and pages agree.
-    tomb = "f.text LIKE '%[superseded:%'"
-    if state == "current":
-        filters += f" AND ({sup_expr} IS NULL AND {tomb} = 0)"
-    elif state == "superseded":
-        filters += f" AND ({sup_expr} IS NOT NULL OR {tomb})"
-    if verification == "verified":
-        filters += " AND (f.verified_at IS NOT NULL AND f.verified_at != '')"
-    elif verification == "unverified":
-        filters += " AND (f.verified_at IS NULL OR f.verified_at = '')"
-    # P9: relevance first (weights mirror search.py:220), recency only as
-    # tiebreak; id-DESC was defect #1 (0/10 overlap with bm25-top-10 on
-    # the 10k clone). COUNT separately from LIMIT = honest header.
-    order = " ORDER BY score, f.id DESC"
-    note = ""
     try:
-        params = [sanitize_query(args.query)] + filter_params
-        rows = cur.execute(base + filters + order + " LIMIT ?",
-                           params + [args.limit]).fetchall()
-        total = cur.execute(count_sql + filters, params).fetchone()[0]
-    except sqlite3.OperationalError as e:
-        # P8: one retry with the dot-split fallback ('5.3' is an FTS5
-        # syntax error bare); a second failure is a genuinely bad query
+        cur = con.cursor()
+        cols = {c[1] for c in cur.execute("PRAGMA table_info(findings)").fetchall()}
+        names = {r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        replacements, contradictions = resolve_lifecycle_links(con, names)
+        # Legacy stores predate project/importance. The SELECT projects a
+        # literal (`'unknown' AS project`), but the WHERE must filter on the
+        # bare EXPRESSION — an aliased expression is invalid inside WHERE
+        # (that mix was the invalid-syntax crash on scoped legacy queries).
+        proj_expr = "f.project" if "project" in cols else "'unknown'"
+        imp_expr = "f.importance" if "importance" in cols else "'unreviewed'"
+        sup_expr = _superseded_expr("f.id", cur)
+        base = ("SELECT f.id, f.created, f.topic, f.tags, f.source, f.file, "
+                f"f.symbol, f.verify_cmd, f.verified_at, {proj_expr} AS project, "
+                f"{imp_expr} AS importance, " + sup_expr + " AS superseded_by, "
+                "bm25(findings_fts, 10.0, 1.0) AS score, "
+                "snippet(findings_fts, 1, '[', ']', '…', 12) AS snip, "
+                "highlight(findings_fts, 0, '[', ']') AS htopic "
+                "FROM findings_fts JOIN findings f ON f.id = findings_fts.rowid "
+                "WHERE findings_fts MATCH ?")
+        count_sql = ("SELECT COUNT(*) FROM findings_fts JOIN findings f "
+                     "ON f.id = findings_fts.rowid WHERE findings_fts MATCH ?")
+        source = getattr(args, "source", "")
+        tag = getattr(args, "tag", "")
+        project = getattr(args, "project", "")
+        importance = getattr(args, "importance", "")
+        state = getattr(args, "state", "all") or "all"
+        verification = getattr(args, "verification", "all") or "all"
+        # Every filter is one more `?`; collect its binding ONCE in
+        # filter_params so the fallback/prefix retries (which rebuild the
+        # query param) can never drift out of sync with the SQL string.
+        filters = ""
+        filter_params = []
+        if source:
+            filters += " AND f.source LIKE ?"
+            filter_params.append(f"%{source}%")
+        if tag:
+            filters += " AND ' '||f.tags||' ' LIKE ?"
+            filter_params.append(f"% {tag} %")
+        if project:
+            filters += f" AND ({proj_expr}) = ?"
+            filter_params.append(project)
+        if importance:
+            filters += f" AND ({imp_expr}) = ?"
+            filter_params.append(importance)
+        # Lifecycle: 'superseded' spans an intact supersedes link AND the
+        # '[superseded:' tombstone left when the replacer row was deleted
+        # (so a disproven conclusion stays superseded forever). All applied
+        # in WHERE = before LIMIT, so counts and pages agree.
+        tomb = "f.text LIKE '%[superseded:%'"
+        if state == "current":
+            filters += f" AND ({sup_expr} IS NULL AND {tomb} = 0)"
+        elif state == "superseded":
+            filters += f" AND ({sup_expr} IS NOT NULL OR {tomb})"
+        if verification == "verified":
+            filters += " AND (f.verified_at IS NOT NULL AND f.verified_at != '')"
+        elif verification == "unverified":
+            filters += " AND (f.verified_at IS NULL OR f.verified_at = '')"
+        # P9: relevance first (weights mirror search.py:220), recency only as
+        # tiebreak; id-DESC was defect #1 (0/10 overlap with bm25-top-10 on
+        # the 10k clone). COUNT separately from LIMIT = honest header.
+        order = " ORDER BY score, f.id DESC"
+        note = ""
         try:
-            params = [fallback_query(args.query)] + filter_params
+            params = [sanitize_query(args.query)] + filter_params
             rows = cur.execute(base + filters + order + " LIMIT ?",
                                params + [args.limit]).fetchall()
             total = cur.execute(count_sql + filters, params).fetchone()[0]
-            note = " (query auto-quoted)"
-        except sqlite3.OperationalError:
-            print(f"invalid query: {e}", file=sys.stderr)
-            con.close()
-            sys.exit(1)
-    # P10: prefix-retry on empty (query-side, mirrors search.py): any
-    # token len>=4 becomes a prefix; zero storage cost
-    if not rows and not note:
-        toks = [t for t in args.query.split() if len(t) >= 4]
-        if toks:
-            pq = " ".join('"' + t.replace('"', '""') + '"*' for t in toks)
-            pparams = [pq] + filter_params
-            prows = cur.execute(base + filters + order + " LIMIT ?",
-                                pparams + [args.limit]).fetchall()
-            if prows:
-                rows, total = prows, cur.execute(
-                    count_sql + filters, pparams).fetchone()[0]
-                note = " (found by prefix (auto))"
-    # Telemetry: the findings surface was invisible to search_log, so every
-    # recall decision (did-you-mean, trigram, empty-mining) flew blind here.
-    _log_findings_search(args.query, len(rows), findings_db.DB)
-    if getattr(args, "json_mode", False):
-        print(json.dumps([_finding_record(r) for r in rows],
-                         ensure_ascii=False))
+        except sqlite3.OperationalError as e:
+            # P8: one retry with the dot-split fallback ('5.3' is an FTS5
+            # syntax error bare); a second failure is a genuinely bad query
+            try:
+                params = [fallback_query(args.query)] + filter_params
+                rows = cur.execute(base + filters + order + " LIMIT ?",
+                                   params + [args.limit]).fetchall()
+                total = cur.execute(count_sql + filters, params).fetchone()[0]
+                note = " (query auto-quoted)"
+            except sqlite3.OperationalError:
+                print(f"invalid query: {e}", file=sys.stderr)
+                sys.exit(1)
+        # P10: prefix-retry on empty (query-side, mirrors search.py): any
+        # token len>=4 becomes a prefix; zero storage cost
+        if not rows and not note:
+            toks = [t for t in args.query.split() if len(t) >= 4]
+            if toks:
+                pq = " ".join('"' + t.replace('"', '""') + '"*' for t in toks)
+                pparams = [pq] + filter_params
+                prows = cur.execute(base + filters + order + " LIMIT ?",
+                                    pparams + [args.limit]).fetchall()
+                if prows:
+                    rows, total = prows, cur.execute(
+                        count_sql + filters, pparams).fetchone()[0]
+                    note = " (found by prefix (auto))"
+        # Telemetry: the findings surface was invisible to search_log, so every
+        # recall decision (did-you-mean, trigram, empty-mining) flew blind here.
+        _log_findings_search(
+            args.query, len(rows), findings_db.DB,
+            no_log=getattr(args, "no_log", False),
+        )
+        if getattr(args, "json_mode", False):
+            print(json.dumps([
+                _finding_record(
+                    r,
+                    sup_by=replacements.get(r["id"], r["superseded_by"]),
+                    contradicted_by=contradictions.get(r["id"], []),
+                )
+                for r in rows
+            ], ensure_ascii=False))
+            return
+        if not rows:
+            print(f"not found for \"{args.query}\""
+                  + (f" (source ~ \"{source}\")" if source else "")
+                  + (f" (tag \"{tag}\")" if tag else ""))
+            return
+        print(f"found: {total}, showing: {len(rows)}{note}\n")
+        for r in rows:
+            sup_id = replacements.get(r["id"], r["superseded_by"])
+            contra_ids = contradictions.get(r["id"], [])
+            badge = f"  ⚠ superseded by #{sup_id}" if sup_id else ""
+            if contra_ids:
+                badge += f"  ⚠ contradicted by {', '.join(f'#{c}' for c in contra_ids)}"
+            proj_badge = (f" [{r['project']}]"
+                          if r["project"] and r["project"] != "unknown" else "")
+            print(f"[{r['id']}] {r['created']}  {r['htopic']}{proj_badge}  "
+                  f"({r['tags']}){badge}")
+            print(f"  …{r['snip']}")
+            print()
+    finally:
         con.close()
-        return
-    if not rows:
-        print(f"not found for \"{args.query}\""
-              + (f" (source ~ \"{source}\")" if source else "")
-              + (f" (tag \"{tag}\")" if tag else ""))
-        con.close()
-        return
-    print(f"found: {total}, showing: {len(rows)}{note}\n")
-    for r in rows:
-        badge = (f"  ⚠ superseded by #{r['superseded_by']}"
-                 if r["superseded_by"] else "")
-        proj_badge = (f" [{r['project']}]"
-                      if r["project"] and r["project"] != "unknown" else "")
-        print(f"[{r['id']}] {r['created']}  {r['htopic']}{proj_badge}  "
-              f"({r['tags']}){badge}")
-        print(f"  …{r['snip']}")
-        print()
-    con.close()
 
 
 def cmd_list(args):
     con = connect_read()
-    cur = con.cursor()
-    cols = {c[1] for c in cur.execute("PRAGMA table_info(findings)").fetchall()}
-    proj_expr = "f.project" if "project" in cols else "'unknown'"
-    imp_expr = "f.importance" if "importance" in cols else "'unreviewed'"
-    sel = ("SELECT f.id, f.created, f.topic, f.tags, f.file, f.symbol, "
-           f"{proj_expr} AS project, {imp_expr} AS importance, "
-           "f.verify_cmd, f.verified_at, f.text, "
-           + _superseded_by("f.id", cur) + " FROM findings f ")
-    conds, params = [], []
-    if getattr(args, "project", ""):
-        conds.append(f"({proj_expr}) = ?")
-        params.append(args.project)
-    if getattr(args, "importance", ""):
-        conds.append(f"({imp_expr}) = ?")
-        params.append(args.importance)
-    if getattr(args, "unreviewed", False):
-        conds.append(f"({imp_expr}) = 'unreviewed'")
-    if getattr(args, "unverified", False):
-        conds.append("f.verify_cmd <> '' "
-                     "AND (f.verified_at IS NULL OR f.verified_at = '')")
-    where_clause = ("WHERE " + " AND ".join(conds) + " ") if conds else ""
-    rows = cur.execute(
-        sel + where_clause + "ORDER BY f.id DESC LIMIT ?",
-        params + [args.limit]).fetchall()
-    if not rows:
-        print("empty so far — add the first finding: findings.py add \"topic\"")
-        return
-    print(f"total: {len(rows)}\n")
-    for r in rows:
-        loc = f" [{r['file']}:{r['symbol']}]" if r["file"] else ""
-        tombstone = ("  ⚠ superseded (replacer deleted)"
-                     if "text" in r.keys() and "[superseded:" in (r["text"] or "") else "")
-        badge = (f"  ⚠ superseded by #{r['superseded_by']}"
-                 if r["superseded_by"] else tombstone)
-        proj_str = f" [{r['project']}]" if ("project" in r.keys() and r["project"] and r["project"] != "unknown") else ""
-        imp_str = f" *{r['importance']}*" if ("importance" in r.keys() and r["importance"] and r["importance"] != "unreviewed") else ""
-        unv_badge = (" [unverified]"
-                     if (r["verify_cmd"] and not r["verified_at"]) else "")
-        print(f"[{r['id']}] {r['created']}  {r['topic']}{proj_str}{imp_str}  "
-              f"({r['tags']}){unv_badge}{loc}{badge}")
-    con.close()
+    try:
+        cur = con.cursor()
+        cols = {c[1] for c in cur.execute("PRAGMA table_info(findings)").fetchall()}
+        names = {r[0] for r in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        replacements, contradictions = resolve_lifecycle_links(con, names)
+        proj_expr = "f.project" if "project" in cols else "'unknown'"
+        imp_expr = "f.importance" if "importance" in cols else "'unreviewed'"
+        sel = ("SELECT f.id, f.created, f.topic, f.tags, f.file, f.symbol, "
+               f"{proj_expr} AS project, {imp_expr} AS importance, "
+               "f.verify_cmd, f.verified_at, f.text, "
+               + _superseded_by("f.id", cur) + " FROM findings f ")
+        conds, params = [], []
+        tag_filter = getattr(args, "tags", "")
+        if tag_filter:
+            for tok in _norm_tags(tag_filter).split():
+                conds.append("' ' || f.tags || ' ' LIKE ?")
+                params.append(f"% {tok} %")
+        if getattr(args, "project", ""):
+            conds.append(f"({proj_expr}) = ?")
+            params.append(args.project)
+        if getattr(args, "importance", ""):
+            conds.append(f"({imp_expr}) = ?")
+            params.append(args.importance)
+        if getattr(args, "unreviewed", False):
+            conds.append(f"({imp_expr}) = 'unreviewed'")
+        if getattr(args, "unverified", False):
+            conds.append("f.verify_cmd <> '' "
+                         "AND (f.verified_at IS NULL OR f.verified_at = '')")
+        where_clause = ("WHERE " + " AND ".join(conds) + " ") if conds else ""
+        rows = cur.execute(
+            sel + where_clause + "ORDER BY f.id DESC LIMIT ?",
+            params + [args.limit]).fetchall()
+        if not rows:
+            print("empty so far — add the first finding: findings.py add \"topic\"")
+            return
+        print(f"total: {len(rows)}\n")
+        for r in rows:
+            loc = f" [{r['file']}:{r['symbol']}]" if r["file"] else ""
+            tombstone = ("  ⚠ superseded (replacer deleted)"
+                         if "text" in r.keys() and "[superseded:" in (r["text"] or "") else "")
+            sup_id = replacements.get(r["id"], r["superseded_by"])
+            contra_ids = contradictions.get(r["id"], [])
+            badge = (f"  ⚠ superseded by #{sup_id}" if sup_id else tombstone)
+            if contra_ids:
+                badge += f"  ⚠ contradicted by {', '.join(f'#{c}' for c in contra_ids)}"
+            proj_str = f" [{r['project']}]" if ("project" in r.keys() and r["project"] and r["project"] != "unknown") else ""
+            imp_str = f" *{r['importance']}*" if ("importance" in r.keys() and r["importance"] and r["importance"] != "unreviewed") else ""
+            unv_badge = (" [unverified]"
+                         if (r["verify_cmd"] and not r["verified_at"]) else "")
+            print(f"[{r['id']}] {r['created']}  {r['topic']}{proj_str}{imp_str}  "
+                  f"({r['tags']}){unv_badge}{loc}{badge}")
+    finally:
+        con.close()
 
 
 def cmd_show(args):
     con = connect_read()
-    cur = con.cursor()
-    r = cur.execute("SELECT * FROM findings WHERE id = ?",
-                    (args.id,)).fetchone()
-    if not r:
-        print(f"no finding with id={args.id}")
+    try:
+        cur = con.cursor()
+        r = cur.execute("SELECT * FROM findings WHERE id = ?",
+                        (args.id,)).fetchone()
+        if not r:
+            print(f"no finding with id={args.id}")
+            return
+        names = {t[0] for t in cur.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        replacements, contradictions = resolve_lifecycle_links(con, names)
+        print(f"[{r['id']}] {r['created']}  {r['topic']}")
+        sup_id = replacements.get(r["id"])
+        if sup_id:
+            print(f"superseded by #{sup_id} — resolve to it before use")
+        contra_ids = contradictions.get(r["id"], [])
+        if contra_ids:
+            print(f"contradicted by: {', '.join(f'#{c}' for c in contra_ids)}")
+        if r["tags"]:
+            print(f"tags: {r['tags']}")
+        if r["source"]:
+            print(f"source: {r['source']}")
+        if "project" in r.keys() and r["project"]:
+            print(f"project: {r['project']}")
+        if "importance" in r.keys() and r["importance"]:
+            print(f"importance: {r['importance']}")
+        if r["file"]:
+            print(f"at: {r['file']}" + (f":{r['symbol']}" if r["symbol"] else ""))
+        if r["verify_cmd"]:
+            print(f"verify-cmd: {r['verify_cmd']} "
+                  f"(last: {r['verified_at'] or 'never'})")
+        print()
+        print(r["text"])
+        links = _row_links(cur, args.id)
+        supersedes_ids = [linked_id for _lid, d, kind, _t, _n, linked_id
+                          in links if d == "->" and kind == "supersedes"]
+        if supersedes_ids:
+            print(f"replaces: {', '.join(f'#{i}' for i in supersedes_ids)}")
+        if links:
+            print("\nlinks:")
+            for _link_id, direction, kind, topic, note, linked_id in links:
+                note_s = f"  ({note})" if note else ""
+                print(f"  {direction} {kind:12} [{linked_id}] {topic}{note_s}")
+    finally:
         con.close()
-        return
-    print(f"[{r['id']}] {r['created']}  {r['topic']}")
-    sup = cur.execute(
-        "SELECT from_id FROM links WHERE to_id = ? AND kind = 'supersedes'",
-        (args.id,)).fetchone()
-    if sup:
-        print(f"superseded by #{sup['from_id']} — resolve to it before use")
-    if r["tags"]:
-        print(f"tags: {r['tags']}")
-    if r["source"]:
-        print(f"source: {r['source']}")
-    if "project" in r.keys() and r["project"]:
-        print(f"project: {r['project']}")
-    if "importance" in r.keys() and r["importance"]:
-        print(f"importance: {r['importance']}")
-    if r["file"]:
-        print(f"at: {r['file']}" + (f":{r['symbol']}" if r["symbol"] else ""))
-    if r["verify_cmd"]:
-        print(f"verify-cmd: {r['verify_cmd']} "
-              f"(last: {r['verified_at'] or 'never'})")
-    print()
-    print(r["text"])
-    links = _row_links(cur, args.id)
-    supersedes_ids = [linked_id for _lid, d, kind, _t, _n, linked_id
-                      in links if d == "->" and kind == "supersedes"]
-    if supersedes_ids:
-        print(f"replaces: {', '.join(f'#{i}' for i in supersedes_ids)}")
-    if links:
-        print("\nlinks:")
-        for _link_id, direction, kind, topic, note, linked_id in links:
-            note_s = f"  ({note})" if note else ""
-            print(f"  {direction} {kind:12} [{linked_id}] {topic}{note_s}")
-    con.close()
 
 
 def cmd_stats(args):
     con = connect_read()
-    cur = con.cursor()
-    total = cur.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
-    week_ago = (datetime.datetime.now().astimezone() -
-                datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M")
-    last7 = cur.execute("SELECT COUNT(*) FROM findings WHERE created >= ?",
-                        (week_ago,)).fetchone()[0]
-    nlinks = cur.execute("SELECT COUNT(*) FROM links").fetchone()[0]
-    print(f"findings: {total}  (last 7 days: {last7})  links: {nlinks}")
-    tags = cur.execute(
-        "SELECT tags, COUNT(*) n FROM findings GROUP BY tags "
-        "ORDER BY n DESC LIMIT 10").fetchall()
-    if tags and any(r["tags"] for r in tags):
-        print("\ntop tags (set | count):")
-        for r in tags:
-            if r["tags"]:
-                print(f"  {r['tags']:40} | {r['n']}")
-    con.close()
+    try:
+        cur = con.cursor()
+        total = cur.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+        week_ago = (datetime.datetime.now().astimezone() -
+                    datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M")
+        last7 = cur.execute("SELECT COUNT(*) FROM findings WHERE created >= ?",
+                            (week_ago,)).fetchone()[0]
+        nlinks = cur.execute("SELECT COUNT(*) FROM links").fetchone()[0]
+        print(f"findings: {total}  (last 7 days: {last7})  links: {nlinks}")
+        tags = cur.execute(
+            "SELECT tags, COUNT(*) n FROM findings GROUP BY tags "
+            "ORDER BY n DESC LIMIT 10").fetchall()
+        if tags and any(r["tags"] for r in tags):
+            print("\ntop tags (set | count):")
+            for r in tags:
+                if r["tags"]:
+                    print(f"  {r['tags']:40} | {r['n']}")
+    finally:
+        con.close()
 
 
 def cmd_doctor(args):
@@ -784,6 +834,8 @@ def arg_parser():
                           help="disposable semantic index path (vector/hybrid)")
     p_search.add_argument("--json", dest="json_mode", action="store_true",
                           help="machine output: JSON list")
+    p_search.add_argument("--no-log", dest="no_log", action="store_true",
+                          help="do not record search query in search_log")
     p_search.set_defaults(fn=cmd_search)
 
     p_list = sub.add_parser("list", help="list findings")
@@ -831,7 +883,7 @@ def arg_parser():
     p_la.add_argument("from_id", type=int)
     p_la.add_argument("to_id", type=int)
     p_la.add_argument("--kind", default="related",
-                      help="type: related/extends/contradicts/source (default related)")
+                      help="type: related/extends/depends/contradicts/source/supersedes (default related)")
     p_la.add_argument("--note", default="", help="note for the link")
     p_la.set_defaults(fn=cmd_link_add)
     p_classify = sub.add_parser("classify", help="batch apply reviewed classification mapping")

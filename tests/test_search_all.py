@@ -944,5 +944,28 @@ class QueryErrorVsNotFoundTest(unittest.TestCase):
                                   importance="high")
         self.assertEqual(cm.exception.kind, "store")
 
+    def test_substring_search_on_findings_and_contradicted_metadata(self):
+        con = sqlite3.connect(self.research)
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, project, importance) "
+            "VALUES (2, '2026-09-04', 'needle', 'prefixuniquesubstrsuffix', 'coding-kit', 'normal')"
+        )
+        con.execute(
+            "INSERT INTO findings(id, created, topic, text, project, importance) "
+            "VALUES (3, '2026-09-04', 'counterpoint', 'contradicting claim', 'coding-kit', 'normal')"
+        )
+        con.execute(
+            "INSERT INTO links(from_id, to_id, kind, created) VALUES (3, 2, 'contradicts', '2026-09-04')"
+        )
+        con.commit()
+        con.close()
+
+        hits = search_all.search_all(
+            "uniquesubstr", substring=True, db_dir=self.db_dir,
+            research_db=self.research, findings_only=True,
+        )
+        self.assertEqual([h[4] for h in hits], [2])
+        self.assertEqual(hits[0].contradicted_by, [3])
+
 if __name__ == "__main__":
     unittest.main()

@@ -146,8 +146,8 @@ def cmd_classify(args, find_secrets_fn=None):
             ev = item.get("project_rationale", "")
         imp_ev = item.get("importance_rationale", ev)
 
-        # Lint rationale / evidence strings for secrets if find_secrets_fn provided
-        if find_secrets_fn and not getattr(args, "force", False):
+        # Lint rationale / evidence strings for secrets regardless of --force
+        if find_secrets_fn:
             for label, txt in [("evidence", ev), ("importance_evidence", imp_ev)]:
                 if txt:
                     sec, _ = find_secrets_fn(str(txt))
@@ -166,9 +166,14 @@ def cmd_classify(args, find_secrets_fn=None):
 
     is_dry_run = getattr(args, "dry_run", False)
     # Dry run uses read-only connection to ensure zero writes/zero schema mutation on DB.
-    # We avoid connect() on dry-run so an un-migrated DB is never mutated.
+    # Avoid connect() on dry-run so an un-migrated DB is never mutated; still accept legacy
+    # tables lacking findings_fts (pinned by test_classify_dry_run_does_not_mutate_legacy_database_bytes).
     if is_dry_run:
-        con = sqlite3.connect(f"file:{findings_db.DB}?mode=ro", uri=True)
+        if not os.path.exists(findings_db.DB):
+            print(f"[!] findings database does not exist: {findings_db.DB}", file=sys.stderr)
+            sys.exit(1)
+        import _compat
+        con = sqlite3.connect(_compat.ro_uri(findings_db.DB), uri=True)
         con.row_factory = sqlite3.Row
     else:
         con = connect()
@@ -187,7 +192,7 @@ def cmd_classify(args, find_secrets_fn=None):
                 raise ValueError(f"Finding #{fid} does not exist in findings database (aborted entire batch)")
 
         if not is_dry_run:
-            cur.execute("BEGIN TRANSACTION")
+            cur.execute("BEGIN IMMEDIATE")
 
         for item in validated_records:
             fid = item["id"]

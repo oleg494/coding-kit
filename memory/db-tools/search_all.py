@@ -59,10 +59,10 @@ import re
 import sys
 from pathlib import Path
 
-from _compat import chulan_root, fix_encoding  # noqa: E402
+from _compat import chulan_root, fix_encoding, ro_uri  # noqa: E402
 from findings_db import research_db_path  # noqa: E402
 from ftsquery import sanitize_query  # noqa: E402
-from memory_corpus import inventory, selected
+from memory_corpus import inventory, resolve_lifecycle_links, selected
 fix_encoding()
 
 DB_DIR = chulan_root() / "db"
@@ -111,6 +111,9 @@ class HitTuple(tuple):
         meta = meta or {}
         instance.meta = meta
         instance.superseded_by = meta.get("superseded_by")
+        instance.contradicted_by = (
+            list(meta.get("contradicted_by") or []) if meta else None
+        )
         instance.verified = meta.get("verified", False) if meta else None
         instance.verified_at = meta.get("verified_at", "") if meta else None
         instance.source = meta.get("source", "") if meta else None
@@ -186,7 +189,7 @@ def scan_searchable_dbs(db_dir=None, project=""):
             continue
         con = None
         try:
-            con = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
+            con = sqlite3.connect(ro_uri(p), uri=True)
             has = con.execute(
                 "SELECT COUNT(*) FROM sqlite_master "
                 "WHERE name IN ('files_fts','files_fts_trigram')"
@@ -228,7 +231,7 @@ def _search_files(query, limit, substring, db_dir, project=""):
         name = p.stem
         con = None
         try:
-            con = sqlite3.connect(f"file:{p.as_posix()}?mode=ro", uri=True)
+            con = sqlite3.connect(ro_uri(p), uri=True)
             rows = con.execute(
                 f"SELECT rel_path, snippet({idx}, 1, '<b>', '</b>', "
                 f"'…', 12), bm25({idx}, {BM25_WEIGHTS}) "
@@ -271,36 +274,53 @@ def search_files(query: str, limit: int = 5, substring: bool = False,
 
 
 def _search_findings(query, limit, research_db, project, importance,
-                     state="all", verification="all", source="", tag=""):
-    q = _validated_match(query, "findings_fts")
+                     state="all", verification="all", source="", tag="",
+                     substring=False):
+    q = None if substring else _validated_match(query, "findings_fts")
     db = Path(research_db) if research_db else Path(research_db_path())
     if not db.is_file():
         return [], [], "absent"
     con = None
     try:
-        con = sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True)
+        con = sqlite3.connect(ro_uri(db), uri=True)
         con.row_factory = sqlite3.Row
         names = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        replacements = dict(con.execute(
-            "SELECT to_id, MIN(from_id) FROM links WHERE kind='supersedes' GROUP BY to_id")) if "links" in names else {}
-        rows = con.execute(
-            "SELECT f.*, bm25(findings_fts, 10.0, 1.0) AS score, "
-            "snippet(findings_fts, 1, '[', ']', '…', 12) AS snip "
-            "FROM findings_fts JOIN findings f ON f.id=findings_fts.rowid "
-            "WHERE findings_fts MATCH ? ORDER BY score, f.id DESC", (q,))
+        replacements, contradictions = resolve_lifecycle_links(con, names)
+        if substring:
+            esc = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pat = f"%{esc}%"
+            rows = con.execute(
+                "SELECT f.*, -1.0 AS score FROM findings f "
+                "WHERE (f.topic LIKE ? ESCAPE '\\' OR f.text LIKE ? ESCAPE '\\') "
+                "ORDER BY f.id DESC",
+                (pat, pat),
+            )
+        else:
+            rows = con.execute(
+                "SELECT f.*, bm25(findings_fts, 10.0, 1.0) AS score, "
+                "snippet(findings_fts, 1, '[', ']', '…', 12) AS snip "
+                "FROM findings_fts JOIN findings f ON f.id=findings_fts.rowid "
+                "WHERE findings_fts MATCH ? ORDER BY score, f.id DESC", (q,))
         out = []
         for raw in rows:
             row = dict(raw)
             fid = row["id"]
+            snip = (
+                " ".join((row.get("text") or "").split())[:160]
+                if substring
+                else row["snip"]
+            )
             row.update(kind="finding", finding_id=fid,
                        project=row.get("project") or "unknown",
                        importance=row.get("importance") or "unreviewed",
-                       superseded_by=replacements.get(fid))
+                       superseded_by=replacements.get(fid),
+                       contradicted_by=contradictions.get(fid, []),
+                       snip=snip)
             row["verified"] = bool(row.get("verified_at"))
             row["superseded"] = bool(row["superseded_by"] or "[superseded:" in row["text"])
             if not selected(row, project, importance, state, verification, source, tag):
                 continue
-            tup = (row["score"], fid, row["topic"], row["snip"], row["superseded_by"],
+            tup = (row["score"], fid, row["topic"], snip, row["superseded_by"],
                    row["verified"], row.get("verified_at", ""), row.get("source", ""))
             out.append(HitTuple(tup, row))
             if len(out) >= limit:
@@ -329,7 +349,7 @@ def _search_lexical(query, limit, substring, db_dir, research_db, project,
         failures += fails
         hits += [HitTuple((score, db, path, snip, None)) for score, db, path, snip in rows]
     rows, fails, store_state = _search_findings(query, limit, research_db,
-        project, importance, state, verification, source, tag)
+        project, importance, state, verification, source, tag, substring=substring)
     failures += fails
     for row in rows:
         score, fid, topic, snip = row[:4]
@@ -422,6 +442,8 @@ def _json_hits(results):
                 item["project"] = meta.get("project")
             if meta.get("importance") and meta.get("importance") != "unreviewed":
                 item["importance"] = meta.get("importance")
+            if meta.get("contradicted_by"):
+                item["contradicted_by"] = list(meta["contradicted_by"])
         formatted.append(item)
     return formatted
 
@@ -434,12 +456,16 @@ def _print_human_hits(results):
         if fid is not None:
             meta = getattr(hit, "meta", {})
             sup = meta.get("superseded_by")
+            contra = meta.get("contradicted_by") or []
             ver = meta.get("verified", False)
             badges = []
             if sup:
                 badges.append(f"[superseded by #{sup}]")
             elif meta.get("superseded"):
                 badges.append("[superseded; replacer deleted]")
+            if contra:
+                c_str = ", ".join(f"#{c}" for c in contra)
+                badges.append(f"[contradicted by {c_str}]")
             if not ver:
                 badges.append("[unverified]")
             badge_str = (" " + " ".join(badges)) if badges else ""

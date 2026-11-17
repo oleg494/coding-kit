@@ -10,16 +10,19 @@ def _semantic_record(hit):
         label = hit[2] or ""
         topic = label.split(" ", 1)[1] if " " in label else label
     score = hit[0]
-    return {"id": hit[4], "created": meta.get("created", ""), "topic": topic,
-            "tags": meta.get("tags", ""), "source": meta.get("source", ""),
-            "file": meta.get("file", ""),
-            "score": round(float(score), 4) if score is not None else None,
-            "superseded_by": meta.get("superseded_by"),
-            "has_verify": bool(meta.get("verify_cmd")),
-            "verified_at": meta.get("verified_at", "") or "",
-            "project": meta.get("project") or "unknown",
-            "importance": meta.get("importance") or "unreviewed",
-            "snippet": hit[3]}
+    rec = {"id": hit[4], "created": meta.get("created", ""), "topic": topic,
+           "tags": meta.get("tags", ""), "source": meta.get("source", ""),
+           "file": meta.get("file", ""),
+           "score": round(float(score), 4) if score is not None else None,
+           "superseded_by": meta.get("superseded_by"),
+           "has_verify": bool(meta.get("verify_cmd")),
+           "verified_at": meta.get("verified_at", "") or "",
+           "project": meta.get("project") or "unknown",
+           "importance": meta.get("importance") or "unreviewed",
+           "snippet": hit[3]}
+    if meta.get("contradicted_by"):
+        rec["contradicted_by"] = list(meta["contradicted_by"])
+    return rec
 
 
 def cmd_search_semantic(args, mode, db, log_search):
@@ -39,7 +42,8 @@ def cmd_search_semantic(args, mode, db, log_search):
         print(f"findings search (--mode {mode}): {exc}", file=sys.stderr)
         sys.exit(1)
     records = [_semantic_record(hit) for hit in hits]
-    log_search(args.query, len(records), db)
+    if not getattr(args, "no_log", False):
+        log_search(args.query, len(records), db)
     if getattr(args, "json_mode", False):
         print(json.dumps(records, ensure_ascii=False))
         return
@@ -54,6 +58,9 @@ def cmd_search_semantic(args, mode, db, log_search):
     for rec in records:
         badge = (f"  ⚠ superseded by #{rec['superseded_by']}"
                  if rec["superseded_by"] else "")
+        if rec.get("contradicted_by"):
+            c_str = ", ".join(f"#{c}" for c in rec["contradicted_by"])
+            badge += f"  ⚠ contradicted by {c_str}"
         proj_badge = (f" [{rec['project']}]"
                       if rec["project"] and rec["project"] != "unknown" else "")
         print(f"[{rec['id']}] {rec['created']}  {rec['topic']}{proj_badge}  "

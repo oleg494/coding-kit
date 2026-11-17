@@ -1,7 +1,11 @@
 """memory/db-tools/findings_links.py — links graph and related findings."""
 import datetime
 import sys
-from findings_db import connect
+from findings_db import connect, connect_read
+
+VALID_LINK_KINDS = frozenset({
+    "related", "extends", "depends", "contradicts", "source", "supersedes",
+})
 
 
 def _row_links(cur, fid):
@@ -20,76 +24,103 @@ def _row_links(cur, fid):
 
 
 def cmd_link_add(args):
+    if args.kind not in VALID_LINK_KINDS:
+        allowed = ", ".join(sorted(VALID_LINK_KINDS))
+        print(f"invalid link kind '{args.kind}' (expected: {allowed})",
+              file=sys.stderr)
+        sys.exit(2)
+    if args.from_id == args.to_id:
+        print(f"cannot link finding #{args.from_id} to itself", file=sys.stderr)
+        sys.exit(2)
     con = connect()
-    cur = con.cursor()
-    for fid in (args.from_id, args.to_id):
-        if not cur.execute("SELECT 1 FROM findings WHERE id = ?",
-                           (fid,)).fetchone():
-            print(f"no finding with id={fid}", file=sys.stderr)
-            con.close()
-            sys.exit(1)
-    cur.execute(
-        "INSERT INTO links (from_id, to_id, kind, note, created) "
-        "VALUES (?,?,?,?,?)",
-        (args.from_id, args.to_id, args.kind, args.note or "",
-         datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")))
-    con.commit()
-    print(f"[✓] link: {args.from_id} --{args.kind}--> {args.to_id} (id={cur.lastrowid})")
-    con.close()
+    try:
+        cur = con.cursor()
+        for fid in (args.from_id, args.to_id):
+            if not cur.execute("SELECT 1 FROM findings WHERE id = ?",
+                               (fid,)).fetchone():
+                print(f"no finding with id={fid}", file=sys.stderr)
+                sys.exit(1)
+        if args.kind == "supersedes":
+            cycle = cur.execute(
+                "WITH RECURSIVE chain(id) AS ("
+                "  SELECT ? "
+                "  UNION "
+                "  SELECT l.to_id FROM links l JOIN chain c "
+                "  ON l.from_id = c.id WHERE l.kind = 'supersedes'"
+                ") SELECT 1 FROM chain WHERE id = ? LIMIT 1",
+                (args.to_id, args.from_id)).fetchone()
+            if cycle:
+                print(
+                    f"supersedes cycle rejected: #{args.to_id} already "
+                    f"supersedes #{args.from_id}",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+        cur.execute(
+            "INSERT INTO links (from_id, to_id, kind, note, created) "
+            "VALUES (?,?,?,?,?)",
+            (args.from_id, args.to_id, args.kind, args.note or "",
+             datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")))
+        con.commit()
+        print(f"[✓] link: {args.from_id} --{args.kind}--> {args.to_id} (id={cur.lastrowid})")
+    finally:
+        con.close()
 
 
 def cmd_link_list(args):
-    con = connect()
-    cur = con.cursor()
-    if not cur.execute("SELECT 1 FROM findings WHERE id = ?",
-                       (args.id,)).fetchone():
-        print(f"no finding with id={args.id}")
+    con = connect_read()
+    try:
+        cur = con.cursor()
+        if not cur.execute("SELECT 1 FROM findings WHERE id = ?",
+                           (args.id,)).fetchone():
+            print(f"no finding with id={args.id}")
+            return
+        links = _row_links(cur, args.id)
+        if not links:
+            print(f"finding [{args.id}] has no links")
+            return
+        print(f"links of finding [{args.id}]:\n")
+        for _link_id, direction, kind, topic, note, _linked_id in links:
+            note_s = f"  ({note})" if note else ""
+            print(f"  {direction} {kind:12} [{_link_id}] {topic}{note_s}")
+    finally:
         con.close()
-        return
-    links = _row_links(cur, args.id)
-    if not links:
-        print(f"finding [{args.id}] has no links")
-        con.close()
-        return
-    print(f"links of finding [{args.id}]:\n")
-    for _link_id, direction, kind, topic, note, _linked_id in links:
-        note_s = f"  ({note})" if note else ""
-        print(f"  {direction} {kind:12} [{_link_id}] {topic}{note_s}")
-    con.close()
 
 
 def cmd_link_rm(args):
     con = connect()
-    cur = con.cursor()
-    row = cur.execute("SELECT id, from_id, to_id, kind FROM links WHERE id = ?",
-                      (args.id,)).fetchone()
-    if not row:
-        print(f"no link with id={args.id}")
-        return
-    cur.execute("DELETE FROM links WHERE id = ?", (args.id,))
-    con.commit()
-    print(f"[✓] link deleted: {row['from_id']} --{row['kind']}--> {row['to_id']}")
-    con.close()
+    try:
+        cur = con.cursor()
+        row = cur.execute("SELECT id, from_id, to_id, kind FROM links WHERE id = ?",
+                          (args.id,)).fetchone()
+        if not row:
+            print(f"no link with id={args.id}")
+            return
+        cur.execute("DELETE FROM links WHERE id = ?", (args.id,))
+        con.commit()
+        print(f"[✓] link deleted: {row['from_id']} --{row['kind']}--> {row['to_id']}")
+    finally:
+        con.close()
 
 
 def cmd_related(args):
     """Quick answer to 'what is linked to this finding': id + topics."""
-    con = connect()
-    cur = con.cursor()
-    if getattr(args, "depth", 0) > 0:
-        _print_chain(cur, args.id, args.depth)
+    con = connect_read()
+    try:
+        cur = con.cursor()
+        if getattr(args, "depth", 0) > 0:
+            _print_chain(cur, args.id, args.depth)
+            return
+        links = _row_links(cur, args.id)
+        if not links:
+            print(f"finding [{args.id}] has no links")
+            return
+        print(f"linked to [{args.id}]:\n")
+        for _link_id, direction, kind, topic, note, _linked_id in links:
+            note_s = f"  ({note})" if note else ""
+            print(f"  {direction} {kind:12} [{_linked_id}] {topic}{note_s}")
+    finally:
         con.close()
-        return
-    links = _row_links(cur, args.id)
-    if not links:
-        print(f"finding [{args.id}] has no links")
-        con.close()
-        return
-    print(f"linked to [{args.id}]:\n")
-    for _link_id, direction, kind, topic, note, _linked_id in links:
-        note_s = f"  ({note})" if note else ""
-        print(f"  {direction} {kind:12} {topic}{note_s}")
-    con.close()
 
 
 def _print_chain(cur, fid, depth):

@@ -76,6 +76,30 @@ class SupersedesResolutionTest(unittest.TestCase):
         rlist = self._run("list")
         self.assertIn("superseded", rlist.stdout)
 
+    def test_transitive_supersedes_resolves_to_latest_and_rejects_cycles(self):
+        self._seed_pair()
+        r3 = self._run("add", "gamma final", "--text", "latest conclusion",
+                       "--supersedes", "2")
+        self.assertEqual(r3.returncode, 0, r3.stderr)
+
+        show1 = self._run("show", "1")
+        self.assertEqual(show1.returncode, 0, show1.stderr)
+        self.assertIn("superseded by #3", show1.stdout)
+
+        s1 = self._run("search", "beta", "--json")
+        self.assertEqual(s1.returncode, 0, s1.stderr)
+        import json
+        by_id = {row["id"]: row for row in json.loads(s1.stdout)}
+        self.assertEqual(by_id[1]["superseded_by"], 3)
+        self.assertEqual(by_id[2]["superseded_by"], 3)
+
+        # Self-link and cycle in supersedes links must fail closed (rc != 0)
+        self_link = self._run("link", "add", "1", "1", "--kind", "related")
+        self.assertNotEqual(self_link.returncode, 0)
+        cyc = self._run("link", "add", "1", "3", "--kind", "supersedes")
+        self.assertNotEqual(cyc.returncode, 0)
+        self.assertIn("cycle", cyc.stderr.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

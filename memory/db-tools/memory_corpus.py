@@ -2,12 +2,44 @@
 import hashlib
 import json
 import sqlite3
+import sys
 from contextlib import closing
 from pathlib import Path
 
+_HERE = str(Path(__file__).resolve().parent)
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import _compat  # noqa: E402
+
 
 def connect_ro(path):
-    return sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
+    return sqlite3.connect(_compat.ro_uri(path), uri=True)
+
+
+def resolve_lifecycle_links(con, names):
+    """Resolve transitive MAX(from_id) supersedes targets and symmetric contradicts."""
+    if "links" not in names:
+        return {}, {}
+    direct = dict(con.execute(
+        "SELECT to_id, MAX(from_id) FROM links WHERE kind='supersedes' GROUP BY to_id"
+    ))
+    replacements = {}
+    for target_id in direct:
+        cur_id = direct[target_id]
+        seen = {target_id}
+        while cur_id in direct and cur_id not in seen:
+            seen.add(cur_id)
+            cur_id = direct[cur_id]
+        replacements[target_id] = cur_id
+    contradictions = {}
+    for fid, tid in con.execute(
+        "SELECT from_id, to_id FROM links WHERE kind='contradicts'"
+    ):
+        if fid == tid:
+            continue
+        contradictions.setdefault(fid, set()).add(tid)
+        contradictions.setdefault(tid, set()).add(fid)
+    return replacements, {k: sorted(v) for k, v in contradictions.items()}
 
 
 def selected(record, project="", importance="", state="all", verification="all", source="", tag=""):
@@ -41,9 +73,7 @@ def findings(path):
     with closing(connect_ro(path)) as con:
         con.row_factory = sqlite3.Row
         names = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        replacements = {}
-        if "links" in names:
-            replacements = dict(con.execute("SELECT to_id, MIN(from_id) FROM links WHERE kind='supersedes' GROUP BY to_id"))
+        replacements, contradictions = resolve_lifecycle_links(con, names)
         records = []
         for row in con.execute("SELECT * FROM findings ORDER BY id"):
             row = dict(row)
@@ -51,7 +81,8 @@ def findings(path):
             row.update(key=f"finding:{fid}", kind="finding", finding_id=fid,
                        project=row.get("project") or "unknown",
                        importance=row.get("importance") or "unreviewed",
-                       superseded_by=replacements.get(fid))
+                       superseded_by=replacements.get(fid),
+                       contradicted_by=contradictions.get(fid, []))
             row["verified"] = bool(row.get("verified_at"))
             row["superseded"] = bool(row["superseded_by"] or "[superseded:" in row["text"])
             row["db"] = "research" if row["project"] == "unknown" else f"research:{row['project']}"

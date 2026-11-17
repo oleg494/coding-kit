@@ -27,6 +27,7 @@ import _compat
 ROOT = _compat.chulan_root()
 
 from findings_db import research_db_path
+from findings_secrets import scrub_text
 DB = research_db_path()
 
 SCHEMA = """
@@ -56,6 +57,9 @@ def _connect():
 
 def log_search(tool, db_name, query, hits):
     """Record one search. Errors must not break the search — the metric is secondary."""
+    if os.environ.get("MEMORY_NO_LOG") == "1" or not os.path.exists(DB):
+        return
+    query = scrub_text(query)
     try:
         con = _connect()
         con.execute(

@@ -69,7 +69,9 @@ CREATE TRIGGER IF NOT EXISTS findings_ad AFTER DELETE ON findings BEGIN
     INSERT INTO findings_fts(findings_fts, rowid, topic, text)
     VALUES ('delete', old.id, old.topic, old.text);
 END;
-CREATE TRIGGER IF NOT EXISTS findings_au AFTER UPDATE ON findings BEGIN
+CREATE TRIGGER IF NOT EXISTS findings_au AFTER UPDATE OF topic, text ON findings
+WHEN old.topic IS NOT new.topic OR old.text IS NOT new.text
+BEGIN
     INSERT INTO findings_fts(findings_fts, rowid, topic, text)
     VALUES ('delete', old.id, old.topic, old.text);
     INSERT INTO findings_fts(rowid, topic, text)
@@ -159,8 +161,10 @@ def connect_read():
     (pre-FTS restore, missing schema) is routed to the rw connect(): a
     ro open SUCCEEDS on a desynced db, so the empty-index check below is
     what keeps the D-C bomb from going silent on the read path."""
+    if not os.path.exists(DB):
+        return connect()  # db absent: first-run creation is a write
     try:
-        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+        con = sqlite3.connect(_compat.ro_uri(DB), uri=True)
     except sqlite3.OperationalError:
         return connect()  # db absent: first-run creation is a write
     con.row_factory = sqlite3.Row
@@ -194,7 +198,7 @@ def connect_read_strict():
         return None, (f"no findings store at {DB} "
                       "(nothing to search; not creating one)")
     try:
-        con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+        con = sqlite3.connect(_compat.ro_uri(DB), uri=True)
     except sqlite3.OperationalError as e:
         return None, f"findings store unreadable: {e}"
     con.row_factory = sqlite3.Row

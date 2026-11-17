@@ -289,6 +289,29 @@ def _ts_bash_errors(rel_path, content):
     return []
 
 
+_PY_AST_CACHE = None
+
+
+def _parse_py(rel_path, content):
+    """Parse Python source with a 1-entry cache across extract_* passes."""
+    global _PY_AST_CACHE
+    import hashlib
+    n = len(content)
+    digest = hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()
+    cached = _PY_AST_CACHE
+    if cached is not None and cached[0] == rel_path and cached[1] == n and cached[2] == digest:
+        res = cached[3]
+    else:
+        try:
+            res = ast.parse(content)
+        except SyntaxError as exc:
+            res = exc
+        _PY_AST_CACHE = (rel_path, n, digest, res)
+    if isinstance(res, SyntaxError):
+        raise res
+    return res
+
+
 def extract_symbols(rel_path, content):
     """File symbols: (name, type, line, signature). For .py —
     functions/classes/methods via ast (functions get a signature); for .md —
@@ -300,9 +323,8 @@ def extract_symbols(rel_path, content):
     if ext in _JS_EXTS:
         return _ts_symbols(rel_path, content)
     if ext == ".py":
-        import ast
         try:
-            tree = ast.parse(content)
+            tree = _parse_py(rel_path, content)
         except SyntaxError:
             return syms
 
@@ -366,10 +388,10 @@ def extract_imports(rel_path, content):
     ext = os.path.splitext(rel_path)[1].lower()
     if ext in _JS_EXTS:
         return _ts_imports(rel_path, content)
-    if not rel_path.endswith(".py"):
+    if ext != ".py":
         return []
     try:
-        tree = ast.parse(content)
+        tree = _parse_py(rel_path, content)
     except SyntaxError:
         return []
     edges = []
@@ -391,10 +413,10 @@ def extract_calls(rel_path, content):
         return _ts_calls(rel_path, content)
     if ext in _SH_EXTS:
         return _ts_bash_calls(content)
-    if not rel_path.endswith(".py"):
+    if ext != ".py":
         return []
     try:
-        tree = ast.parse(content)
+        tree = _parse_py(rel_path, content)
     except SyntaxError:
         return []
     edges = []
@@ -416,10 +438,10 @@ def extract_inherits(rel_path, content):
     ext = os.path.splitext(rel_path)[1].lower()
     if ext in _JS_EXTS:
         return _ts_inherits(rel_path, content)
-    if not rel_path.endswith(".py"):
+    if ext != ".py":
         return []
     try:
-        tree = ast.parse(content)
+        tree = _parse_py(rel_path, content)
     except SyntaxError:
         return []
     edges = []
@@ -443,10 +465,10 @@ def extract_errors(rel_path, content):
         return _ts_errors(rel_path, content)
     if ext in _SH_EXTS:
         return _ts_bash_errors(rel_path, content)
-    if not rel_path.endswith(".py"):
+    if ext != ".py":
         return []
     try:
-        ast.parse(content)
+        _parse_py(rel_path, content)
     except SyntaxError as e:
         return [(e.lineno or 0, e.msg)]
     return []

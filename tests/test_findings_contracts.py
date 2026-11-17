@@ -89,9 +89,12 @@ class FindingsContractPinsTest(unittest.TestCase):
         flips back, tag navigation silently broke again."""
         self._add("comma row", "text one", tags="sqlite,fts,search")
         self._add("space row", "text two", tags="sqlite fts search")
+        self._add("unrelated row", "text three", tags="other")
         r = self._run("list", "--tags", "fts")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("space row", r.stdout)
+        self.assertNotIn("unrelated row", r.stdout,
+                         "list --tags must exclude non-matching findings")
         self.assertIn("comma row", r.stdout,
                       "comma tags invisible again: update this pin "
                       "deliberately (P14 regression)")

@@ -182,21 +182,25 @@ def stamp_wiki_frontmatter(rel: str, content: str, content_hash: str):
     - `origin: manual` when the note lacks any origin (ASI06, wave1);
     - `modified: <ISO-8601>` when the note lacks the freshness stamp.
     Returns (stamped_content, recomputed_hash_or_None)."""
-    if "/Wiki/" not in f"/{rel}" or not rel.endswith(".md"):
+    rel_posix = rel.replace("\\", "/")
+    if "/Wiki/" not in f"/{rel_posix}" or not rel.endswith(".md"):
         return content, None
     head_end = content.find("\n---", 3) if content.startswith("---") else -1
     if head_end == -1:
         return content, None
     head = content[3:head_end]
     stamped = content
-    if "origin:" not in head:
+    changed = False
+    if not re.search(r"^origin:", head, re.MULTILINE):
         stamped = stamped[:head_end] + "\norigin: manual" + stamped[head_end:]
         head_end = stamped.find("\n---", 3)
         head = stamped[3:head_end]
+        changed = True
     if not re.search(r"^modified:", head, re.MULTILINE):
         stamped = stamped[:head_end] + \
             f"\nmodified: {datetime.date.today().isoformat()}" + stamped[head_end:]  # noqa: DTZ011 — local day is the contract
-    else:
+        changed = True
+    if not changed:
         return content, None  # nothing to stamp
     return stamped, hashlib.sha256(stamped.encode("utf-8")).hexdigest()
 
@@ -208,13 +212,14 @@ def upsert_file(cur, rel, full, mtime, size, stats, action, content_hash=None,
     comparison) to avoid reading the file twice."""
     if content is None:
         content_hash, content = read_hashed(full)
+    disk_hash = content_hash
     # wave4 Task 14 (generalizes wave1's origin stamp): wiki notes get
     # `origin: manual` + `modified: <ISO>` stamps in the indexed copy
-    # only — the file on disk is never rewritten, the hash is recomputed
-    # so the index stays self-consistent.
+    # only — the file on disk is never rewritten, while files.content_hash
+    # keeps the raw disk hash so incremental_build recognizes touched files.
     stamped, new_hash = stamp_wiki_frontmatter(rel, content, content_hash)
     if new_hash is not None:
-        content, content_hash = stamped, new_hash
+        content = stamped
     cur.execute("DELETE FROM symbols WHERE rel_path = ?", (rel,))
     cur.execute("DELETE FROM imports WHERE rel_path = ?", (rel,))
     cur.execute("DELETE FROM calls WHERE rel_path = ?", (rel,))
@@ -238,13 +243,13 @@ def upsert_file(cur, rel, full, mtime, size, stats, action, content_hash=None,
         cur.execute(
             "INSERT INTO files (rel_path, ext, size_bytes, mtime, lines, "
             "symbols_count, content_hash, content) VALUES (?,?,?,?,?,?,?,?)",
-            (rel, ext, size, mtime, lines, len(syms), content_hash, content),
+            (rel, ext, size, mtime, lines, len(syms), disk_hash, content),
         )
     else:
         cur.execute(
             "UPDATE files SET ext=?, size_bytes=?, mtime=?, lines=?, "
             "symbols_count=?, content_hash=?, content=? WHERE rel_path=?",
-            (ext, size, mtime, lines, len(syms), content_hash, content, rel),
+            (ext, size, mtime, lines, len(syms), disk_hash, content, rel),
         )
     cur.executemany(
         "INSERT INTO symbols (rel_path, name, kind, line, signature) "

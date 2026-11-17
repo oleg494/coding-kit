@@ -41,7 +41,7 @@ Body.
 """
 
 NOTE_LEGACY_TYPE = """---
-type: error
+type: notes
 title: "Legacy bug note"
 description: "old taxonomy"
 date: 2026-08-20
@@ -93,10 +93,19 @@ class WikiHygieneTest(unittest.TestCase):
 
     def test_missing_type_warns(self):
         _note(self.wiki, "notes/notyped.md", NOTE_LEGACY_TYPE.replace(
-            "type: error\n", ""))
+            "type: notes\n", ""))
         rc, out = self._run_main()
         self.assertEqual(rc, 0)
         self.assertIn("type", out)
+
+    def test_dev_wiki_extended_types_pass_clean(self):
+        for idx, t in enumerate(("howto", "errors", "decisions", "ideas")):
+            _note(self.wiki, f"{t}/item-{idx}.md", NOTE_OK.replace(
+                "type: reference", f"type: {t}"))
+        rc, out = self._run_main()
+        self.assertEqual(rc, 0, out)
+        self.assertIn("library clean", out)
+        self.assertNotIn("legacy type", out.lower())
 
     # -- index.md hard cap ------------------------------------------------
 
