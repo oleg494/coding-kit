@@ -3,7 +3,7 @@ name: autonomous-work
 description: 'Use when the user delegates choosing or owning work ("choose useful work yourself", "работай сам", "веди проект как партнёр"), delegates read-only research choice ("сам выбери что исследовать, ничего не меняй"), asks to resume an ongoing mission, continues work under a prior standing grant, or when that grant''s scope or expiry is uncertain. Not for ordinary bounded tasks, bounded read-only reviews or plan-only requests (execution plans belong to writing-plans); a scope limit constrains effects, not who chooses the work. Ordinary bounded work follows OPS alone.'
 license: MIT
 metadata:
-  version: "6.1.0"
+  version: "6.2.0"
 ---
 
 # Autonomous Work

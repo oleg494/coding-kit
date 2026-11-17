@@ -24,17 +24,17 @@ release approval; unobserved CI remains unverified.
 
 | ID | Claim | Verification command | Evidence | Status |
 |---|---|---|---|---|
-| C-01 | Full test suite passes on Windows/Python 3.12 (1006 passed, 22 skipped, 602 subtests on v6.0.0) | `python -B -X utf8 -m pytest tests -q -rs -p no:cacheprovider` | [CHANGELOG](CHANGELOG.md) v6.0.0 verification record | verified |
+| C-01 | Full test suite passes on Windows/Python 3.12 (1068 passed, 24 skipped, 634 subtests on v6.2.0) | `python -B -X utf8 -m pytest tests -q -rs -p no:cacheprovider` | [CHANGELOG](CHANGELOG.md) v6.2.0 verification record | verified |
 | C-02 | CI kit gates are configured for Windows and Ubuntu with Python 3.12 and read-only permissions; live candidate CI remains unobserved | `python -m pytest tests/test_ci_workflow.py -q` | [.github/workflows/test.yml](../.github/workflows/test.yml) | verified |
-| C-03 | Doctor: 14/14 checks on v6.0.0 (live profile, skills in sync) | `python scripts/doctor.py` | [CHANGELOG](CHANGELOG.md) v6.0.0 verification record | verified |
-| C-04 | Integrity manifest: zero control-plane drift (209 files pinned on v6.0.0) | `python scripts/tools/integrity_manifest.py` | [integrity-manifest.json](../integrity-manifest.json), [CHANGELOG](CHANGELOG.md) v6.0.0 | verified |
-| C-05 | File-size gate green (0 hard violations on v6.0.0) | `python scripts/tools/check_file_sizes.py --ci` | [CHANGELOG](CHANGELOG.md) v6.0.0 verification record | verified |
-| C-06 | Trap-suite dry-run validates 50 scenario inputs (DRY_RUN rows, exit 0; not behavioral proof) | `python eval/runner.py --inline-skills` | [CHANGELOG](CHANGELOG.md) v6.0.0 input-validation record | verified |
-| C-07 | Task-runner dry-run validates 6 task inputs (DRY_RUN rows, exit 0; not execution) | `python eval/task_runner.py --dry-run` | [CHANGELOG](CHANGELOG.md) v6.0.0 input-validation record | verified |
-| C-08 | Trigger-eval auto mode validates 197 queries total, assembled from colocated cases and fallback queries | `python eval/trigger_eval.py --queries auto` | [CHANGELOG](CHANGELOG.md) v6.0.0 input-validation record | verified |
-| C-09 | Live deploy to user profiles, then repeat dry-run reports no pending changes (v6.0.0) | `python scripts/tools/deploy.py --dry-run` (no pending changes after deploy) | [CHANGELOG](CHANGELOG.md) v6.0.0 deployment record | verified |
-| C-10 | Canonical mirror `.agents/skills/` is byte-identical to repo masters | `python scripts/tools/deploy.py --canonical --dry-run` | [CHANGELOG](CHANGELOG.md) v6.0.0 verification record | verified |
-| C-11 | All 27 profile-declared skills exist on disk; manifest equals disk | `python scripts/doctor.py` (manifest check) | [CHANGELOG](CHANGELOG.md) v6.0.0 verification record | verified |
+| C-03 | Doctor: 15/15 checks green on v6.2.0 (live profile, skills, and kit-owned routers in sync) | `python scripts/doctor.py` | [CHANGELOG](CHANGELOG.md) v6.2.0 verification record | verified |
+| C-04 | Integrity manifest: zero control-plane drift (231 files pinned on v6.2.0) | `python scripts/tools/integrity_manifest.py` | [integrity-manifest.json](../integrity-manifest.json), [CHANGELOG](CHANGELOG.md) v6.2.0 | verified |
+| C-05 | File-size gate green (0 hard violations, 34 soft entries on v6.2.0) | `python scripts/tools/check_file_sizes.py --ci` | [CHANGELOG](CHANGELOG.md) v6.2.0 verification record | verified |
+| C-06 | Trap-suite dry-run validates 50 scenario inputs (DRY_RUN rows, exit 0; not behavioral proof) | `python eval/runner.py --inline-skills` | [CHANGELOG](CHANGELOG.md) v6.2.0 input-validation record | verified |
+| C-07 | Task-runner dry-run validates 6 task inputs (DRY_RUN rows, exit 0; not execution) | `python eval/task_runner.py --dry-run` | [CHANGELOG](CHANGELOG.md) v6.2.0 input-validation record | verified |
+| C-08 | Trigger-eval auto mode validates 200 queries across 16 skills, assembled from colocated cases and fallback queries | `python eval/trigger_eval.py --queries auto` | [CHANGELOG](CHANGELOG.md) v6.2.0 input-validation record | verified |
+| C-09 | Live deploy to user profiles, then repeat dry-run reports no pending changes (v6.2.0) | `python scripts/tools/deploy.py --dry-run` (no pending changes after deploy) | [CHANGELOG](CHANGELOG.md) v6.2.0 deployment record | verified |
+| C-10 | Canonical mirror `.agents/skills/` is byte-identical to repo masters (v6.2.0) | `python scripts/tools/deploy.py --canonical --dry-run` | [CHANGELOG](CHANGELOG.md) v6.2.0 verification record | verified |
+| C-11 | All 27 profile-declared skills exist on disk; manifest equals disk (v6.2.0) | `python scripts/doctor.py` (manifest check) | [CHANGELOG](CHANGELOG.md) v6.2.0 verification record | verified |
 | C-12 | Installer bootstraps the memory store and passes the search smoke check | `python scripts/install.py` (look for `search smoke: OK`) | [CHANGELOG](CHANGELOG.md) v5.1.0 verification record | verified |
 | C-13 | `memory-warmup.py` honors `MEMORY_ROOT` and is not auto-run by generated routers | `python -m pytest tests/test_v29.py tests/test_deploy_cli.py -q` | [tests/test_v29.py](../tests/test_v29.py), [CHANGELOG](CHANGELOG.md) v5.1.0 | verified |
 | C-14 | Backup/restore drill: DEGRADED snapshots refused; drill exits 0 only after `PRAGMA integrity_check` and search verification pass | `python -m pytest tests/test_backup_memory.py -q` | [tests/test_backup_memory.py](../tests/test_backup_memory.py) | verified |
@@ -53,6 +53,7 @@ release approval; unobserved CI remains unverified.
 | C-27 | v6.1.0 clean tracked-source snapshot plus authorized delta passed 1048 tests, 24 prerequisite skips, 618 subtests; this is not a green claim for the working checkout with missing memory files | `python -B -X utf8 -m pytest tests -q -rs -p no:cacheprovider` | [CHANGELOG](CHANGELOG.md) v6.1.0 scoped verification | verified |
 | C-28 | v6.1.0 local application synchronized owned skill payloads and preserved router bodies; full checkout deployment remains blocked by 21 pre-existing missing engine files | — | [CHANGELOG](CHANGELOG.md) v6.1.0 scoped application | evidence-only |
 | C-29 | Native session comparison: baseline and 6.1 policy each passed ten local cases once; no demonstrated advantage | `python eval/session_runner.py --cases eval/session_cases.json --policy <frozen-policy.md> --output <new-run-dir> --model <provider/model>` | [Session evaluation](session-evaluation.md), [CHANGELOG](CHANGELOG.md) v6.1.0 | evidence-only |
+| C-30 | v6.2.0 full system remediation: clean `~/.memory` rebuild (`wiki.db` 66 rows, 0 excluded dirs), Gemini/Antigravity router rollout, and all 6 local release gates green | `python scripts/tools/deploy.py && python scripts/doctor.py` | [CHANGELOG](CHANGELOG.md) v6.2.0 release record | verified |
 
 Notes on the unverified rows:
 

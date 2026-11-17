@@ -3,7 +3,7 @@ name: dev-wiki
 description: 'Use when prior decisions, project history or preferences could change the answer, or completed work left a durable result: "do you remember", "what did we decide", "save this", "напомни", "запомни", "сохрани". Retrieval with search_all.py and findings.py, plus deterministic save routing — project status to project docs, verified reusable conclusion to findings, portable how-to to the Wiki. Not for current code or fresh research.'
 license: MIT
 metadata:
-  version: "6.1.0"
+  version: "6.2.0"
 ---
 
 # Dev Wiki — cross-session developer memory
@@ -85,6 +85,10 @@ indexes that document: `python ~/.memory/db-tools/build.py -r <root> -o ~/.memor
 | `decision` | `Wiki/decisions/` | ADR, architectural decision |
 | `idea` | `Wiki/ideas/` | Idea, not yet a decision |
 
+`lint_wiki.py` accepts `user`, `feedback`, `project`, `reference`, `howto`,
+plus both singular and plural forms (`error`/`errors`, `decision`/`decisions`,
+`idea`/`ideas`).
+
 ### Findings metadata
 
 Projects are discovered from `~/.memory/db/*.db` plus optional `projects.json`;
@@ -114,7 +118,9 @@ python ~/.memory/db-tools/search_all.py "token" --state current --verification v
 
 - Lexical FTS5 is the default: space-separated terms must all match. Start from
   a distinctive project or component token, not a full sentence; widen only
-  after seeing what the first pass returned.
+  after seeing what the first pass returned. Pass `--no-log` on
+  `findings.py search` / `search.py` (or `MEMORY_NO_LOG=1`) for zero-telemetry
+  reads without writing `search_log`.
 - `--mode vector` or `hybrid` requires an explicitly built local ONNX index
   (`--model-dir`, see the README). Never silently substitute lexical hashes or
   a hosted embedding API.

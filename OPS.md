@@ -1,6 +1,6 @@
 # Coding Agent OS — Operating Contract
 
-> **v6.1.0** | One contract, 27 on-demand skills, scoped evidence and memory.
+> **v6.2.0** | One contract, 27 on-demand skills, scoped evidence and memory.
 > Load once per session; reuse the current content if already loaded.
 
 Answer in the user's language; code and shared docs are English.

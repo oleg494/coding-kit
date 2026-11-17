@@ -4,12 +4,9 @@
 
 | Version | Supported |
 |---|---|
-| 4.4.x | yes |
-| 4.3.x | yes |
-| 4.x   | yes |
-| 3.4.x | yes |
-| 3.3.x | yes |
-| < 3.3 | no |
+| 6.2.x | yes |
+| 6.1.x | no |
+| < 6.2 | no |
 
 ## Reporting a vulnerability
 
@@ -42,6 +39,11 @@ Include: affected paths/scripts, reproduction steps, and the environment
   written through); content already *inside* a link that stays within the
   root is trusted; the check is pre-mutation only, so a link swapped in
   after the check but before a write (TOCTOU) is not caught — bootstrap
-  is not a crash-atomic transaction; and scripts executed after install
-  (`memory-warmup.py`, `db-tools/*`) rely on the same root convention,
-  not on this preflight.
+  bootstrap is not a crash-atomic transaction; and scripts executed after install
+  (`memory-warmup.py`, `db-tools/*`) rely on the same root convention and
+  percent-escaped read-only SQLite URIs (`_compat.ro_uri`), not on this preflight.
+- **Evaluation confinement (since 6.2.0):** `eval/rigor/container.py` validates
+  Docker image names and denies sensitive host mount paths/sockets;
+  `eval/session_gate.ts` and `eval/session_runner.py` enforce top-down
+  symlink-free workspace confinement and strip ambient memory-root overrides
+  from child processes.
